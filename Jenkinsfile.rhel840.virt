@@ -19,6 +19,12 @@ pipeline {
              }
          }
     }
+    post {
+        always {
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'osbuild-*.log'
+            archiveArtifacts allowEmptyArchive: true, artifacts: 'osbuild-*.json'
+        }
+    }
     options {
         timestamps()
         timeout(time: 3, unit: 'HOURS')
