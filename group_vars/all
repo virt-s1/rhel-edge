@@ -9,7 +9,7 @@ os_images:
   rhel-8-3: RHEL-8.3.1-x86_64-nightly-latest
   rhel-8-4: RHEL-8.4.0-x86_64-nightly-latest
 
-os_flavor: ci.nested.virt.m1.large
+os_flavor: ci.m1.large
 os_network: provider_net_cci_6
 
 ostree_type:
@@ -19,8 +19,12 @@ ostree_type:
 
 distros:
   fedora-33: fedora-33
-  rhel-8-3: rhel-8.3
-  rhel-8-4: rhel-8.4
+  rhel-8-3: RHEL-8.3.1
+  rhel-8-4: RHEL-8.4.0
+
+source_file:
+  rhel-8-3: rhel-8-3-1.json
+  rhel-8-4: rhel-8-4-0.json
 
 repo:
   fedora-33: https://mirrors.rit.edu/fedora/fedora/linux/releases/33/Everything/x86_64/os/
