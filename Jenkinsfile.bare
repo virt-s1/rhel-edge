@@ -1,0 +1,37 @@
+pipeline {
+    agent {
+        node {
+            label 'container-fedora-33-stage'
+        }
+    }
+    stages {
+         stage("ostree testing") {
+             steps {
+                 script {
+                     env.COMPOSE_ID = sh(returnStdout: true, script: 'echo $CI_MESSAGE | jq -r ".compose_id"').trim()
+                     currentBuild.displayName = "${env.BUILD_NUMBER}-${env.COMPOSE_ID}"
+                 }
+                 withCredentials([string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD')]) {
+                    sh label: 'run ansible playbook', script: """
+                        printenv
+                        TEST_ARCH=x86_64 ansible-playbook -v -i inventory -e job_number=${env.BUILD_NUMBER} ostree-bare.yml
+                    """
+                 }
+             }
+         }
+    }
+    post {
+        always {
+             archiveArtifacts allowEmptyArchive: true, artifacts: 'report.xml'
+             archiveArtifacts allowEmptyArchive: true, artifacts: 'log/*'
+             sh label: 'clean enviroment', script: """
+             ansible-playbook -v -i inventory clean-bare.yml
+             """
+        }
+    }
+    options {
+        timestamps()
+        timeout(time: 4, unit: 'HOURS')
+    }
+}
+

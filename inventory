@@ -1,0 +1,36 @@
+[openstack]
+localhost
+
+[beaker]
+localhost
+
+[esxi]
+localhost
+
+[kvm]
+localhost
+
+[builder]
+
+[ostree]
+
+[cloud:children]
+openstack
+beaker
+kvm
+esxi
+
+[remote:children]
+builder
+ostree
+
+[cloud:vars]
+ansible_connection=local
+
+[remote:vars]
+ansible_user=admin
+ansible_private_key_file="{{ playbook_dir }}/key/ostree_key"
+ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3

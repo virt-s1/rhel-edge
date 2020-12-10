@@ -1,0 +1,34 @@
+---
+- hosts: openstack
+  gather_facts: no
+  become: no
+  tasks:
+    - name: "remove openstack instance {{ instance_name }}"
+      os_server:
+        cloud: psi-openstack
+        name: "{{ instance_name }}"
+        state: absent
+
+    - name: "remove security group {{ security_group_name }}"
+      os_security_group:
+        cloud: psi-openstack
+        name: "{{ security_group_name }}"
+        state: absent
+
+- hosts: beaker
+  gather_facts: no
+  become: no
+  tasks:
+    - name: "cancel beaker job {{ job_id }}"
+      command: bkr job-cancel {{ job_id }}
+      register: job_canceled
+      retries: 10
+      delay: 5
+      until: job_canceled.stdout == "Cancelled " + job_id
+
+    - name: "delete beaker job {{ job_id }}"
+      command: bkr job-delete {{ job_id }}
+      register: job_deleted
+      retries: 10
+      delay: 5
+      until: job_id in job_deleted.stdout

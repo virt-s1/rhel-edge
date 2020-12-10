@@ -1,0 +1,38 @@
+job_number: 1
+
+os: "{{ lookup('env', 'TEST_OS') }}"
+arch: "{{ lookup('env', 'TEST_ARCH') }}"
+platform: "{{ lookup('env', 'TEST_PLATFORM') or 'virt'}}"
+
+os_images:
+  fedora-33: Fedora-Cloud-Base-33
+  rhel-8-3: RHEL-8.3.1-x86_64-nightly-latest
+  rhel-8-4: RHEL-8.4.0-x86_64-nightly-latest
+
+os_flavor: ci.nested.virt.m1.large
+os_network: provider_net_cci_6
+
+ostree_type:
+  fedora-33: fedora-iot-commit
+  rhel-8-3: rhel-edge-commit
+  rhel-8-4: rhel-edge-commit
+
+distros:
+  fedora-33: fedora-33
+  rhel-8-3: rhel-8.3
+  rhel-8-4: rhel-8.4
+
+repo:
+  fedora-33: https://mirrors.rit.edu/fedora/fedora/linux/releases/33/Everything/x86_64/os/
+  rhel-8-3: http://download.devel.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.3.1/compose/BaseOS/x86_64/os/
+  rhel-8-4: http://download.devel.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/
+
+ostree_ref:
+  fedora-33: "fedora/33/{{ arch }}/iot"
+  rhel-8-3: "rhel/8/{{ arch }}/edge"
+  rhel-8-4: "rhel/8/{{ arch }}/edge"
+
+ostree_name:
+  fedora-33: "fedora-iot"
+  rhel-8-3: "rhel-edge"
+  rhel-8-4: "rhel-edge"

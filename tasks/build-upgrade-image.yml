@@ -1,0 +1,141 @@
+---
+- name: start image building
+  command: "composer-cli compose start-ostree --ref {{ ostree_ref[os] }} --parent {{ ostree_commit }} upgrade {{ ostree_type[os] }}"
+  become: yes
+  register: compose_start
+  ignore_errors: yes
+
+- debug:
+    var: compose_start
+
+- name: get compose status
+  command: composer-cli compose status
+  become: yes
+  register: compose_status
+
+- name: get and set compose uuid
+  set_fact:
+    compose_uuid: "{{ compose_status.stdout.split()[0] }}"
+
+- name: collect image building log no matter success or fail
+  block:
+    - name: wait until image building finished
+      command: composer-cli compose status
+      become: yes
+      register: compose_status
+      retries: 60
+      delay: 30
+      until: "'FINISHED' in compose_status.stdout"
+  always:
+    - name: collect compose log
+      command: "composer-cli compose log {{ compose_uuid }}"
+      register: result_log
+      become: yes
+    - name: save compose log
+      copy:
+        content: "{{ result_log.stdout }}"
+        dest: /tmp/compose.build.log
+    - name: fetch log file back
+      fetch:
+        src: /tmp/compose.build.log
+        dest: "{{ playbook_dir }}/log/"
+        flat: yes
+
+- name: add upgrade image building result into report.xml
+  xml:
+    path: "{{ playbook_dir }}/report.xml"
+    xpath: /testsuite
+    input_type: xml
+    add_children:
+    - <testcase name="build upgrade {{ ostree_type[os] }}" classname="image building"></testcase>
+  delegate_to: localhost
+
+- name: add failure result into report.xml
+  xml:
+    path: "{{ playbook_dir }}/report.xml"
+    xpath: /testsuite/testcase[@name="build upgrade {{ ostree_type[os] }}"]
+    input_type: xml
+    add_children:
+    - <failure message="building upgrade image {{ ostree_name[os] }} failed">building upgrade image {{ ostree_name[os] }} failed</failure>
+  delegate_to: localhost
+  when: compose_status is failed
+
+- fail:
+    msg: building ostree image fail
+  when: compose_status is failed
+
+- name: download ostree image
+  command: "composer-cli compose image {{ compose_uuid }}"
+  become: yes
+
+- name: "create /home/admin/upgrade folder"
+  file:
+    path: "/home/admin/upgrade"
+    state: directory
+
+- name: unpack ostree commit into upgrade folder
+  unarchive:
+    src: /home/admin/{{ compose_uuid }}-commit.tar
+    remote_src: yes
+    dest: "/home/admin/upgrade"
+
+- name: fetch compose.json to work with lookup file plugin
+  fetch:
+    src: "/home/admin/upgrade/compose.json"
+    dest: "{{ playbook_dir }}/log/"
+    flat: yes
+
+- name: read compose.json
+  set_fact:
+    compose_commit: "{{ lookup('file','{{ playbook_dir }}/log/compose.json') | from_json }}"
+
+- debug:
+    var: compose_commit
+
+- name: set ostree commit
+  set_fact:
+    ostree_commit: "{{ compose_commit | json_query('\"ostree-commit\"') }}"
+
+- name: add failure result into report.xml
+  xml:
+    path: "{{ playbook_dir }}/report.xml"
+    xpath: /testsuite/testcase[@name="build upgrade {{ ostree_type[os] }}"]
+    input_type: xml
+    add_children:
+    - <system-out>{{ ostree_commit }}</system-out>
+  delegate_to: localhost
+
+- name: add migrate repo result into report.xml
+  xml:
+    path: "{{ playbook_dir }}/report.xml"
+    xpath: /testsuite
+    input_type: xml
+    add_children:
+    - <testcase name="migrate repo" classname="migrate repo"></testcase>
+  delegate_to: localhost
+
+- name: migrate new repo to old repo for client upgrade
+  block:
+    - name: migrate new repo content to old one in /var/www/html/repo
+      command: ostree pull-local --repo /var/www/html/repo /home/admin/upgrade/repo {{ ostree_ref[os] }}
+      become: yes
+  rescue:
+    - name: add failure result into report.xml
+      xml:
+        path: "{{ playbook_dir }}/report.xml"
+        xpath: /testsuite/testcase[@name="migrate repo"]
+        input_type: xml
+        add_children:
+        - <failure message="migrate new repo to old one failed">migrate new repo failed</failure>
+      delegate_to: localhost
+
+    - fail:
+        msg: migrate new repo to old one failed
+
+- name: update summary file
+  command: ostree summary --update --repo /var/www/html/repo
+  become: yes
+
+- name: delete generated image
+  command: "composer-cli compose delete {{ compose_uuid }}"
+  become: yes

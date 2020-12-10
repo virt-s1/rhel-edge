@@ -1,0 +1,27 @@
+pipeline {
+    agent {
+        node {
+            label 'vm-rhel-8-3-1'
+        }
+    }
+    stages {
+         stage("x86_64: build, install and upgrade rhel edge ostree commit") {
+             steps {
+                 script {
+                     env.COMPOSE_ID = sh(returnStdout: true, script: 'echo $CI_MESSAGE | jq -r ".compose_id"').trim()
+                     currentBuild.displayName = "${env.BUILD_NUMBER}-${env.COMPOSE_ID}"
+                 }
+                 sh label: 'run ansible playbook', script: """
+                     printenv
+                     id
+                     ./rhel-edge-virt-test.sh
+                 """
+             }
+         }
+    }
+    options {
+        timestamps()
+        timeout(time: 3, unit: 'HOURS')
+    }
+}
+
