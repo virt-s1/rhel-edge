@@ -84,11 +84,19 @@
     state: directory
   become: yes
 
-- name: copy rhel-8-beta.json to /etc/osbuild-composer/repositories
+- name: copy rhel-8.json to /etc/osbuild-composer/repositories
   copy:
-    src: "{{ playbook_dir }}/files/{{ source_file[os] }}"
+    src: "{{ playbook_dir }}/files/rhel-8-3-1.json"
     dest: /etc/osbuild-composer/repositories/rhel-8.json
   become: yes
+  when: os == "rhel-8-3"
+
+- name: copy rhel-8-beta.json to /etc/osbuild-composer/repositories
+  copy:
+    src: "{{ playbook_dir }}/files/rhel-8-4-0.json"
+    dest: /etc/osbuild-composer/repositories/rhel-8-beta.json
+  become: yes
+  when: os == "rhel-8-4"
 
 - name: start osbuild-composer.socket
   systemd:

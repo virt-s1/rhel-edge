@@ -31,7 +31,7 @@ case "${ID}-${VERSION_ID}" in
         sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
         # Customize repository
         sudo mkdir -p /etc/osbuild-composer/repositories
-        sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8.json;;
+        sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
