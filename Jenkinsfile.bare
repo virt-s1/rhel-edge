@@ -1,7 +1,7 @@
 pipeline {
     agent {
         node {
-            label 'container-fedora-33-stage'
+            label 'container-fedora-33-prod'
         }
     }
     stages {
