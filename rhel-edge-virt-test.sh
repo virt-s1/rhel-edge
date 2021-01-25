@@ -45,7 +45,7 @@ function greenprint {
 
 # Install required packages
 greenprint "Install required packages"
-sudo dnf install -y ansible httpd osbuild-composer composer-cli
+sudo dnf install -y --nogpgcheck ansible httpd osbuild-composer composer-cli
 
 # Start osbuild-composer.socket
 greenprint "Start osbuild-composer.socket"
