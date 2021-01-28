@@ -16,7 +16,9 @@
 
 5. [RHEL for Edge Part 5: Automating Image Roll Back with Greenboot](https://www.youtube.com/watch?v=13EczN44r8o)
 
-6. [RHEL for Edge Part 7: rpm-ostree Filesystem](https://www.youtube.com/watch?v=KpUkUhOvqbw&t=8s)
+6. [RHEL for Edge Part 6: Configuring Automatic Updates](https://www.youtube.com/watch?v=7_BJXZtvWyI)
+
+7. [RHEL for Edge Part 7: rpm-ostree Filesystem](https://www.youtube.com/watch?v=KpUkUhOvqbw&t=8s)
 
 
 ## ostree and rpm-ostree Introduction
