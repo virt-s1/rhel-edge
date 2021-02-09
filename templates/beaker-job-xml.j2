@@ -24,6 +24,11 @@
           <arch op="=" value="{{ arch }}"/>
           <cpu_count op=">=" value="4"/>
           <memory op=">=" value="4096"/>
+          <not><hostname op="like" value="intel-e5620%"/></not>
+          <not><hostname op="like" value="hp-moonshot-01-c29.ml3%"/></not>
+          <not><hostname op="like" value="intel-e31225%"/></not>
+          <not><hostname op="like" value="dell-per630-02.dell2%"/></not>
+          <not><hostname op="like" value="intel-chiefriver-02%"/></not>
         </and>
       </hostRequires>
       <partitions/>

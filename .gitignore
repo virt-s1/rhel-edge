@@ -1,0 +1,6 @@
+beaker-job.xml
+job-result-output.xml
+log/
+ostree.toml
+report.xml
+upgrade.toml

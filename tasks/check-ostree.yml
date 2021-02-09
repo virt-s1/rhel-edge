@@ -283,6 +283,19 @@
 - name: run ubi8 image
   command: podman run ubi8-minimal:latest cat /etc/redhat-release
   register: podman_result
+  ignore_errors: yes
+
+- block:
+    - name: run podman with debug enabled
+      command: podman --log-level=debug run ubi8-minimal:latest cat /etc/redhat-release
+      register: podman_debug_result
+      ignore_errors: yes
+
+    - name: get podman info
+      command: podman info --debug
+      register: podman_info_result
+      ignore_errors: yes
+  when: podman_result is failed
 
 - name: run container test
   block:

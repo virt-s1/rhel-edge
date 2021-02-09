@@ -10,13 +10,6 @@
         state: absent
       ignore_errors: yes
 
-    - name: "remove security group {{ security_group_name }}"
-      os_security_group:
-        cloud: psi-openstack
-        name: "{{ security_group_name }}"
-        state: absent
-      ignore_errors: yes
-
 - hosts: beaker
   gather_facts: no
   become: no

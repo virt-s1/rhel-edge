@@ -21,20 +21,20 @@
   os_keypair:
     cloud: psi-openstack
     state: present
-    name: "ostree_os_key"
+    name: "rhel-edge-key"
     public_key_file: key/ostree_key.pub
 
 - name: create security group
   os_security_group:
     cloud: psi-openstack
-    name: "ostree_sg_{{ job_number }}"
+    name: "rhel-edge"
     state: present
     description: security group for ostree image build server
 
 - name: set ssh rule for security group
   os_security_group_rule:
     cloud: psi-openstack
-    security_group: "ostree_sg_{{ job_number }}"
+    security_group: "rhel-edge"
     protocol: tcp
     port_range_min: 22
     port_range_max: 22
@@ -43,7 +43,7 @@
 - name: set http rule for security group
   os_security_group_rule:
     cloud: psi-openstack
-    security_group: "ostree_sg_{{ job_number }}"
+    security_group: "rhel-edge"
     protocol: tcp
     port_range_min: 80
     port_range_max: 80
@@ -52,7 +52,7 @@
 - name: set cockpit rule for security group
   os_security_group_rule:
     cloud: psi-openstack
-    security_group: "ostree_sg_{{ job_number }}"
+    security_group: "rhel-edge"
     protocol: tcp
     port_range_min: 9090
     port_range_max: 9090
@@ -61,12 +61,12 @@
 - name: deploy instance
   os_server:
     cloud: psi-openstack
-    name: "ostree-image-builder-{{ os }}-{{ job_number }}"
+    name: "rhel-edge-image-builder-{{ os }}-{{ job_number }}"
     image: "{{ os_images[os] }}"
     flavor: "{{ os_flavor }}"
     network: "{{ os_network }}"
-    key_name: "ostree_os_key"
-    security_groups: "ostree_sg_{{ job_number }}"
+    key_name: "rhel-edge-key"
+    security_groups: "rhel-edge"
     auto_ip: yes
     wait: yes
     timeout: 600
@@ -106,22 +106,6 @@
         expire: False
   register: instance_result
 
-- name: write instance name info to inventory file
-  ini_file:
-    path: "{{ playbook_dir }}/inventory"
-    section: cloud:vars
-    option: instance_name
-    value: "ostree-image-builder-{{ os }}-{{ job_number }}"
-    no_extra_spaces: yes
-
-- name: write security group name to inventory file
-  ini_file:
-    path: "{{ playbook_dir }}/inventory"
-    section: cloud:vars
-    option: security_group_name
-    value: "ostree_sg_{{ job_number }}"
-    no_extra_spaces: yes
-
 - name: waits until instance is reachable
   wait_for:
     host: "{{ instance_result.openstack.public_v4 }}"
@@ -139,3 +123,19 @@
   file:
     path: key/ostree_key
     mode: "0600"
+
+- name: ensure cloud-init has finished
+  raw: test -f /var/lib/cloud/instance/boot-finished
+  retries: 60
+  register: cloud_init_check
+  changed_when: false
+  until: cloud_init_check is success
+  delegate_to: "{{ instance_result.openstack.public_v4 }}"
+
+- name: write instance name info to inventory file
+  ini_file:
+    path: "{{ playbook_dir }}/inventory"
+    section: cloud:vars
+    option: instance_name
+    value: "rhel-edge-image-builder-{{ os }}-{{ job_number }}"
+    no_extra_spaces: yes
