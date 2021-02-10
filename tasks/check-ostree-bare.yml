@@ -1,17 +1,4 @@
 ---
-# check virt or bare metal
-- name: set disk name
-  set_fact:
-    device_name: "vda2"
-
-- name: check bare or virt
-  block:
-    - shell: dmesg | grep "Hypervisor detected"
-  rescue:
-    - set_fact:
-        device_name: "sda2"
-        bare_metal: "true"
-
 # case: check ostree commit correctly updated
 - name: get deployed ostree commit
   command: rpm-ostree status --json
@@ -56,18 +43,18 @@
       set_fact:
         failed_counter: "{{ failed_counter | int + 1 }}"
 
-# case: check /sysroot moutn point
+# case: check /sysroot mount point
 - name: check /sysroot mount point
   command: findmnt -r -o SOURCE -n /sysroot
   register: result_sysroot_mount_point
 
-- name: "/sysroot should be mounted on /dev/{{ device_name }}"
+- name: "/sysroot should be mounted on /dev/sda2|3"
   block:
     - assert:
         that:
-          - result_sysroot_mount_point.stdout == "/dev/{{ device_name }}"
-        fail_msg: "/var does not mount on /dev/{{ device_name }}"
-        success_msg: "/var mounts on /dev/{{ device_name }}"
+          - result_sysroot_mount_point.stdout == "/dev/sda2" or result_sysroot_mount_point.stdout == "/dev/sda3"
+        fail_msg: "/var does not mount on /dev/sda2|3"
+        success_msg: "/var mounts on /dev/sda2|3"
   always:
     - set_fact:
         total_counter: "{{ total_counter | int + 1 }}"
@@ -101,13 +88,13 @@
   command: findmnt -r -o SOURCE -n /var
   register: result_var_mount_point
 
-- name: "/var should be mounted on /dev/{{ device_name }}[/ostree/deploy/{{ ostree_name[os] }}/var]"
+- name: "/var should be mounted on /dev/sda2|3/ostree/deploy/{{ ostree_name[os] }}/var]"
   block:
     - assert:
         that:
-          - result_var_mount_point.stdout == "/dev/{{ device_name }}[/ostree/deploy/{{ ostree_name[os] }}/var]"
-        fail_msg: "/var does not mount on /dev/{{ device_name }}[/ostree/deploy/{{ ostree_name[os] }}/var]"
-        success_msg: "/var mounts on /dev/{{ device_name }}[/ostree/deploy/{{ ostree_name[os] }}/var]"
+          - result_var_mount_point.stdout == "/dev/sda2[/ostree/deploy/{{ ostree_name[os] }}/var]" or result_var_mount_point.stdout == "/dev/sda3[/ostree/deploy/{{ ostree_name[os] }}/var]"
+        fail_msg: "/var does not mount on /dev/sda2|3[/ostree/deploy/{{ ostree_name[os] }}/var]"
+        success_msg: "/var mounts on /dev/sda2|3[/ostree/deploy/{{ ostree_name[os] }}/var]"
   always:
     - set_fact:
         total_counter: "{{ total_counter | int + 1 }}"
@@ -141,13 +128,14 @@
   command: findmnt -r -o SOURCE -n /usr
   register: result_usr_mount_point
 
-- name: "/usr should be mounted on /dev/{{ device_name }}[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
+- name: "/usr should be mounted on /dev/sda2|3/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
   block:
     - assert:
         that:
-          - result_usr_mount_point.stdout == "/dev/{{ device_name }}[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
-        fail_msg: "/usr does not mount on /dev/{{ device_name }}[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
-        success_msg: "/usr mounts on /dev/{{ device_name }}[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
+          - result_usr_mount_point.stdout == "/dev/sda2[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]" or result_usr_mount_point.stdout == "/dev/sda3[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
+
+        fail_msg: "/usr does not mount on /dev/sda2|3/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
+        success_msg: "/usr mounts on /dev/sda2|3[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
   always:
     - set_fact:
         total_counter: "{{ total_counter | int + 1 }}"
@@ -247,11 +235,12 @@
   block:
     - assert:
         that:
-          - result_dmesg_error.stdout_lines | length == 2
-          - "'pcieport 0000:00:01.6: Failed to check link status' in result_dmesg_error.stdout"
-          - "'Error: Driver \\'pcspkr\\' is already registered, aborting' in result_dmesg_error.stdout"
+          - error_log in allowed_errors
         fail_msg: "more or less error and failed log"
         success_msg: "everything works as expected"
+      loop: "{{ result_dmesg_error.stdout_lines }}"
+      loop_control:
+        loop_var: error_log
   always:
     - set_fact:
         total_counter: "{{ total_counter | int + 1 }}"
@@ -259,25 +248,6 @@
     - name: failed count + 1
       set_fact:
         failed_counter: "{{ failed_counter | int + 1 }}"
-  when: ansible_facts['distribution'] == "RedHat" and bare_metal is not defined
-
-- name: no more error or failed log
-  block:
-    - assert:
-        that:
-          - result_dmesg_error.stdout_lines | length == 2
-          - "'pcieport 0000:00:01.6: pciehp: Failed to check link status' in result_dmesg_error.stdout"
-          - "'RAS: Correctable Errors collector initialized' in result_dmesg_error.stdout"
-        fail_msg: "more or less error and failed log"
-        success_msg: "everything works as expected"
-  always:
-    - set_fact:
-        total_counter: "{{ total_counter | int + 1 }}"
-  rescue:
-    - name: failed count + 1
-      set_fact:
-        failed_counter: "{{ failed_counter | int + 1 }}"
-  when: ansible_facts['distribution'] == "Fedora" and bare_metal is not defined
 
 # case: check running container with podman
 - name: run ubi8 image

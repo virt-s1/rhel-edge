@@ -1,7 +1,7 @@
-job_number: 1
+job_number: "{{ lookup('env', 'BUILD_NUMBER') | default(1, true) }}"
 
 os: "{{ lookup('env', 'TEST_OS') }}"
-arch: "{{ lookup('env', 'TEST_ARCH') }}"
+arch: "{{ lookup('env', 'ARCH') | default('x86_64', true) }}"
 platform: "{{ lookup('env', 'TEST_PLATFORM') or 'virt'}}"
 
 os_images:

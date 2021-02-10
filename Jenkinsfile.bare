@@ -14,7 +14,7 @@ pipeline {
                  withCredentials([string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD')]) {
                     sh label: 'run ansible playbook', script: """
                         printenv
-                        TEST_ARCH=x86_64 ansible-playbook -v -i inventory -e job_number=${env.BUILD_NUMBER} ostree-bare.yml
+                        ansible-playbook -v -i inventory ostree-bare.yml
                     """
                  }
              }

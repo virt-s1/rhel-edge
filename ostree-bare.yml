@@ -40,11 +40,13 @@
   vars:
     total_counter: "0"
     failed_counter: "0"
+  vars_files:
+    - allowed_errors.yml
   tasks:
     - set_fact:
         ostree_hostname: "{{ ostree_hostname }}"
 
-    - include_tasks: tasks/check-ostree.yml
+    - include_tasks: tasks/check-ostree-bare.yml
 
     - name: add os instance ip into host group builder
       add_host:
@@ -85,7 +87,7 @@
         delay: 10
         timeout: 1200
 
-    - include_tasks: tasks/check-ostree.yml
+    - include_tasks: tasks/check-ostree-bare.yml
     - include_tasks: tasks/check-greenboot.yml
 
     # reboot again to test no things changed
@@ -101,4 +103,4 @@
         search_regex: OpenSSH
         delay: 10
 
-    - include_tasks: tasks/check-ostree.yml
+    - include_tasks: tasks/check-ostree-bare.yml
