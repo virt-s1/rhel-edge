@@ -48,13 +48,13 @@
   command: findmnt -r -o SOURCE -n /sysroot
   register: result_sysroot_mount_point
 
-- name: "/sysroot should be mounted on /dev/sda2|3"
+- name: "/sysroot should be mounted on /dev/sda1|2|3"
   block:
     - assert:
         that:
-          - result_sysroot_mount_point.stdout == "/dev/sda2" or result_sysroot_mount_point.stdout == "/dev/sda3"
-        fail_msg: "/var does not mount on /dev/sda2|3"
-        success_msg: "/var mounts on /dev/sda2|3"
+          - result_sysroot_mount_point.stdout == "/dev/sda1" or result_sysroot_mount_point.stdout == "/dev/sda2" or result_sysroot_mount_point.stdout == "/dev/sda3"
+        fail_msg: "/var does not mount on /dev/sda1|2|3"
+        success_msg: "/var mounts on /dev/sda1|2|3"
   always:
     - set_fact:
         total_counter: "{{ total_counter | int + 1 }}"
@@ -88,13 +88,13 @@
   command: findmnt -r -o SOURCE -n /var
   register: result_var_mount_point
 
-- name: "/var should be mounted on /dev/sda2|3/ostree/deploy/{{ ostree_name[os] }}/var]"
+- name: "/var should be mounted on /dev/sda1|2|3/ostree/deploy/{{ ostree_name[os] }}/var]"
   block:
     - assert:
         that:
-          - result_var_mount_point.stdout == "/dev/sda2[/ostree/deploy/{{ ostree_name[os] }}/var]" or result_var_mount_point.stdout == "/dev/sda3[/ostree/deploy/{{ ostree_name[os] }}/var]"
-        fail_msg: "/var does not mount on /dev/sda2|3[/ostree/deploy/{{ ostree_name[os] }}/var]"
-        success_msg: "/var mounts on /dev/sda2|3[/ostree/deploy/{{ ostree_name[os] }}/var]"
+          - result_var_mount_point.stdout == "/dev/sda1[/ostree/deploy/{{ ostree_name[os] }}/var]" or result_var_mount_point.stdout == "/dev/sda2[/ostree/deploy/{{ ostree_name[os] }}/var]" or result_var_mount_point.stdout == "/dev/sda3[/ostree/deploy/{{ ostree_name[os] }}/var]"
+        fail_msg: "/var does not mount on /dev/sda1|2|3[/ostree/deploy/{{ ostree_name[os] }}/var]"
+        success_msg: "/var mounts on /dev/sda1|2|3[/ostree/deploy/{{ ostree_name[os] }}/var]"
   always:
     - set_fact:
         total_counter: "{{ total_counter | int + 1 }}"
@@ -128,14 +128,14 @@
   command: findmnt -r -o SOURCE -n /usr
   register: result_usr_mount_point
 
-- name: "/usr should be mounted on /dev/sda2|3/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
+- name: "/usr should be mounted on /dev/sda1|2|3/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
   block:
     - assert:
         that:
-          - result_usr_mount_point.stdout == "/dev/sda2[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]" or result_usr_mount_point.stdout == "/dev/sda3[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
+          - result_usr_mount_point.stdout == "/dev/sda1[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]" or result_usr_mount_point.stdout == "/dev/sda2[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]" or result_usr_mount_point.stdout == "/dev/sda3[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
 
-        fail_msg: "/usr does not mount on /dev/sda2|3/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
-        success_msg: "/usr mounts on /dev/sda2|3[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
+        fail_msg: "/usr does not mount on /dev/sda1|2|3/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
+        success_msg: "/usr mounts on /dev/sda1|2|3[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
   always:
     - set_fact:
         total_counter: "{{ total_counter | int + 1 }}"
