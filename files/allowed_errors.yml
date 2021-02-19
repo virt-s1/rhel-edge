@@ -52,3 +52,4 @@ allowed_errors:
   - "ACPI Error: Aborting method \\_SB.PMI0._GHL due to previous error (AE_NOT_EXIST) (20200925/psparse-531)"
   - "ACPI Error: Aborting method \\_SB.PMI0._PMC due to previous error (AE_NOT_EXIST) (20200925/psparse-531)"
   - "ACPI Error: AE_NOT_EXIST, Evaluating _PMC (20200925/power_meter-756)"
+  - "pci 0000:02:00.0: BAR 6: failed to assign [mem size 0x00100000 pref]"
