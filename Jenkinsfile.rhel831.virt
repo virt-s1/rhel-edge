@@ -5,19 +5,28 @@ pipeline {
         }
     }
     stages {
-         stage("x86_64: build, install and upgrade rhel edge ostree commit") {
-             steps {
-                 script {
-                     env.COMPOSE_ID = sh(returnStdout: true, script: 'echo $CI_MESSAGE | jq -r ".compose_id"').trim()
-                     currentBuild.displayName = "${env.BUILD_NUMBER}-${env.COMPOSE_ID}"
-                 }
-                 sh label: 'run ansible playbook', script: """
-                     printenv
-                     id
-                     ./rhel-edge-virt-test.sh
-                 """
-             }
-         }
+        stage("ensure cloud-init has finished") {
+            steps {
+                sh label: 'run shell sceipt', script: """
+                    while true; do
+                        test -f /var/lib/cloud/instance/boot-finished && break
+                    done
+                """
+            }
+        }
+        stage("x86_64: build, install and upgrade rhel edge ostree commit") {
+            steps {
+                script {
+                    env.COMPOSE_ID = sh(returnStdout: true, script: 'echo $CI_MESSAGE | /usr/bin/jq -r ".compose_id"').trim()
+                    currentBuild.displayName = "${env.BUILD_NUMBER}-${env.COMPOSE_ID}"
+                }
+                sh label: 'run ansible playbook', script: """
+                    printenv
+                    id
+                    ./rhel-edge-virt-test.sh
+                """
+            }
+        }
     }
     post {
         always {
