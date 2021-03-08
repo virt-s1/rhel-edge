@@ -16,7 +16,7 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_TYPE=rhel-edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8.3"
-        BOOT_LOCATION="http://download.devel.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.3.1/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.3.1/compose/BaseOS/x86_64/os/"
         # Install epel repo for ansible
         sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
         # Customize repository
