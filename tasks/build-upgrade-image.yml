@@ -47,7 +47,7 @@
     xpath: /testsuite
     input_type: xml
     add_children:
-    - <testcase name="build upgrade {{ ostree_type[os] }}" classname="image building"></testcase>
+      - <testcase name="build upgrade {{ ostree_type[os] }}" classname="image building"></testcase>
   delegate_to: localhost
 
 - name: add failure result into report.xml
@@ -56,7 +56,7 @@
     xpath: /testsuite/testcase[@name="build upgrade {{ ostree_type[os] }}"]
     input_type: xml
     add_children:
-    - <failure message="building upgrade image {{ ostree_name[os] }} failed">building upgrade image {{ ostree_name[os] }} failed</failure>
+      - <failure message="building upgrade image {{ ostree_name[os] }} failed">building upgrade image {{ ostree_name[os] }} failed</failure>
   delegate_to: localhost
   when: compose_status is failed
 
@@ -102,7 +102,7 @@
     xpath: /testsuite/testcase[@name="build upgrade {{ ostree_type[os] }}"]
     input_type: xml
     add_children:
-    - <system-out>{{ ostree_commit }}</system-out>
+      - <system-out>{{ ostree_commit }}</system-out>
   delegate_to: localhost
 
 - name: add migrate repo result into report.xml
@@ -111,7 +111,7 @@
     xpath: /testsuite
     input_type: xml
     add_children:
-    - <testcase name="migrate repo" classname="migrate repo"></testcase>
+      - <testcase name="migrate repo" classname="migrate repo"></testcase>
   delegate_to: localhost
 
 - name: migrate new repo to old repo for client upgrade
@@ -126,7 +126,7 @@
         xpath: /testsuite/testcase[@name="migrate repo"]
         input_type: xml
         add_children:
-        - <failure message="migrate new repo to old one failed">migrate new repo failed</failure>
+          - <failure message="migrate new repo to old one failed">migrate new repo failed</failure>
       delegate_to: localhost
 
     - fail:

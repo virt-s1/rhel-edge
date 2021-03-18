@@ -39,7 +39,7 @@ case $os in
     *) ;;
 esac
 
-supervised_virt_install --initrd-inject=$ks \
+supervised_virt_install --initrd-inject="$ks" \
                         --extra-args="ks=file:/$ks console=ttyS0,115200" \
                         --name="ostree-guest" \
                         --disk "path=$out,format=qcow2" \
