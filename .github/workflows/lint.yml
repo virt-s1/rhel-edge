@@ -31,3 +31,21 @@ jobs:
         uses: ibiqlik/action-yamllint@v3
         with:
           config_file: .yamllint.yml
+
+  trigger:
+    needs: [shellcheck, yamllint]
+    name: "🕹 Trigger kitebot"
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Trigger kitebot
+        run: |
+          #!/bin/bash
+          pip3 install boto3 botocore
+          echo "Trigger here!"
