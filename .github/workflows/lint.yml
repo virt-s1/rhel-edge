@@ -45,7 +45,12 @@ jobs:
           python-version: '3.x'
 
       - name: Trigger kitebot
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WEBHOOK_PAYLOAD: ${{ toJSON(github.event) }}
+          SQS_REGION: ${{ secrets.SQS_REGION }}
+          SQS_QUEUE_URL: ${{ secrets.SQS_QUEUE_URL }}
         run: |
           #!/bin/bash
           pip3 install boto3 botocore
-          echo "Trigger here!"
+          kitebot/send_sqs.py
