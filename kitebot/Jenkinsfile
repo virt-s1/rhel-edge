@@ -1,0 +1,96 @@
+pipeline {
+    agent none
+
+    stages {
+        parallel {
+            stage('EL8.3 Virt') {
+                agent { label 'vm-rhel-8-3-1' }
+                environment {
+                    TEST_OS = "rhel-8-3"
+                }
+                steps {
+                    run_virt_test()
+                }
+                post {
+                    always {
+                        preserve_logs()
+                    }
+                }
+            }
+            stage('EL8.3 Bare') {
+                agent { label 'container-fedora-33-stage' }
+                environment {
+                    TEST_OS = "rhel-8-3"
+                    ARCH = 'x86_64'
+                }
+                steps {
+                    run_bare_test()
+                }
+                post {
+                    always {
+                        preserve_logs()
+                    }
+                }
+            }
+            stage('EL8.4 Virt') {
+                agent { label 'vm-rhel-8-4-0' }
+                environment {
+                    TEST_OS = "rhel-8-4"
+                }
+                steps {
+                    run_virt_test()
+                }
+                post {
+                    always {
+                        preserve_logs()
+                    }
+                }
+            }
+            stage('EL8.4 Bare') {
+                agent { label 'container-fedora-33-stage' }
+                environment {
+                    TEST_OS = "rhel-8-4"
+                    ARCH = 'x86_64'
+                }
+                steps {
+                    run_bare_test()
+                }
+                post {
+                    always {
+                        preserve_logs()
+                    }
+                }
+            }
+        }
+    }
+    options {
+        timestamps()
+        timeout(time: 3, unit: 'HOURS')
+    }
+}
+
+void run_virt_test() {
+    sh label: 'wait until cloud-init done', script: """
+        while true; do
+            test -f /var/lib/cloud/instance/boot-finished && break
+        done
+    """
+    sh label: 'run ansible playbook', script: """
+        printenv
+        ./rhel-edge-virt-test.sh
+    """
+}
+
+void run_bare_test() {
+    withCredentials([string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD')]) {
+        sh label: 'run ansible playbook', script: """
+            printenv
+            ansible-playbook -v -i inventory ostree-bare.yml
+        """
+    }
+}
+
+void preserve_logs() {
+    archiveArtifacts allowEmptyArchive: true, artifacts: 'osbuild-*.log'
+    archiveArtifacts allowEmptyArchive: true, artifacts: 'osbuild-*.json'
+}
