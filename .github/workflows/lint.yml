@@ -48,8 +48,8 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           WEBHOOK_PAYLOAD: ${{ toJSON(github.event) }}
-          SQS_REGION: ${{ secrets.SQS_REGION }}
-          SQS_QUEUE_URL: ${{ secrets.SQS_QUEUE_URL }}
+          SQS_REGION: us-east-1
+          SQS_QUEUE_URL: "https://sqs.us-east-1.amazonaws.com/810338073674/kite-webhook"
         run: |
           #!/bin/bash
           pip3 install boto3 botocore
