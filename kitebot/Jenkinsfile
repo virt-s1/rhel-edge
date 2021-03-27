@@ -47,6 +47,22 @@ pipeline {
                         }
                     }
                 }
+
+                stage('EL8.4 Virt For rhel-edge-commit') {
+                    agent { label 'vm-rhel-8-4-0' }
+                    environment {
+                        TEST_OS = "rhel-8-4"
+                    }
+                    steps {
+                        run_rhel_84_virt_test_commit()
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                        }
+                    }
+                }
+
                 stage('EL8.4 Bare') {
                     agent { label 'container-fedora-33-stage' }
                     environment {
@@ -80,6 +96,18 @@ void run_virt_test() {
     sh label: 'run ansible playbook', script: """
         printenv
         ./rhel-edge-virt-test.sh
+    """
+}
+
+void run_rhel_84_virt_test_commit() {
+    sh label: 'wait until cloud-init done', script: """
+        while true; do
+            test -f /var/lib/cloud/instance/boot-finished && break
+        done
+    """
+    sh label: 'run ansible playbook', script: """
+        printenv
+        ./rhel-84-virt-test-commit.sh
     """
 }
 
