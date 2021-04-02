@@ -231,23 +231,8 @@
   shell: dmesg --notime | grep -i "error\|fail"
   register: result_dmesg_error
 
-- name: no more error or failed log
-  block:
-    - assert:
-        that:
-          - error_log in allowed_errors
-        fail_msg: "more or less error and failed log"
-        success_msg: "everything works as expected"
-      loop: "{{ result_dmesg_error.stdout_lines }}"
-      loop_control:
-        loop_var: error_log
-  always:
-    - set_fact:
-        total_counter: "{{ total_counter | int + 1 }}"
-  rescue:
-    - name: failed count + 1
-      set_fact:
-        failed_counter: "{{ failed_counter | int + 1 }}"
+- debug:
+    var: result_dmesg_error
 
 # case: check running container with podman
 - name: run ubi8 image
