@@ -1,10 +1,43 @@
 pipeline {
     agent none
+    environment {
+        TRIGGERED_BY = get_triggered_by()
+    }
 
     stages {
+        stage('Preparing') {
+            when {
+                beforeAgent true
+                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+            }
+            agent { label 'container-fedora-33-stage' }
+            steps {
+                script {
+                    env.COMPOSE_ID = sh(returnStdout: true, script: 'echo $CI_MESSAGE | /usr/bin/jq -r ".compose_id"').trim()
+                    currentBuild.displayName = "${env.BUILD_NUMBER}-${env.COMPOSE_ID}"
+                    env.RELEASE_VERSION = sh(returnStdout: true, script: 'echo $CI_MESSAGE | /usr/bin/jq -r ".release_version"').trim()
+                }
+            }
+        }
         stage('Testing') {
             parallel {
                 stage('EL8.3 Virt') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '8.3.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.3.1'
+                                }
+                            }
+                        }
+                    }
                     agent { label 'vm-rhel-8-3-1' }
                     environment {
                         TEST_OS = "rhel-8-3"
@@ -19,6 +52,22 @@ pipeline {
                     }
                 }
                 stage('EL8.3 Bare') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '8.3.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.3.1'
+                                }
+                            }
+                        }
+                    }
                     agent { label 'container-fedora-33-stage' }
                     environment {
                         TEST_OS = "rhel-8-3"
@@ -34,6 +83,22 @@ pipeline {
                     }
                 }
                 stage('EL8.4 Virt') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '8.4.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.4.1'
+                                }
+                            }
+                        }
+                    }
                     agent { label 'vm-rhel-8-4-0' }
                     environment {
                         TEST_OS = "rhel-8-4"
@@ -48,6 +113,22 @@ pipeline {
                     }
                 }
                 stage('EL8.4 Bare') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '8.4.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.4.1'
+                                }
+                            }
+                        }
+                    }
                     agent { label 'container-fedora-33-stage' }
                     environment {
                         TEST_OS = "rhel-8-4"
@@ -65,10 +146,21 @@ pipeline {
             }
         }
     }
+    post {
+        always {
+            script {
+                print(currentBuild.getBuildCauses()[0])
+            }
+        }
+    }
     options {
         timestamps()
         timeout(time: 2, unit: 'HOURS')
     }
+}
+
+void get_triggered_by() {
+    return currentBuild.getBuildCauses()[0].shortDescription
 }
 
 void run_virt_test() {
