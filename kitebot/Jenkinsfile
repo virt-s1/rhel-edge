@@ -1,6 +1,7 @@
 pipeline {
     agent none
     environment {
+        GCN_URL = credentials('google-chat-rhel-edge-url')
         TRIGGERED_BY = get_triggered_by()
     }
 
@@ -48,6 +49,7 @@ pipeline {
                     post {
                         always {
                             preserve_logs()
+                            send_result('Virt-KVM')
                         }
                     }
                 }
@@ -79,6 +81,7 @@ pipeline {
                     post {
                         always {
                             preserve_logs()
+                            send_result('Bare-metal-beaker')
                         }
                     }
                 }
@@ -109,6 +112,7 @@ pipeline {
                     post {
                         always {
                             preserve_logs()
+                            send_result('Virt-KVM')
                         }
                     }
                 }
@@ -140,6 +144,7 @@ pipeline {
                     post {
                         always {
                             preserve_logs()
+                            send_result('Bare-metal-beaker')
                         }
                     }
                 }
@@ -187,4 +192,17 @@ void run_bare_test() {
 void preserve_logs() {
     archiveArtifacts allowEmptyArchive: true, artifacts: 'osbuild-*.log'
     archiveArtifacts allowEmptyArchive: true, artifacts: 'osbuild-*.json'
+}
+
+void send_result(test_type) {
+    script {
+        if (env.TRIGGERED_BY == 'Triggered by CI message.') {
+            googlechatnotification message: "${currentBuild.currentResult}\nCompose: ${env.COMPOSE_ID}\nTest Env: ${test_type}\nConsole Log: ${env.BUILD_URL}display/redirect",
+                                   notifyAborted: true,
+                                   notifyFailure: true,
+                                   notifyNotBuilt: true,
+                                   notifySuccess: true,
+                                   url: "${env.GCN_URL}"
+        }
+    }
 }
