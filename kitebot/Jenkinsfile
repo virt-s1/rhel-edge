@@ -104,7 +104,7 @@ pipeline {
                         TEST_OS = "rhel-8-4"
                     }
                     steps {
-                        run_virt_test()
+                        run_virt_test('ostree-legacy')
                     }
                     post {
                         always {
@@ -134,7 +134,7 @@ pipeline {
                         TEST_OS = "rhel-8-4"
                     }
                     steps {
-                        run_84_virt_test()
+                        run_virt_test('ostree-ng')
                     }
                     post {
                         always {
@@ -193,28 +193,26 @@ void get_triggered_by() {
     return currentBuild.getBuildCauses()[0].shortDescription
 }
 
-void run_virt_test() {
+void run_virt_test(test_type) {
     sh label: 'wait until cloud-init done', script: """
         while true; do
             test -f /var/lib/cloud/instance/boot-finished && break
         done
     """
-    sh label: 'run ansible playbook', script: """
-        printenv
-        ./rhel-edge-virt-test.sh
-    """
-}
 
-void run_84_virt_test() {
-    sh label: 'wait until cloud-init done', script: """
-        while true; do
-            test -f /var/lib/cloud/instance/boot-finished && break
-        done
-    """
-    sh label: 'run ansible playbook', script: """
-        printenv
-        ./rhel-edge-84-virt-test.sh
-    """
+    if (test_type == 'ostree-ng') {
+        sh """
+            git clone -b rhel-8.4.0 https://github.com/osbuild/osbuild-composer.git
+            sudo mkdir -p /usr/libexec/osbuild-composer-test && sudo cp scripts/provision.sh /usr/libexec/osbuild-composer-test/provision.sh
+            osbuild-composer/test/cases/ostree-ng.sh
+         """
+    }
+    if (test_type == 'ostree-legacy') {
+        sh label: 'run ansible playbook', script: """
+            printenv
+            ./rhel-edge-virt-test.sh
+        """
+    }
 }
 
 void run_bare_test() {
