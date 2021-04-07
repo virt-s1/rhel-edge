@@ -107,7 +107,37 @@ pipeline {
                         TEST_OS = "rhel-8-4"
                     }
                     steps {
-                        run_virt_test()
+                        run_virt_test('ostree-legacy')
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                        }
+                    }
+                }
+                stage('EL8.4 ng Virt') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '8.4.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.4.1'
+                                }
+                            }
+                        }
+                    }
+                    agent { label 'vm-rhel-8-4-0' }
+                    environment {
+                        TEST_OS = "rhel-8-4"
+                    }
+                    steps {
+                        run_virt_test('ostree-ng')
                     }
                     post {
                         always {
@@ -168,16 +198,26 @@ void get_triggered_by() {
     return currentBuild.getBuildCauses()[0].shortDescription
 }
 
-void run_virt_test() {
+void run_virt_test(test_type) {
     sh label: 'wait until cloud-init done', script: """
         while true; do
             test -f /var/lib/cloud/instance/boot-finished && break
         done
     """
-    sh label: 'run ansible playbook', script: """
-        printenv
-        ./rhel-edge-virt-test.sh
-    """
+
+    if (test_type == 'ostree-ng') {
+        sh """
+            git clone -b rhel-8.4.0 https://github.com/osbuild/osbuild-composer.git
+            sudo mkdir -p /usr/libexec/osbuild-composer-test && sudo cp scripts/provision.sh /usr/libexec/osbuild-composer-test/provision.sh
+            osbuild-composer/test/cases/ostree-ng.sh
+         """
+    }
+    if (test_type == 'ostree-legacy') {
+        sh label: 'run ansible playbook', script: """
+            printenv
+            ./rhel-edge-virt-test.sh
+        """
+    }
 }
 
 void run_bare_test() {
