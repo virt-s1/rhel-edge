@@ -4,3 +4,4 @@ log/
 ostree.toml
 report.xml
 upgrade.toml
+.idea/workspace.xml
