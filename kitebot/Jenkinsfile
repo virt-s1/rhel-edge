@@ -53,38 +53,6 @@ pipeline {
                         }
                     }
                 }
-                stage('EL8.3 Bare') {
-                    when {
-                        beforeAgent true
-                        anyOf {
-                            anyOf {
-                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
-                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
-                            }
-                            allOf {
-                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
-                                anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '8.3.0'
-                                    environment name: 'RELEASE_VERSION', value: '8.3.1'
-                                }
-                            }
-                        }
-                    }
-                    agent { label 'container-fedora-33-prod' }
-                    environment {
-                        TEST_OS = "rhel-8-3"
-                        ARCH = 'x86_64'
-                    }
-                    steps {
-                        run_bare_test()
-                    }
-                    post {
-                        always {
-                            preserve_logs()
-                            send_result('Bare-metal-beaker')
-                        }
-                    }
-                }
                 stage('EL8.4 Virt') {
                     when {
                         beforeAgent true
