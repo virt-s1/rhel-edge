@@ -106,16 +106,13 @@
     state: started
   become: yes
 
-- name: push ostree.toml as blueprint
-  command: composer-cli blueprints push /home/admin/{{ item }}.toml
+- name: osbuild-composer status checking
+  command: sudo composer-cli status show
   become: yes
-  loop:
-    - ostree
-    - upgrade
+  register: osbuild_status
 
-- name: show blueprint
-  command: composer-cli blueprints list
-  become: yes
+- debug:
+    var: osbuild_status
 
 - name: add additional source to test package
   block:
@@ -135,6 +132,34 @@
       command: "composer-cli sources add /home/admin/source.toml"
       become: yes
   when: source_yum_url is defined
+
+- name: source list
+  command: composer-cli sources list
+  become: yes
+  register: sources_result
+
+- debug:
+    var: sources_result
+
+- name: sources info
+  command: composer-cli sources info {{ item }}
+  become: yes
+  loop: "{{ sources_result.stdout_lines }}"
+  register: sources_info_result
+
+- debug:
+    var: sources_info_result
+
+- name: push ostree.toml as blueprint
+  command: composer-cli blueprints push /home/admin/{{ item }}.toml
+  become: yes
+  loop:
+    - ostree
+    - upgrade
+
+- name: show blueprint
+  command: composer-cli blueprints list
+  become: yes
 
 - name: start image building
   command: "composer-cli compose start ostree {{ ostree_type[os] }}"
