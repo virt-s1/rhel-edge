@@ -80,6 +80,7 @@ pipeline {
                     post {
                         always {
                             preserve_logs()
+                            send_result('Virt-KVM')
                         }
                     }
                 }
@@ -110,7 +111,7 @@ pipeline {
                     post {
                         always {
                             preserve_logs()
-                            send_result('Virt-KVM')
+                            send_result('Virt-NG-KVM')
                         }
                     }
                 }
