@@ -2,6 +2,18 @@
 
 RHEL-Edge help [documentation](HELP.md)
 
+## Test Scope
+
+RHEL for Edge test from QE is more like an integration test. The test follow aligns with the customer scenario. The whole test includes three parts:
+
+1. ostree image building
+2. ostree image installation and upgrade
+3. checkings after installation/upgrade.
+
+This repository works with downstream CI which covers both virtualization and bare metal installation scenarios. Downstream CI is hosted by [Jenkins](https://jenkins-cloudci-prod-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/job/rhel-edge/job/rhel_edge_x86_64/) and triggered by RHEL nightly compose.
+
+The test result will be sent to Google Chat Room [RHEL-Edge Nightly CI Bot](https://chat.google.com/u/0/room/AAAAvEUnS8s). If you're interested downstream RHEL for Edge test result, please join this room.
+
 ## Test Scenarios
 
 1. Build RHEL Edge image on Openstack VM and install it on nested VM.
@@ -9,12 +21,10 @@ RHEL-Edge help [documentation](HELP.md)
 
 ### Scenario 1
 
-In this scenario, test code totally depdends on [upstream](https://github.com/osbuild/osbuild-composer.git).
-
 Two test suites in scenario 1:
 
-1. `ostree.sh`: For rhel-edge-commit(tar) image type on both RHEL 8.3 and RHEL 8.4
-1. `ostree-ng.sh`: For rhel-edge-container(tar) and rhel-edge-installer(ISO) image types on both RHEL 8.4 only
+1. [`ostree.sh`](ostree.sh): For rhel-edge-commit(tar) image type on both RHEL 8.3 and RHEL 8.4
+1. [`ostree-ng.sh`](ostree-ng.sh): For rhel-edge-container(tar) and rhel-edge-installer(ISO) image types on both RHEL 8.4 only
 
 #### Test environment prpare
 
@@ -32,14 +42,6 @@ Two test suites in scenario 1:
     - libvirt-client
     - libvirt-daemon-kvm
     - virt-install
-
-3. Clone upstream
-
-        git clone -b rhel-8.4.0 https://github.com/osbuild/osbuild-composer.git
-
-4. Setup required file
-
-        sudo mkdir -p /usr/libexec/osbuild-composer-test && sudo cp files/provision.sh /usr/libexec/osbuild-composer-test/provision.sh
 
 ### Scenario 2
 
@@ -64,8 +66,8 @@ In this scenario, environment setup and test running are based on Ansible playbo
 
 ### Scenario 1
 
-    osbuild-composer/test/cases/ostree.sh
-    osbuild-composer/test/cases/ostree-ng.sh
+    ./ostree.sh
+    ./ostree-ng.sh
 
 ### Scenario 2
 

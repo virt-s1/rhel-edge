@@ -18,6 +18,7 @@
   dnf:
     name:
       - httpd
+      - podman
       - osbuild-composer
       - cockpit-composer
       - composer-cli
@@ -66,17 +67,17 @@
     src: "{{ item }}.j2"
     dest: "{{ playbook_dir }}/{{ item }}.toml"
   loop:
-    - ostree
-    - upgrade
+    - container
+    - upgrade-container
   delegate_to: localhost
 
-- name: copy ostree.toml to build server
+- name: copy container.toml and upgrade-container.toml to build server
   copy:
     src: "{{ playbook_dir }}/{{ item }}.toml"
     dest: "/home/admin/{{ item }}.toml"
   loop:
-    - ostree
-    - upgrade
+    - container
+    - upgrade-container
 
 - name: create /etc/osbuild-composer/repositories folder
   file:
@@ -106,13 +107,16 @@
     state: started
   become: yes
 
-- name: osbuild-composer status checking
-  command: sudo composer-cli status show
+- name: push container.toml and upgrade-container.toml as blueprint
+  command: composer-cli blueprints push /home/admin/{{ item }}.toml
   become: yes
-  register: osbuild_status
+  loop:
+    - container
+    - upgrade-container
 
-- debug:
-    var: osbuild_status
+- name: show blueprint
+  command: composer-cli blueprints list
+  become: yes
 
 - name: add additional source to test package
   block:
@@ -133,36 +137,8 @@
       become: yes
   when: source_yum_url is defined
 
-- name: source list
-  command: composer-cli sources list
-  become: yes
-  register: sources_result
-
-- debug:
-    var: sources_result
-
-- name: sources info
-  command: composer-cli sources info {{ item }}
-  become: yes
-  loop: "{{ sources_result.stdout_lines }}"
-  register: sources_info_result
-
-- debug:
-    var: sources_info_result
-
-- name: push ostree.toml as blueprint
-  command: composer-cli blueprints push /home/admin/{{ item }}.toml
-  become: yes
-  loop:
-    - ostree
-    - upgrade
-
-- name: show blueprint
-  command: composer-cli blueprints list
-  become: yes
-
 - name: start image building
-  command: "composer-cli compose start ostree {{ ostree_type[os] }}"
+  command: "composer-cli compose start-ostree container rhel-edge-container --ref {{ ostree_ref[os] }}"
   become: yes
   register: compose_start
   ignore_errors: yes
@@ -230,35 +206,85 @@
   command: "composer-cli compose image {{ compose_uuid }}"
   become: yes
 
-- name: unpack ostree commit into /var/www/html
-  unarchive:
-    src: /home/admin/{{ compose_uuid }}-commit.tar
-    remote_src: yes
-    dest: /var/www/html/
-  become: yes
-
 - name: start httpd
   systemd:
     name: httpd
     state: started
   become: yes
 
-- name: fetch compose.json to work with lookup file plugin
-  fetch:
-    src: /var/www/html/compose.json
-    dest: "{{ playbook_dir }}/log/"
-    flat: yes
+- name: rm /var/www/html/repo
+  file:
+    path: /var/www/html/repo
+    state: absent
+  become: yes
 
-- name: read compose.json
+- name: mkdir /var/www/html/repo
+  file:
+    path: /var/www/html/repo
+    state: directory
+  become: yes
+
+- name: init ostree repo
+  shell: |
+    ostree --repo=/var/www/html/repo init --mode=archive
+    ostree --repo=/var/www/html/repo remote add --no-gpg-verify edge-stage http://192.168.200.1/repo/
+  become: yes
+
+# Cannot find how to remove all containers/images in ansible, use shell instead
+- name: remove all containers and images
+  shell: |
+    podman rm -f -a
+    podman rmi -f -a
+  become: yes
+
+# Cannot find how to pull image from a tar file in ansible, use shell instead
+- name: pull image from rhel for edge container tar file
+  shell: podman pull "oci-archive:{{ compose_uuid }}-rhel84-container.tar"
+  become: yes
+
+- name: Create podman network
+  containers.podman.podman_network:
+    name: edge
+    ip_range: 192.168.200.0/24
+    subnet: 192.168.200.0/24
+    gateway: 192.168.200.254
+  become: yes
+
+- name: Gather info for all images
+  containers.podman.podman_image_info:
+  register: result_podman_image
+  become: yes
+
+- name: Set image id
   set_fact:
-    compose_commit: "{{ lookup('file','{{ playbook_dir }}/log/compose.json') | from_json }}"
+    image_id: "{{ result_podman_image.images[0].Id }}"
 
 - debug:
-    var: compose_commit
+    msg: "Image ID is: \n {{ image_id }}"
 
-- name: set ostree commit
+- name: Run container
+  containers.podman.podman_container:
+    name: rhel-edge
+    image: "{{ image_id }}"
+    network: edge
+    ip: 192.168.200.1
+    state: started
+  become: yes
+
+- name: fetch ostree commit from container to prod repo /var/www/html/repo
+  shell: ostree --repo=/var/www/html/repo pull --mirror edge-stage {{ ostree_ref[os] }}
+  become: yes
+
+- name: Get ostree commit hash from prod repo
+  command: cat /var/www/html/repo/refs/heads/rhel/8/x86_64/edge
+  register: result_commit_hash
+
+- name: Set ostree commit has to var->ostree_commit
   set_fact:
-    ostree_commit: "{{ compose_commit | json_query('\"ostree-commit\"') }}"
+    ostree_commit: "{{ result_commit_hash.stdout }}"
+
+- debug:
+    var: ostree_commit
 
 - name: add failure result into report.xml
   xml:

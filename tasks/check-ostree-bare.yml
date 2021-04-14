@@ -23,6 +23,28 @@
       set_fact:
         failed_counter: "{{ failed_counter | int + 1 }}"
 
+# default kernel or rt kernel
+- name: check installed kernel
+  command: uname -r
+  register: result_kernel
+
+# case: check rt kernel installed (rt kernel only)
+- name: check rt kernel installed
+  block:
+    - assert:
+        that:
+          - "'rt' in result_kernel.stdout"
+        fail_msg: "rt kernel not installed"
+        success_msg: "rt kernel installed in ostree"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+  when: os == "rhel-8-4"
+
 # case from bug: https://bugzilla.redhat.com/show_bug.cgi?id=1848453
 - name: check ostree-remount status
   command: systemctl is-active ostree-remount.service

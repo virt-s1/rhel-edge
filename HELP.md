@@ -32,18 +32,20 @@
 4. [rpm-ostree repository](https://github.com/coreos/rpm-ostree)
 
 
-## [RHEL for Edge Test Plan](https://docs.engineering.redhat.com/display/~xiaofwan/RHEL+for+Edge+Test+Plan)
+## RHEL for Edge Test Plan
+
+* [RHEL for Edge Test Plan](https://docs.engineering.redhat.com/display/~xiaofwan/RHEL+for+Edge+Test+Plan)
 
 
 ## RHEL for Edge CI and Test Code
 
-1. [downstream CI](https://jenkins-cloudci-prod-virt-qe-3rd.cloud.paas.psi.redhat.com/job/rhel-edge/)
+1. [downstream CI](https://jenkins-cloudci-prod-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/job/rhel-edge/job/rhel_edge_x86_64/)
 
 2. [upstream CI](https://osbuildci.cloud.paas.psi.redhat.com/blue/organizations/jenkins/osbuild%2Fosbuild-composer/activity)
 
 3. [downstream test code](https://github.com/virt-s1/rhel-edge.git)
 
-4. [upstream test code](https://github.com/osbuild/osbuild-composer/blob/main/test/cases/image_tests.sh)
+4. [upstream test code](https://github.com/osbuild/osbuild-composer/tree/main/test/cases)
 
 
 ## Test Resource
@@ -52,7 +54,7 @@
 
 2. [PSI OpenStack](https://rhos-d.infra.prod.upshift.rdu2.redhat.com)
 
-3. [PSI OpenShift](https://paas.psi.redhat.com)
+3. [PSI OpenShift](https://console-openshift-console.apps.ocp4.prod.psi.redhat.com/)
 
 4. [Ansible](https://docs.ansible.com/ansible/2.9/user_guide/index.html)
 
