@@ -49,6 +49,7 @@ pipeline {
                     post {
                         always {
                             preserve_logs()
+                            get_package_info()
                             send_result('Virt-KVM')
                         }
                     }
@@ -80,6 +81,7 @@ pipeline {
                     post {
                         always {
                             preserve_logs()
+                            get_package_info()
                             send_result('Virt-KVM')
                         }
                     }
@@ -111,6 +113,7 @@ pipeline {
                     post {
                         always {
                             preserve_logs()
+                            get_package_info()
                             send_result('Virt-NG-KVM')
                         }
                     }
@@ -204,12 +207,18 @@ void preserve_logs() {
 void send_result(test_type) {
     script {
         if (env.TRIGGERED_BY == 'Triggered by CI message.') {
-            googlechatnotification message: "${currentBuild.currentResult}\nCompose: ${env.COMPOSE_ID}\nTest Env: ${test_type}\nConsole Log: ${env.BUILD_URL}display/redirect",
+            googlechatnotification message: "${currentBuild.currentResult}\nCompose: ${env.COMPOSE_ID}\nPackages: ${env.PACKAGE_INFO}\nTest Env: ${test_type}\nConsole Log: ${env.BUILD_URL}display/redirect",
                                    notifyAborted: true,
                                    notifyFailure: true,
                                    notifyNotBuilt: true,
                                    notifySuccess: true,
                                    url: "${env.GCN_URL}"
         }
+    }
+}
+
+void get_package_info() {
+    script {
+        env.PACKAGE_INFO = sh(returnStdout: true, script: 'rpm -qa | grep -E "osbuild|composer-cli"').trim()
     }
 }
