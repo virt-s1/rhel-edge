@@ -175,18 +175,14 @@ void run_virt_test(test_type) {
         while true; do
             test -f /var/lib/cloud/instance/boot-finished && break
         done
-    """
-    sh """
         printenv
-        git clone -b rhel-8.4.0 https://github.com/osbuild/osbuild-composer.git
-        sudo mkdir -p /usr/libexec/osbuild-composer-test && sudo cp files/provision.sh /usr/libexec/osbuild-composer-test/provision.sh
     """
 
     if (test_type == 'ostree-ng') {
-        sh "osbuild-composer/test/cases/ostree-ng.sh"
+        sh "./ostree-ng.sh"
     }
     if (test_type == 'ostree-legacy') {
-        sh "osbuild-composer/test/cases/ostree.sh"
+        sh "./ostree.sh"
     }
 }
 
