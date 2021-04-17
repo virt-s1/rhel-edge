@@ -179,7 +179,9 @@ void run_virt_test(test_type) {
     """
 
     if (test_type == 'ostree-ng') {
-        sh "./ostree-ng.sh"
+        withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
+            sh "./ostree-ng.sh"
+        }
     }
     if (test_type == 'ostree-legacy') {
         sh "./ostree.sh"
