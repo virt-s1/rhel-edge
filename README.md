@@ -21,12 +21,10 @@ The test result will be sent to Google Chat Room [RHEL-Edge Nightly CI Bot](http
 
 ### Scenario 1
 
-In this scenario, test code comes from [upstream](https://github.com/osbuild/osbuild-composer.git).
-
 Two test suites in scenario 1:
 
-1. `ostree.sh`: For rhel-edge-commit(tar) image type on both RHEL 8.3 and RHEL 8.4
-1. `ostree-ng.sh`: For rhel-edge-container(tar) and rhel-edge-installer(ISO) image types on both RHEL 8.4 only
+1. [`ostree.sh`](ostree.sh): For rhel-edge-commit(tar) image type on both RHEL 8.3 and RHEL 8.4
+1. [`ostree-ng.sh`](ostree-ng.sh): For rhel-edge-container(tar) and rhel-edge-installer(ISO) image types on both RHEL 8.4 only
 
 #### Test environment prpare
 
@@ -44,14 +42,6 @@ Two test suites in scenario 1:
     - libvirt-client
     - libvirt-daemon-kvm
     - virt-install
-
-3. Clone upstream
-
-        git clone -b rhel-8.4.0 https://github.com/osbuild/osbuild-composer.git
-
-4. Setup required file
-
-        sudo mkdir -p /usr/libexec/osbuild-composer-test && sudo cp files/provision.sh /usr/libexec/osbuild-composer-test/provision.sh
 
 ### Scenario 2
 
@@ -76,8 +66,8 @@ In this scenario, environment setup and test running are based on Ansible playbo
 
 ### Scenario 1
 
-    osbuild-composer/test/cases/ostree.sh
-    osbuild-composer/test/cases/ostree-ng.sh
+    ./ostree.sh
+    ./ostree-ng.sh
 
 ### Scenario 2
 
