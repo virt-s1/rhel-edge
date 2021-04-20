@@ -1,0 +1,318 @@
+---
+# case: check ostree commit correctly updated
+- name: get deployed ostree commit
+  command: rpm-ostree status --json
+  register: result_commit
+
+- name: make a json result
+  set_fact:
+    deploy_commit: "{{ result_commit.stdout | from_json | json_query('deployments[0].checksum') }}"
+
+- name: check commit deployed and built
+  block:
+    - assert:
+        that:
+          - deploy_commit == ostree_commit
+        fail_msg: "deployed ostree commit is not commit built by osbuild-composer"
+        success_msg: "successful building and deployment"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+
+# default kernel or rt kernel
+- name: check installed kernel
+  command: uname -r
+  register: result_kernel
+
+# case: check rt kernel installed (rt kernel only)
+- name: check rt kernel installed
+  block:
+    - assert:
+        that:
+          - "'rt' in result_kernel.stdout"
+        fail_msg: "rt kernel not installed"
+        success_msg: "rt kernel installed in ostree"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+  when: os == "rhel-8-4"
+
+# case from bug: https://bugzilla.redhat.com/show_bug.cgi?id=1848453
+- name: check ostree-remount status
+  command: systemctl is-active ostree-remount.service
+  register: result_remount
+
+- name: ostree-remount should be started
+  block:
+    - assert:
+        that:
+          - result_remount.stdout == "active"
+        fail_msg: "ostree-remount is not started by default"
+        success_msg: "starting ostree-remount successful"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+
+# case: check /sysroot mount point
+- name: check /sysroot mount point
+  command: findmnt -r -o SOURCE -n /sysroot
+  register: result_sysroot_mount_point
+
+- name: "/sysroot should be mounted on /dev/sda1|2|3"
+  block:
+    - assert:
+        that:
+          - result_sysroot_mount_point.stdout == "/dev/sda1" or result_sysroot_mount_point.stdout == "/dev/sda2" or result_sysroot_mount_point.stdout == "/dev/sda3"
+        fail_msg: "/var does not mount on /dev/sda1|2|3"
+        success_msg: "/var mounts on /dev/sda1|2|3"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+
+# case: check /sysroot mount status
+- name: check /sysroot mount status
+  shell: findmnt -r -o OPTIONS -n /sysroot | awk -F "," '{print $1}'
+  register: result_sysroot_mount_status
+
+- name: /sysroot should be mount with rw permission
+  block:
+    - assert:
+        that:
+          - result_sysroot_mount_status.stdout == "rw"
+        fail_msg: "/sysroot is not mounted with rw permission"
+        success_msg: "/sysroot is mounted with rw permission"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+
+# case: check /var mount point
+- name: check /var mount point
+  command: findmnt -r -o SOURCE -n /var
+  register: result_var_mount_point
+
+- name: "/var should be mounted on /dev/sda1|2|3/ostree/deploy/{{ ostree_name[os] }}/var]"
+  block:
+    - assert:
+        that:
+          - result_var_mount_point.stdout == "/dev/sda1[/ostree/deploy/{{ ostree_name[os] }}/var]" or result_var_mount_point.stdout == "/dev/sda2[/ostree/deploy/{{ ostree_name[os] }}/var]" or result_var_mount_point.stdout == "/dev/sda3[/ostree/deploy/{{ ostree_name[os] }}/var]"
+        fail_msg: "/var does not mount on /dev/sda1|2|3[/ostree/deploy/{{ ostree_name[os] }}/var]"
+        success_msg: "/var mounts on /dev/sda1|2|3[/ostree/deploy/{{ ostree_name[os] }}/var]"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+
+# case: check /var mount status
+- name: check /var mount status
+  shell: findmnt -r -o OPTIONS -n /var | awk -F "," '{print $1}'
+  register: result_var_mount_status
+
+- name: /var should be mount with rw permission
+  block:
+    - assert:
+        that:
+          - result_var_mount_status.stdout == "rw"
+        fail_msg: "/var is not mounted with rw permission"
+        success_msg: "/var is mounted with rw permission"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+
+# case: check /usr mount point
+- name: check /usr mount point
+  command: findmnt -r -o SOURCE -n /usr
+  register: result_usr_mount_point
+
+- name: "/usr should be mounted on /dev/sda1|2|3/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
+  block:
+    - assert:
+        that:
+          - result_usr_mount_point.stdout == "/dev/sda1[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]" or result_usr_mount_point.stdout == "/dev/sda2[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]" or result_usr_mount_point.stdout == "/dev/sda3[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
+
+        fail_msg: "/usr does not mount on /dev/sda1|2|3/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
+        success_msg: "/usr mounts on /dev/sda1|2|3[/ostree/deploy/{{ ostree_name[os] }}/deploy/{{ deploy_commit }}.0/usr]"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+
+# case: check /usr mount status
+- name: check /usr mount status
+  shell: findmnt -r -o OPTIONS -n /usr | awk -F "," '{print $1}'
+  register: result_usr_mount_status
+
+- name: /usr should be mount with rw permission
+  block:
+    - assert:
+        that:
+          - result_usr_mount_status.stdout == "ro"
+        fail_msg: "/usr is not mounted with ro permission"
+        success_msg: "/usr is mounted with ro permission"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+
+- name: get the first 10 chars in commit hash
+  set_fact:
+    commit_log: "{{ deploy_commit[:11] }}"
+
+# case: check expect installed after upgrade
+- name: check installed package
+  shell: rpm -qa | sort
+  register: result_packages
+
+- name: check expect installed
+  block:
+    - assert:
+        that:
+          - "'expect' in result_packages.stdout"
+        fail_msg: "expect not installed, ostree upgrade might be failed"
+        success_msg: "expect installed in ostree upgrade"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+  when: ostree_upgrade is defined
+
+- name: save installed package to log file
+  copy:
+    content: "{{ result_packages.stdout }}"
+    dest: "{{ playbook_dir }}/log/{{ commit_log }}.installed.ostree.log"
+  delegate_to: localhost
+
+# case: check ostree-remount mount log
+- name: check ostree-remount mount log
+  command: journalctl -u ostree-remount
+  register: result_remount_jounalctl
+
+- name: ostree-remount should remount /var and /sysroot
+  block:
+    - assert:
+        that:
+          - "'/sysroot' in result_remount_jounalctl.stdout"
+          - "'/var' in result_remount_jounalctl.stdout"
+        fail_msg: "/sysroot or /var are not remounted by ostree-remount"
+        success_msg: "/sysroot and /var are remount"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+
+# case: check dmesg error and failed log virt ONLY
+- name: check dmesg output
+  command: dmesg
+  register: result_dmesg
+
+- name: save dmesg output to log file
+  copy:
+    content: "{{ result_dmesg.stdout }}"
+    dest: "{{ playbook_dir }}/log/{{ commit_log }}.dmesg.ostree.log"
+  delegate_to: localhost
+
+- name: check dmesg error and fail log
+  shell: dmesg --notime | grep -i "error\|fail"
+  register: result_dmesg_error
+
+- debug:
+    var: result_dmesg_error
+
+# case: check running container with podman
+- name: run ubi8 image
+  command: podman run registry.access.redhat.com/ubi8-minimal:latest cat /etc/redhat-release
+  register: podman_result
+  ignore_errors: yes
+
+- block:
+    - name: run podman with debug enabled
+      command: podman --log-level=debug run ubi8-minimal:latest cat /etc/redhat-release
+      register: podman_debug_result
+      ignore_errors: yes
+
+    - name: get podman info
+      command: podman info --debug
+      register: podman_info_result
+      ignore_errors: yes
+  when: podman_result is failed
+
+- name: run container test
+  block:
+    - assert:
+        that:
+          - podman_result is succeeded
+          - "'Red Hat Enterprise Linux release' in podman_result.stdout"
+        fail_msg: "failed run container with podman"
+        success_msg: "running container with podman successed"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+
+# case: check dnf package and it should not be installed
+# https://github.com/osbuild/osbuild-composer/blob/master/internal/distro/rhel8/distro.go#L642
+- name: dnf should not be installed
+  block:
+    - name: dnf should not be installed
+      shell: rpm -qa | grep dnf || echo -n PASS
+      register: result_dnf
+
+    - assert:
+        that:
+          - result_dnf.stdout == "PASS"
+        fail_msg: "dnf is installed"
+        success_msg: "No dnf installed"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+
+- assert:
+    that:
+      - failed_counter == "0"
+    fail_msg: "Run {{ total_counter }} tests, but {{ failed_counter }} of them failed"
+    success_msg: "Totally {{ total_counter }} test passed"

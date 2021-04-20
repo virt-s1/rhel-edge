@@ -141,7 +141,39 @@ pipeline {
                         ARCH = 'x86_64'
                     }
                     steps {
-                        run_bare_test()
+                        run_bare_test('ostree-legacy')
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            send_result('Bare-metal-beaker')
+                        }
+                    }
+                }
+                stage('EL8.4 ng Bare') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '8.4.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.4.1'
+                                }
+                            }
+                        }
+                    }
+                    agent { label 'container-fedora-33-prod' }
+                    environment {
+                        TEST_OS = "rhel-8-4"
+                        ARCH = 'x86_64'
+                    }
+                    steps {
+                        run_bare_test('ostree-ng')
                     }
                     post {
                         always {
@@ -188,12 +220,23 @@ void run_virt_test(test_type) {
     }
 }
 
-void run_bare_test() {
-    withCredentials([string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD')]) {
-        sh label: 'run ansible playbook', script: """
-            printenv
-            ansible-playbook -v -i inventory ostree-bare.yml
-        """
+void run_bare_test(test_type) {
+    sh "ansible-galaxy collection install containers.podman"
+    if (test_type == 'ostree-ng') {
+        withCredentials([string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD')]) {
+            sh label: 'run ansible playbook', script: """
+                printenv
+                ansible-playbook -v -i inventory -e ostree_test_type="ng" ostree-bare-ng.yml
+            """
+        }
+    }
+    if (test_type == 'ostree-legacy') {
+        withCredentials([string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASSWORD')]) {
+            sh label: 'run ansible playbook', script: """
+                printenv
+                ansible-playbook -v -i inventory -e ostree_test_type="legacy" ostree-bare.yml
+            """
+        }
     }
 }
 
