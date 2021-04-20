@@ -7,6 +7,9 @@
     failed_counter: "0"
 
   tasks:
+    # current target host's IP address
+    - debug: var=ansible_all_ipv4_addresses
+
     # case: check rt kernel installed after upgrade
     - name: check installed kernel
       command: uname -r
@@ -27,6 +30,14 @@
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
       when: "'rt' in result_kernel.stdout"
+
+    # first installed or upgraded
+    - name: determin which stage the checking is running on
+      shell: rpm-ostree status --json | jq '.deployments | length'
+      register: result_stage
+
+    - set_fact:
+        checking_stage: "{{ result_stage.stdout }}"
 
     # case: check ostree commit correctly updated
     - name: get deployed ostree commit
@@ -228,6 +239,7 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
+      when: checking_stage == "2"
 
     - name: save installed package to log file
       copy:
@@ -476,7 +488,7 @@
 
         - name: waits until instance is reachable
           wait_for:
-            host: "192.168.100.50"
+            host: "{{ ansible_all_ipv4_addresses[0] }}"
             port: 22
             search_regex: OpenSSH
             delay: 10
