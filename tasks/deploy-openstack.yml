@@ -61,7 +61,7 @@
 - name: deploy instance
   os_server:
     cloud: psi-openstack
-    name: "rhel-edge-image-builder-{{ os }}-{{ job_number }}"
+    name: "rhel-edge-image-builder-{{ ostree_test_type }}-{{ os }}-{{ job_number }}"
     image: "{{ os_images[os] }}"
     flavor: "{{ os_flavor }}"
     network: "{{ os_network }}"

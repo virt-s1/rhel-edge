@@ -1,0 +1,300 @@
+---
+- name: install osbuild* from PR repo
+  block:
+    - name: generate PR based osbuild repo file
+      template:
+        src: templates/osbuild-repo.j2
+        dest: "{{ playbook_dir }}/osbuild.repo"
+      delegate_to: localhost
+
+    - name: copy osbuild mock repo file
+      copy:
+        src: "{{ playbook_dir }}/osbuild.repo"
+        dest: /etc/yum.repos.d
+      become: yes
+  when: pr_number is defined and commit_sha is defined
+
+- name: install required packages
+  dnf:
+    name:
+      - httpd
+      - podman
+      - osbuild-composer
+      - cockpit-composer
+      - composer-cli
+    # enablerepo: updates-testing
+    state: latest
+  become: yes
+
+- name: update all packages to latest
+  dnf:
+    name: "*"
+    state: latest
+  become: yes
+
+- name: check package version
+  command: rpm -q {{ item }}
+  loop:
+    - osbuild-composer
+    - osbuild
+    - osbuild-composer-worker
+    - osbuild-ostree
+    - python3-osbuild
+    - composer-cli
+  register: result_packages
+
+- debug:
+    var: result_packages
+
+- name: generate empty report.xml
+  template:
+    src: templates/report-xml.j2
+    dest: "{{ playbook_dir }}/report.xml"
+  delegate_to: localhost
+
+- name: add package info into report.xml
+  xml:
+    path: "{{ playbook_dir }}/report.xml"
+    xpath: /testsuite/properties
+    input_type: xml
+    add_children:
+      - <property name="package" value="{{ item.stdout }}"/>
+  loop: "{{ result_packages.results }}"
+  delegate_to: localhost
+
+- name: create osbuild-composer blueprint file
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ playbook_dir }}/{{ item }}.toml"
+  loop:
+    - container
+    - upgrade-container
+  delegate_to: localhost
+
+- name: copy container.toml and upgrade-container.toml to build server
+  copy:
+    src: "{{ playbook_dir }}/{{ item }}.toml"
+    dest: "/home/admin/{{ item }}.toml"
+  loop:
+    - container
+    - upgrade-container
+
+- name: create /etc/osbuild-composer/repositories folder
+  file:
+    path: /etc/osbuild-composer/repositories
+    state: directory
+  become: yes
+
+- name: copy rhel-8-beta.json to /etc/osbuild-composer/repositories
+  copy:
+    src: "{{ playbook_dir }}/files/rhel-8-4-0.json"
+    dest: /etc/osbuild-composer/repositories/{{ item }}
+  become: yes
+  when: os == "rhel-8-4"
+  loop:
+    - "rhel-8.json"
+    - "rhel-8-beta.json"
+
+- name: start osbuild-composer.socket
+  systemd:
+    name: osbuild-composer.socket
+    state: started
+  become: yes
+
+- name: start cockpit.socket
+  systemd:
+    name: cockpit.socket
+    state: started
+  become: yes
+
+- name: push container.toml and upgrade-container.toml as blueprint
+  command: composer-cli blueprints push /home/admin/{{ item }}.toml
+  become: yes
+  loop:
+    - container
+    - upgrade-container
+
+- name: show blueprint
+  command: composer-cli blueprints list
+  become: yes
+
+- name: add additional source to test package
+  block:
+    - name: generate source toml file
+      template:
+        src: templates/composer-source.j2
+        dest: "{{ playbook_dir }}/source.toml"
+      delegate_to: localhost
+
+    - name: copy source.toml to builder
+      copy:
+        src: "{{ playbook_dir }}/source.toml"
+        dest: /home/admin
+      become: yes
+
+    - name: add additional source
+      command: "composer-cli sources add /home/admin/source.toml"
+      become: yes
+  when: source_yum_url is defined
+
+- name: start image building
+  command: "composer-cli compose start-ostree container rhel-edge-container --ref {{ ostree_ref[os] }}"
+  become: yes
+  register: compose_start
+  ignore_errors: yes
+
+- debug:
+    var: compose_start
+
+- name: get compose status
+  command: composer-cli compose status
+  become: yes
+  register: compose_status
+
+- name: get and set compose uuid
+  set_fact:
+    compose_uuid: "{{ compose_status.stdout.split()[0] }}"
+
+- name: collect image building log no matter success or fail
+  block:
+    - name: wait until image building finished
+      command: composer-cli compose status
+      become: yes
+      register: compose_status
+      retries: 60
+      delay: 30
+      until: "'FINISHED' in compose_status.stdout"
+  always:
+    - name: collect compose log
+      command: "composer-cli compose log {{ compose_uuid }}"
+      register: result_log
+      become: yes
+    - name: save compose log
+      copy:
+        content: "{{ result_log.stdout }}"
+        dest: /tmp/compose.build.log
+    - name: fetch log file back
+      fetch:
+        src: /tmp/compose.build.log
+        dest: "{{ playbook_dir }}/log/"
+        flat: yes
+
+- name: add image building result into report.xml
+  xml:
+    path: "{{ playbook_dir }}/report.xml"
+    xpath: /testsuite
+    input_type: xml
+    add_children:
+      - <testcase name="build {{ ostree_type[os] }}" classname="image building"></testcase>
+  delegate_to: localhost
+
+- name: add failure result into report.xml
+  xml:
+    path: "{{ playbook_dir }}/report.xml"
+    xpath: /testsuite/testcase[@name="build {{ ostree_type[os] }}"]
+    input_type: xml
+    add_children:
+      - <failure message="building {{ ostree_name[os] }} failed">building {{ ostree_name[os] }} failed</failure>
+  delegate_to: localhost
+  when: compose_status is failed
+
+- fail:
+    msg: building ostree image fail
+  when: compose_status is failed
+
+- name: download ostree image
+  command: "composer-cli compose image {{ compose_uuid }}"
+  become: yes
+
+- name: start httpd
+  systemd:
+    name: httpd
+    state: started
+  become: yes
+
+- name: rm /var/www/html/repo
+  file:
+    path: /var/www/html/repo
+    state: absent
+  become: yes
+
+- name: mkdir /var/www/html/repo
+  file:
+    path: /var/www/html/repo
+    state: directory
+  become: yes
+
+- name: init ostree repo
+  shell: |
+    ostree --repo=/var/www/html/repo init --mode=archive
+    ostree --repo=/var/www/html/repo remote add --no-gpg-verify edge-stage http://192.168.200.1/repo/
+  become: yes
+
+# Cannot find how to remove all containers/images in ansible, use shell instead
+- name: remove all containers and images
+  shell: |
+    podman rm -f -a
+    podman rmi -f -a
+  become: yes
+
+# Cannot find how to pull image from a tar file in ansible, use shell instead
+- name: pull image from rhel for edge container tar file
+  shell: podman pull "oci-archive:{{ compose_uuid }}-rhel84-container.tar"
+  become: yes
+
+- name: Create podman network
+  containers.podman.podman_network:
+    name: edge
+    ip_range: 192.168.200.0/24
+    subnet: 192.168.200.0/24
+    gateway: 192.168.200.254
+  become: yes
+
+- name: Gather info for all images
+  containers.podman.podman_image_info:
+  register: result_podman_image
+  become: yes
+
+- name: Set image id
+  set_fact:
+    image_id: "{{ result_podman_image.images[0].Id }}"
+
+- debug:
+    msg: "Image ID is: \n {{ image_id }}"
+
+- name: Run container
+  containers.podman.podman_container:
+    name: rhel-edge
+    image: "{{ image_id }}"
+    network: edge
+    ip: 192.168.200.1
+    state: started
+  become: yes
+
+- name: fetch ostree commit from container to prod repo /var/www/html/repo
+  shell: ostree --repo=/var/www/html/repo pull --mirror edge-stage {{ ostree_ref[os] }}
+  become: yes
+
+- name: Get ostree commit hash from prod repo
+  command: cat /var/www/html/repo/refs/heads/rhel/8/x86_64/edge
+  register: result_commit_hash
+
+- name: Set ostree commit has to var->ostree_commit
+  set_fact:
+    ostree_commit: "{{ result_commit_hash.stdout }}"
+
+- debug:
+    var: ostree_commit
+
+- name: add failure result into report.xml
+  xml:
+    path: "{{ playbook_dir }}/report.xml"
+    xpath: /testsuite/testcase[@name="build {{ ostree_type[os] }}"]
+    input_type: xml
+    add_children:
+      - <system-out>{{ ostree_commit }}</system-out>
+  delegate_to: localhost
+
+- name: delete generated image
+  command: "composer-cli compose delete {{ compose_uuid }}"
+  become: yes
