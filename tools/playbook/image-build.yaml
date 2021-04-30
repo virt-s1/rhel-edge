@@ -1,0 +1,22 @@
+---
+- hosts: openstack
+  gather_facts: no
+  become: no
+  tasks:
+    - include_tasks: tasks/prepare-openstack.yml
+
+- hosts: builder
+  tasks:
+    - include_tasks: tasks/create-qcow2.yml
+
+- hosts: openstack
+  gather_facts: no
+  become: no
+  tasks:
+    - include_tasks: tasks/clean-openstack.yml
+
+- hosts: openstack
+  gather_facts: no
+  become: no
+  tasks:
+    - include_tasks: tasks/upload-openstack.yml

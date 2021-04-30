@@ -1,0 +1,111 @@
+---
+- name: upload tmp image to psi openstack
+  os_image:
+    cloud: psi-openstack
+    name: "tmp-edge-openstack-{{ os }}"
+    filename: "{{ playbook_dir }}/{{ os }}_{{ arch }}.qcow2"
+    # https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
+    properties:
+      architecture: x86_64
+      os_distro: centos
+      hw_rng_model: virtio
+
+# image test
+- block:
+    - name: deploy image test instance
+      os_server:
+        cloud: psi-openstack
+        name: "edge-image-test-{{ os }}"
+        image: "tmp-edge-openstack-{{ os }}"
+        flavor: "ci.m1.large"
+        network: "provider_net_cci_9"
+        key_name: rhel-edge-key
+        security_groups: rhel-edge
+        auto_ip: yes
+        config_drive: yes
+        wait: yes
+        timeout: 600
+      register: instance_result
+
+    - name: waits until instance is reachable
+      wait_for:
+        host: "{{ instance_result.openstack.public_v4 }}"
+        port: 22
+        search_regex: OpenSSH
+        delay: 10
+
+    - name: add os instance ip into host group builder
+      add_host:
+        name: "{{ instance_result.openstack.public_v4 }}"
+        groups: guest
+
+    - name: keep private key permission to 600
+      file:
+        path: "{{ playbook_dir }}/key/ostree_key"
+        mode: "0600"
+
+    - name: ensure cloud-init has finished
+      raw: test -f /var/lib/cloud/instance/boot-finished
+      retries: 60
+      register: cloud_init_check
+      changed_when: false
+      until: cloud_init_check is success
+      delegate_to: "{{ instance_result.openstack.public_v4 }}"
+
+    # https://cloudinit.readthedocs.io/en/latest/topics/modules.html#growpart
+    # 10G image will be resized to 40G (disk size)
+    - name: disk growpart feature checking
+      command: df -h
+      become: yes
+      register: result_growpart
+      delegate_to: "{{ instance_result.openstack.public_v4 }}"
+
+    - name: disk growpart not support
+      fail:
+        msg: "can't find disk growpart support, edge image {{ os }} {{ arch }} fail"
+      when: "'40G' not in result_growpart.stdout"
+
+  rescue:
+    - name: remove tmp image
+      os_image:
+        cloud: psi-openstack
+        name: "tmp-edge-openstack-{{ os }}"
+        state: absent
+
+    - name: "building {{ os }} openstack image fail"
+      fail:
+        msg: "building {{ os }} openstack image fail"
+
+  always:
+    - name: remove image test instance
+      os_server:
+        cloud: psi-openstack
+        name: "edge-image-test-{{ os }}"
+        state: absent
+
+    - name: delete tested tmp image
+      os_image:
+        cloud: psi-openstack
+        name: "tmp-edge-openstack-{{ os }}"
+        state: absent
+
+- name: "delete last {{ os }} openstack image"
+  os_image:
+    cloud: psi-openstack
+    name: edge-{{ os }}
+    state: absent
+
+- name: "upload new {{ os }} openstack image to psi"
+  os_image:
+    cloud: psi-openstack
+    name: "edge-{{ os }}"
+    filename: "{{ playbook_dir }}/{{ os }}_{{ arch }}.qcow2"
+    # https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
+    properties:
+      architecture: x86_64
+      os_distro: centos
+      hw_rng_model: virtio
+  register: result_image
+
+- debug:
+    var: result_image

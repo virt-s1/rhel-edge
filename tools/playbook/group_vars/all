@@ -1,0 +1,9 @@
+random_number: "{{ 999 | random(start=101) }}"
+
+os: "{{ lookup('env', 'TEST_OS') }}"
+arch: "{{ lookup('env', 'ARCH') | default('x86_64', true) }}"
+
+repos:
+  centos-stream-8:
+    baseos: https://composes.centos.org/latest-CentOS-Stream-8/compose/BaseOS/x86_64/os/
+    appstream: https://composes.centos.org/latest-CentOS-Stream-8/compose/AppStream/x86_64/os/

@@ -1,0 +1,105 @@
+---
+- name: random number as part of instance name
+  set_fact:
+    random_number: "{{ 99 | random(start=11) }}"
+
+- name: create openstack configuration folder
+  file:
+    path: ~/.config/openstack
+    state: directory
+
+- name: set vault password file
+  copy:
+    content: "{{ lookup('env', 'VAULT_PASSWORD') }}"
+    dest: "~/.config/ansible-vault"
+
+- name: save clouds.yaml to ~/.config/openstack
+  command: ansible-vault decrypt -v --vault-password-file ~/.config/ansible-vault {{ playbook_dir }}/files/clouds-yaml --output ~/.config/openstack/clouds.yaml
+
+- name: create a new openstack keypair
+  os_keypair:
+    cloud: psi-openstack
+    state: present
+    name: "rhel-edge-key"
+    public_key_file: key/ostree_key.pub
+
+- name: create security group
+  os_security_group:
+    cloud: psi-openstack
+    name: "rhel-edge"
+    state: present
+    description: security group for ostree image build server
+
+- name: set ssh rule for security group
+  os_security_group_rule:
+    cloud: psi-openstack
+    security_group: "rhel-edge"
+    protocol: tcp
+    port_range_min: 22
+    port_range_max: 22
+    remote_ip_prefix: 0.0.0.0/0
+
+- name: set http rule for security group
+  os_security_group_rule:
+    cloud: psi-openstack
+    security_group: "rhel-edge"
+    protocol: tcp
+    port_range_min: 80
+    port_range_max: 80
+    remote_ip_prefix: 0.0.0.0/0
+
+- name: set cockpit rule for security group
+  os_security_group_rule:
+    cloud: psi-openstack
+    security_group: "rhel-edge"
+    protocol: tcp
+    port_range_min: 9090
+    port_range_max: 9090
+    remote_ip_prefix: 0.0.0.0/0
+
+- name: set openstack instance name
+  set_fact:
+    instance_name: "edge-image-maker-{{ os }}-{{ random_number }}"
+
+- name: deploy instance
+  os_server:
+    cloud: psi-openstack
+    name: "{{ instance_name }}"
+    image: "Fedora-Cloud-Base-34"
+    flavor: "ci.m1.large"
+    network: "provider_net_cci_9"
+    key_name: rhel-edge-key
+    security_groups: rhel-edge
+    auto_ip: yes
+    config_drive: yes
+    wait: yes
+    timeout: 600
+    userdata: |
+      #!/bin/bash
+      dnf -y install python3-dnf python3
+  register: instance_result
+
+- name: waits until instance is reachable
+  wait_for:
+    host: "{{ instance_result.openstack.public_v4 }}"
+    port: 22
+    search_regex: OpenSSH
+    delay: 10
+
+- name: add os instance ip into host group image_maker
+  add_host:
+    name: "{{ instance_result.openstack.public_v4 }}"
+    groups: builder
+
+- name: keep private key permission to 600
+  file:
+    path: "key/ostree_key"
+    mode: "0600"
+
+- name: ensure cloud-init has finished
+  raw: test -f /var/lib/cloud/instance/boot-finished
+  retries: 60
+  register: cloud_init_check
+  changed_when: false
+  until: cloud_init_check is success
+  delegate_to: "{{ instance_result.openstack.public_v4 }}"
