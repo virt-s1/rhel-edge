@@ -25,7 +25,7 @@ distros:
 repo:
   fedora-33: https://mirrors.rit.edu/fedora/fedora/linux/releases/33/Everything/x86_64/os/
   rhel-8-3: http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.3.1/compose/BaseOS/x86_64/os/
-  rhel-8-4: http://download.devel.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/
+  rhel-8-4: http://download.devel.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/
 
 ostree_ref:
   fedora-33: "fedora/33/{{ arch }}/iot"
