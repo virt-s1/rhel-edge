@@ -2,21 +2,61 @@
 
 RHEL-Edge help [documentation](HELP.md)
 
-## Test Scope
+## RHEL-Edge Test Scope
 
-RHEL for Edge test from QE is more like an integration test. The test follow aligns with the customer scenario. The whole test includes three parts:
+RHEL for Edge test from QE is more like an integration test. The test flow aligns with the customer scenario. The whole test includes three parts:
 
-1. ostree image building
-2. ostree image installation and upgrade
+1. RHEL for Edge image building with [image-builder](https://github.com/osbuild/osbuild-composer.git)
+
+    - Build image at OpenStack VM - x86_64
+    - Build image at Beaker server - aarch64
+
+2. RHEL for Edge image installation and upgrade
+
+    - `edge-commit`: Setup HTTP server to serve as ostree repo, and install with kickstart
+    - `edge-container`: Setup prod ostree repo, `edge-container` as stage repo, and install with kickstart from prod ostree repo
+    - `edge-installer`: Install from `edge-installer` ISO
+
 3. checkings after installation/upgrade.
 
-This repository works with downstream CI which covers both virtualization and bare metal installation scenarios. Downstream CI is hosted by [Jenkins](https://jenkins-cloudci-prod-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/job/rhel-edge/job/rhel_edge_x86_64/) and triggered by RHEL nightly compose.
+    - Check installed ostree commit
+    - Check mount point
+    - Check [`green-boot`](https://github.com/fedora-iot/greenboot.git) services
+    - Check auto rollback with failure detected
+
+## RHEL-Edge CI
+
+### Upstream CI
+
+For RHEL-Edge project, 90% of features come from [osbuild](https://github.com/osbuild/osbuild.git) and [osbuild-composer](https://github.com/osbuild/osbuild-composer.git). In this case, [osbuild](https://github.com/osbuild/osbuild.git) and [osbuild-composer](https://github.com/osbuild/osbuild-composer.git) CI will be used ad RHEL-Edge project upstream CI.
+
+The Upstream CI is triggered by each PR and it focuses on code change.
+
+Considering Upstream CI environment and test duration, the Upstream CI only covers virtualization tests, bare metal is out of Upstream CI scope.
+
+### Downstream CI
+
+The Downstream CI covers both virtualization and bare metal installation scenarios. Downstream CI is hosted by [Jenkins](https://jenkins-cloudci-prod-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/job/rhel-edge/job/rhel_edge_x86_64/) and triggered by RHEL 8 nightly compose.
 
 The test result will be sent to Google Chat Room [RHEL-Edge Nightly CI Bot](https://chat.google.com/u/0/room/AAAAvEUnS8s). If you're interested downstream RHEL for Edge test result, please join this room.
 
-## Test Scenarios
+### CI for this repository
+
+CI for this repository is to test `test code`. It's triggered by PR in this repository. Any changes for `test code` has to be pass all tests of CI before they are merged into master. CI for this repository is hosted by [Jenkins](https://jenkins-cloudci-prod-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/job/Virt-S1/job/rhel-edge/view/change-requests/).
+
+Test of this CI includes:
+
+1. [Shellcheck](https://www.shellcheck.net/): running as Github Action
+2. [Yaml lint](https://yamllint.readthedocs.io/en/stable/): running as Github Action
+3. Virt and bare metal tests: running on Jenkins
+
+## RHEL-Edge Test Scenarios
 
 1. Build RHEL Edge image on Openstack VM and install it on nested VM.
+
+    - BIOS
+    - UEFI
+
 2. Build RHEL Edge image on OpenStack VM and install it on bare metal machine.
 
 ### Scenario 1
