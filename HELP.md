@@ -21,6 +21,12 @@
 7. [RHEL for Edge Part 7: rpm-ostree Filesystem](https://www.youtube.com/watch?v=KpUkUhOvqbw&t=8s)
 
 
+## RHEL for Edge Demo on Summit 2021
+
+1. Video [link](https://drive.google.com/file/d/1gAuhfDQ8q1pODjjnfczceXJTn2g68bcM/view)
+2. Code [repo](https://github.com/rlucente-se-jboss/RFESummit2021)
+
+
 ## ostree and rpm-ostree Introduction
 
 1. [ostree manual](https://ostreedev.github.io/ostree/)
@@ -39,27 +45,31 @@
 
 ## RHEL for Edge CI and Test Code
 
-1. [downstream CI](https://jenkins-cloudci-prod-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/job/rhel-edge/job/rhel_edge_x86_64/)
+1. [Downstream CI](https://jenkins-cloudci-prod-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/job/rhel-edge/job/rhel_edge_x86_64/)
 
-2. [upstream CI](https://osbuildci.cloud.paas.psi.redhat.com/blue/organizations/jenkins/osbuild%2Fosbuild-composer/activity)
+2. [Upstream CI](https://osbuildci.cloud.paas.psi.redhat.com/blue/organizations/jenkins/osbuild%2Fosbuild-composer/activity)
 
-3. [downstream test code](https://github.com/virt-s1/rhel-edge.git)
+3. [Downstream test code](https://github.com/virt-s1/rhel-edge.git)
 
-4. [upstream test code](https://github.com/osbuild/osbuild-composer/tree/main/test/cases)
+4. [Upstream test code](https://github.com/osbuild/osbuild-composer/tree/main/test/cases)
 
 
 ## Test Resource
 
 1. [beaker](https://beaker.engineering.redhat.com)
 
+2. [beaker doc](https://beaker-project.org/docs/)
+
 2. [PSI OpenStack](https://rhos-d.infra.prod.upshift.rdu2.redhat.com)
 
 3. [PSI OpenShift](https://console-openshift-console.apps.ocp4.prod.psi.redhat.com/)
 
-4. [Ansible](https://docs.ansible.com/ansible/2.9/user_guide/index.html)
+4. [Ansible doc](https://docs.ansible.com/ansible/2.9/user_guide/index.html)
 
-5. [Kickstart](https://docs.centos.org/en-US/8-docs/advanced-install/assembly_kickstart-commands-and-options-reference/)
+5. [Kickstart doc](https://docs.centos.org/en-US/8-docs/advanced-install/assembly_kickstart-commands-and-options-reference/)
 
-6. [virt-install](https://linux.die.net/man/1/virt-install)
+6. [virt-install doc](https://www.mankier.com/1/virt-install)
 
 7. [QEMU-KVM](https://www.redhat.com/en/topics/virtualization/what-is-KVM)
+
+8. [systemd](https://systemd.io/)
