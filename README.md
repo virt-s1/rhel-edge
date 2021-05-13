@@ -13,16 +13,16 @@ RHEL for Edge test from QE is more like an integration test. The test flow align
 
 2. RHEL for Edge image installation and upgrade
 
-    - `edge-commit`: Setup HTTP server to serve as ostree repo, and install with kickstart
-    - `edge-container`: Setup prod ostree repo, `edge-container` as stage repo, and install with kickstart from prod ostree repo
-    - `edge-installer`: Install from `edge-installer` ISO
+    - `rhel-edge-commit`/`edge-commit`: Setup HTTP server to serve as ostree repo, and install with kickstart
+    - `rhel-edge-container`/`edge-container`: Setup prod ostree repo, `rhel-edge-container`/`edge-container` as stage repo, and install with kickstart from prod ostree repo
+    - `rhel-edge-installer`/`edge-installer`: Install from `rhel-edge-installer`/`edge-installer` ISO
 
 3. checkings after installation/upgrade.
 
     - Check installed ostree commit
     - Check mount point
-    - Check [`green-boot`](https://github.com/fedora-iot/greenboot.git) services
-    - Check auto rollback with failure detected
+    - Check [`greenboot`](https://github.com/fedora-iot/greenboot.git) services
+    - Check auto rollback with [`greenboot`](https://github.com/fedora-iot/greenboot.git) when failure is detected
 
 ## RHEL-Edge CI
 
@@ -52,10 +52,7 @@ Test of this CI includes:
 
 ## RHEL-Edge Test Scenarios
 
-1. Build RHEL Edge image on Openstack VM and install it on nested VM.
-
-    - BIOS
-    - UEFI
+1. Build RHEL Edge image on Openstack VM and install it on nested VM. Test covers both BIOS and UEFI installation.
 
 2. Build RHEL Edge image on OpenStack VM and install it on bare metal machine.
 
@@ -63,8 +60,8 @@ Test of this CI includes:
 
 Two test suites in scenario 1:
 
-1. [`ostree.sh`](ostree.sh): For rhel-edge-commit(tar) image type on both RHEL 8.3 and RHEL 8.4
-1. [`ostree-ng.sh`](ostree-ng.sh): For rhel-edge-container(tar) and rhel-edge-installer(ISO) image types on both RHEL 8.4 only
+1. [`ostree.sh`](ostree.sh): rhel-edge-commit/edge-commit(tar) image type test on both RHEL 8.3 and RHEL 8.4
+2. [`ostree-ng.sh`](ostree-ng.sh): rhel-edge-container/edge-container(tar) and rhel-edge-installer/edge-installer(ISO) image types test on RHEL 8.4 only
 
 #### Test environment prpare
 
@@ -76,7 +73,6 @@ Two test suites in scenario 1:
 
     - ansible
     - jq
-    - expect
     - qemu-img
     - qemu-kvm
     - libvirt-client
@@ -84,6 +80,11 @@ Two test suites in scenario 1:
     - virt-install
 
 ### Scenario 2
+
+Two test suites in scenario 2:
+
+1. [`ostree-bare.yml`](ostree-bare.yml): rhel-edge-commit/edge-commit(tar) image type test
+2. [`ostree-bare-ng.yml`](ostree-bare-ng.yml): rhel-edge-container/edge-container(tar) image type test
 
 In this scenario, environment setup and test running are based on Ansible playbook. This scenario is for RHEL 8.4 only.
 
@@ -96,6 +97,7 @@ In this scenario, environment setup and test running are based on Ansible playbo
 
     - ansible
     - python3-lxml
+    - openstacksdk(pip)
 
 2. Environment.
 
@@ -106,22 +108,27 @@ In this scenario, environment setup and test running are based on Ansible playbo
 
 ### Scenario 1
 
-    ./ostree.sh
-    ./ostree-ng.sh
+    $ WORKSPACE=/home/admin ./ostree.sh
+    $ QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./ostree-ng.sh
 
 ### Scenario 2
 
-    $ARCH=x86_64 TEST_OS=rhel-8-4 ansible-playbook -v -i inventory ostree-bare.yml
+    $ ARCH=x86_64 TEST_OS=rhel-8-4 ansible-playbook -v -i inventory ostree-bare.yml
+    $ ARCH=x86_64 TEST_OS=rhel-8-4 ansible-playbook -v -i inventory ostree-bare-ng.yml
 
 ## Configuration
 
 You can set these environment variables to configure to run test
 
-    TEST_OS        The OS to run the tests in.  Currently supported values:
-                       "rhel-8-3"
-                       "rhel-8-4"
-    ARCH           The arch to build image and run test on.  Currently supported values:
-                       "x86_64"
+    TEST_OS            The OS to run the tests in.  Currently supported values:
+                           "rhel-8-3"
+                           "rhel-8-4"
+    ARCH               The arch to build image and run test on.  Currently supported values:
+                           "x86_64"
+    WORKSPACE          Use with Jenkins, used as path to save osbuild-composer logs
+    QUAY_USERNAME      quay.io username
+    QUAY_PASSWORD      quay.io password
+                           Used to test pushing Edge OCI-archive image to quay.io
 
 ## Contact us
 
