@@ -81,10 +81,9 @@ Two test suites in scenario 1:
 
 ### Scenario 2
 
-Two test suites in scenario 2:
+Test suite in scenario 2:
 
-1. [`ostree-bare.yml`](ostree-bare.yml): rhel-edge-commit/edge-commit(tar) image type test
-2. [`ostree-bare-ng.yml`](ostree-bare-ng.yml): rhel-edge-container/edge-container(tar) image type test
+1. [`ostree-bare-ng.yml`](ostree-bare-ng.yml): rhel-edge-container/edge-container(tar) image type test
 
 In this scenario, environment setup and test running are based on Ansible playbook. This scenario is for RHEL 8.4 only.
 
@@ -113,7 +112,6 @@ In this scenario, environment setup and test running are based on Ansible playbo
 
 ### Scenario 2
 
-    $ ARCH=x86_64 TEST_OS=rhel-8-4 ansible-playbook -v -i inventory ostree-bare.yml
     $ ARCH=x86_64 TEST_OS=rhel-8-4 ansible-playbook -v -i inventory ostree-bare-ng.yml
 
 ## Configuration
