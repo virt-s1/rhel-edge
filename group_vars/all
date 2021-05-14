@@ -1,4 +1,4 @@
-job_number: "{{ lookup('env', 'BUILD_NUMBER') | default(1, true) }}"
+random_number: "{{ 999 | random(start=101) }}"
 
 os: "{{ lookup('env', 'TEST_OS') }}"
 arch: "{{ lookup('env', 'ARCH') | default('x86_64', true) }}"

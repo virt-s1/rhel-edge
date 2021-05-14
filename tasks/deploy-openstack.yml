@@ -58,10 +58,13 @@
     port_range_max: 9090
     remote_ip_prefix: 0.0.0.0/0
 
+- set_fact:
+    vm_name: "rhel-edge-image-builder-{{ os }}-{{ random_number }}"
+
 - name: deploy instance
   os_server:
     cloud: psi-openstack
-    name: "rhel-edge-image-builder-{{ ostree_test_type }}-{{ os }}-{{ job_number }}"
+    name: "{{ vm_name }}"
     image: "{{ os_images[os] }}"
     flavor: "{{ os_flavor }}"
     network: "{{ os_network }}"
@@ -152,5 +155,5 @@
     path: "{{ playbook_dir }}/inventory"
     section: cloud:vars
     option: instance_name
-    value: "rhel-edge-image-builder-{{ os }}-{{ job_number }}"
+    value: "{{ vm_name }}"
     no_extra_spaces: yes
