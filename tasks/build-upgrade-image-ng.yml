@@ -34,10 +34,10 @@
     - name: save compose log
       copy:
         content: "{{ result_log.stdout }}"
-        dest: /tmp/compose.build.log
+        dest: /tmp/compose.upgrade.log
     - name: fetch log file back
       fetch:
-        src: /tmp/compose.build.log
+        src: /tmp/compose.upgrade.log
         dest: "{{ playbook_dir }}/log/"
         flat: yes
 
