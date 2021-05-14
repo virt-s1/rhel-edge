@@ -40,8 +40,6 @@
   vars:
     total_counter: "0"
     failed_counter: "0"
-  vars_files:
-    - "{{ playbook_dir }}/files/allowed_errors.yml"
   tasks:
     - set_fact:
         ostree_hostname: "{{ ostree_hostname }}"

@@ -145,7 +145,7 @@ pipeline {
                     }
                     post {
                         always {
-                            preserve_logs()
+                            preserve_bare_logs()
                             send_result('Bare-metal-beaker')
                             bare_clean()
                         }
@@ -202,6 +202,11 @@ void run_bare_test() {
 void preserve_logs() {
     archiveArtifacts allowEmptyArchive: true, artifacts: 'osbuild-*.log'
     archiveArtifacts allowEmptyArchive: true, artifacts: 'osbuild-*.json'
+}
+
+void preserve_bare_logs() {
+    archiveArtifacts allowEmptyArchive: true, artifacts: 'report.xml'
+    archiveArtifacts allowEmptyArchive: true, artifacts: 'log/*'
 }
 
 void send_result(test_type) {

@@ -1,7 +1,7 @@
 beaker-job.xml
 job-result-output.xml
 log/
-ostree.toml
+container.toml
 report.xml
-upgrade.toml
+upgrade-container.toml
 .idea/workspace.xml
