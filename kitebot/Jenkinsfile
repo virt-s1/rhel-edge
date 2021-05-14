@@ -147,6 +147,7 @@ pipeline {
                         always {
                             preserve_logs()
                             send_result('Bare-metal-beaker')
+                            bare_clean()
                         }
                     }
                 }
@@ -179,6 +180,7 @@ pipeline {
                         always {
                             preserve_logs()
                             send_result('Bare-metal-beaker')
+                            bare_clean()
                         }
                     }
                 }
@@ -262,4 +264,8 @@ void get_package_info() {
     script {
         env.PACKAGE_INFO = sh(returnStdout: true, script: 'rpm -qa | grep -E "osbuild|composer-cli"').trim()
     }
+}
+
+void bare_clean() {
+    sh "ansible-playbook -v -i inventory ostree-bare-clean.yml"
 }
