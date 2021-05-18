@@ -101,7 +101,7 @@ In this scenario, environment setup and test running are based on Ansible playbo
 2. Environment.
 
     - OpenStack credentials
-    - Kerberos keytab file for beaker
+    - Kerberos keytab file required by beaker
 
 ## Run Test
 
@@ -112,7 +112,7 @@ In this scenario, environment setup and test running are based on Ansible playbo
 
 ### Scenario 2
 
-    $ ARCH=x86_64 TEST_OS=rhel-8-4 ansible-playbook -v -i inventory ostree-bare-ng.yml
+    $ ARCH=x86_64 TEST_OS=rhel-8-4 VAULT_PASSWORD=xxxxxxx ansible-playbook -v -i inventory ostree-bare-ng.yml
 
 ## Configuration
 
@@ -123,8 +123,10 @@ You can set these environment variables to configure to run test
                            "rhel-8-4"
     ARCH               The arch to build image and run test on.  Currently supported values:
                            "x86_64"
+    VAULT_PASSWORD     Decrypt "files/clouds-yaml"
     WORKSPACE          Use with Jenkins, used as path to save osbuild-composer logs
     QUAY_USERNAME      quay.io username
+                           Used to test pushing Edge OCI-archive image to quay.io
     QUAY_PASSWORD      quay.io password
                            Used to test pushing Edge OCI-archive image to quay.io
 
