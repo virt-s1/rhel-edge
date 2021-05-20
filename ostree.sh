@@ -60,6 +60,12 @@ case "${ID}-${VERSION_ID}" in
         exit 1;;
 esac
 
+# Disalbe firewalld if firewalld gets installed
+# firewalld is not installed in PSI openstack VM
+if rpm -qa | grep -q firewalld; then
+    sudo systemctl disable firewalld --now
+fi
+
 # Start image builder service
 sudo systemctl enable --now osbuild-composer.socket
 

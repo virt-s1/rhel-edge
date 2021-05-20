@@ -65,6 +65,12 @@ function greenprint {
     echo -e "\033[1;32m${1}\033[0m"
 }
 
+# Disalbe firewalld if firewalld gets installed
+# firewalld is not installed in PSI openstack VM
+if rpm -qa | grep -q firewalld; then
+    sudo systemctl disable firewalld --now
+fi
+
 # Install required packages
 greenprint "Install required packages"
 # Install epel repo for ansible
