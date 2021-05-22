@@ -44,15 +44,15 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_TYPE=rhel-edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8.3"
-        # When 8.3 was released, it wasn't available on all RH internal
-        # mirrors, therefore the Boston mirror is hardcoded.
-        BOOT_LOCATION="http://download.eng.bos.redhat.com/released/rhel-8/RHEL-8/8.3.0/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.3.1/compose/BaseOS/x86_64/os/"
+        CUT_DIRS=9
         sudo cp files/rhel-8-3-1.json /etc/osbuild-composer/repositories/rhel-8.json;;
     "rhel-8.4")
         IMAGE_TYPE=rhel-edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
-        BOOT_LOCATION="http://download.devel.redhat.com/rel-eng/rhel-8/RHEL-8/latest-RHEL-8.4/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/"
+        CUT_DIRS=8
         sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
         sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
     *)
@@ -89,7 +89,7 @@ sudo virsh list --all > /dev/null
 # Set a customized dnsmasq configuration for libvirt so we always get the
 # same address on bootup.
 sudo tee /tmp/integration.xml > /dev/null << EOF
-<network>
+<network xmlns:dnsmasq='http://libvirt.org/schemas/network/dnsmasq/1.0'>
   <name>integration</name>
   <uuid>1c8fe98c-b53a-4ca4-bbdb-deb0f26b3579</uuid>
   <forward mode='nat'>
@@ -105,6 +105,11 @@ sudo tee /tmp/integration.xml > /dev/null << EOF
       <host mac='34:49:22:B0:83:30' name='vm' ip='192.168.100.50'/>
     </dhcp>
   </ip>
+  <dnsmasq:options>
+    <dnsmasq:option value='dhcp-vendorclass=set:efi-http,HTTPClient:Arch:00016'/>
+    <dnsmasq:option value='dhcp-option-force=tag:efi-http,60,HTTPClient'/>
+    <dnsmasq:option value='dhcp-boot=tag:efi-http,&quot;http://192.168.100.1/httpboot/EFI/BOOT/BOOTX64.EFI&quot;'/>
+  </dnsmasq:options>
 </network>
 EOF
 if ! sudo virsh net-info integration > /dev/null 2>&1; then
@@ -135,9 +140,35 @@ GUEST_ADDRESS=192.168.100.50
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
 BLUEPRINT_FILE=${TEMPDIR}/blueprint.toml
-KS_FILE=${TEMPDIR}/ks.cfg
+HTTPD_PATH="/var/www/html"
+KS_FILE=${HTTPD_PATH}/ks.cfg
 COMPOSE_START=${TEMPDIR}/compose-start-${IMAGE_KEY}.json
 COMPOSE_INFO=${TEMPDIR}/compose-info-${IMAGE_KEY}.json
+GRUB_CFG=${HTTPD_PATH}/httpboot/EFI/BOOT/grub.cfg
+
+# Download HTTP boot required files
+greenprint "📥 Download HTTP boot required files"
+sudo mkdir "${HTTPD_PATH}/httpboot"
+REQUIRED_FOLDERS=( "EFI" "images" "isolinux" )
+for i in "${REQUIRED_FOLDERS[@]}"
+do
+    sudo wget -r --no-parent -nH --cut-dirs="$CUT_DIRS" --reject "index.html*" --reject "boot.iso" "${BOOT_LOCATION}${i}/" -P "${HTTPD_PATH}/httpboot/"
+done
+
+# Update grub.cfg to work with HTTP boot
+greenprint "📝 Update grub.cfg to work with HTTP boot"
+sudo tee -a "${GRUB_CFG}" > /dev/null << EOF
+menuentry 'Install Red Hat Enterprise Linux for Edge 8.4' --class fedora --class gnu-linux --class gnu --class os {
+        linuxefi /httpboot/images/pxeboot/vmlinuz inst.stage2=http://192.168.100.1/httpboot inst.ks=http://192.168.100.1/ks.cfg quiet
+        initrdefi /httpboot/images/pxeboot/initrd.img
+}
+EOF
+sudo sed -i 's/default="1"/default="3"/' "${GRUB_CFG}"
+sudo sed -i 's/timeout=60/timeout=10/' "${GRUB_CFG}"
+
+# Start httpd to serve ostree repo and HTTP boot server
+greenprint "🚀 Starting httpd daemon"
+sudo systemctl start httpd
 
 # SSH setup.
 SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5)
@@ -239,17 +270,13 @@ wait_for_ssh_up () {
 clean_up () {
     greenprint "🧼 Cleaning up"
     sudo virsh destroy "${IMAGE_KEY}"
-    if [[ $ARCH == aarch64 ]]; then
-        sudo virsh undefine "${IMAGE_KEY}" --nvram
-    else
-        sudo virsh undefine "${IMAGE_KEY}"
-    fi
+    sudo virsh undefine "${IMAGE_KEY}" --nvram
     # Remove qcow2 file.
     sudo rm -f "$LIBVIRT_IMAGE_PATH"
     # Remove extracted upgrade image-tar.
     sudo rm -rf "$UPGRADE_PATH"
     # Remove "remote" repo.
-    sudo rm -rf "${HTTPD_PATH}"/{repo,compose.json}
+    sudo rm -rf "${HTTPD_PATH}"/{httpboot,repo,compose.json,ks.cfg}
     # Remomve tmp dir.
     sudo rm -rf "$TEMPDIR"
     # Stop httpd
@@ -289,15 +316,10 @@ EOF
 # Build installation image.
 build_image "$BLUEPRINT_FILE" ostree
 
-# Start httpd to serve ostree repo.
-greenprint "🚀 Starting httpd daemon"
-sudo systemctl start httpd
-
 # Download the image and extract tar into web server root folder.
 greenprint "📥 Downloading and extracting the image"
 sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
 IMAGE_FILENAME="${COMPOSE_ID}-commit.tar"
-HTTPD_PATH="/var/www/html"
 sudo tar -xf "${IMAGE_FILENAME}" -C ${HTTPD_PATH}
 sudo rm -f "$IMAGE_FILENAME"
 
@@ -321,7 +343,7 @@ sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
 
 # Write kickstart file for ostree image installation.
 greenprint "Generate kickstart file"
-tee "$KS_FILE" > /dev/null << STOPHERE
+sudo tee "$KS_FILE" > /dev/null << STOPHERE
 text
 lang en_US.UTF-8
 keyboard us
@@ -366,16 +388,15 @@ STOPHERE
 
 # Install ostree image via anaconda.
 greenprint "Install ostree image via anaconda"
-sudo virt-install  --initrd-inject="${KS_FILE}" \
-                   --extra-args="ks=file:/ks.cfg console=ttyS0,115200" \
-                   --name="${IMAGE_KEY}"\
+sudo virt-install  --name="${IMAGE_KEY}"\
                    --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
                    --ram 3072 \
                    --vcpus 2 \
                    --network network=integration,mac=34:49:22:B0:83:30 \
                    --os-type linux \
                    --os-variant ${OS_VARIANT} \
-                   --location ${BOOT_LOCATION} \
+                   --pxe \
+                   --boot uefi,loader_ro=yes,loader_type=pflash,nvram_template=/usr/share/edk2/ovmf/OVMF_VARS.fd,loader_secure=no \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \
