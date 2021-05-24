@@ -32,7 +32,7 @@ source /etc/os-release
 
 # Install packages
 sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-sudo dnf install -y --nogpgcheck osbuild-composer composer-cli ansible podman httpd
+sudo dnf install -y --nogpgcheck osbuild-composer composer-cli ansible podman httpd wget
 sudo rpm -qa | grep -i osbuild
 
 # Prepare osbuild-composer repository file

@@ -75,7 +75,7 @@ fi
 greenprint "Install required packages"
 # Install epel repo for ansible
 sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-sudo dnf install -y --nogpgcheck ansible httpd osbuild osbuild-composer composer-cli podman skopeo
+sudo dnf install -y --nogpgcheck ansible httpd osbuild osbuild-composer composer-cli podman skopeo wget
 
 # Start httpd server as prod ostree repo
 greenprint "Start httpd service"
