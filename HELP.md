@@ -73,3 +73,5 @@
 7. [QEMU-KVM](https://www.redhat.com/en/topics/virtualization/what-is-KVM)
 
 8. [systemd](https://systemd.io/)
+
+9. [HTTP boot](https://hackmd.io/@xiaofwan/S1Ge3q8Ku)
