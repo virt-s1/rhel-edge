@@ -65,12 +65,6 @@ function greenprint {
     echo -e "\033[1;32m${1}\033[0m"
 }
 
-# Disalbe firewalld if firewalld gets installed
-# firewalld is not installed in PSI openstack VM
-if rpm -qa | grep -q firewalld; then
-    sudo systemctl disable firewalld --now
-fi
-
 # Install required packages
 greenprint "Install required packages"
 # Install epel repo for ansible
@@ -102,7 +96,7 @@ sudo tee /tmp/integration.xml > /dev/null << EOF
       <port start='1024' end='65535'/>
     </nat>
   </forward>
-  <bridge name='integration' stp='on' delay='0'/>
+  <bridge name='integration' zone='trusted' stp='on' delay='0'/>
   <mac address='52:54:00:36:46:ef'/>
   <ip address='192.168.100.1' netmask='255.255.255.0'>
     <dhcp>
