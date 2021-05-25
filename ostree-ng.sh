@@ -255,10 +255,8 @@ clean_up () {
     sudo virsh undefine "${IMAGE_KEY}-uefi" --nvram
     sudo sudo virsh vol-delete --pool images "${IMAGE_KEY}-uefi.qcow2"
 
-    # Remove any status containers if exist
-    sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f
-    # Remove all images
-    sudo podman rmi -f -a
+    # Remove all the containers and images if exist
+    sudo podman system reset --force
 
     # Remove prod repo.
     sudo rm -rf "$PROD_REPO"
