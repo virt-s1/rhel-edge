@@ -65,17 +65,11 @@ function greenprint {
     echo -e "\033[1;32m${1}\033[0m"
 }
 
-# Disalbe firewalld if firewalld gets installed
-# firewalld is not installed in PSI openstack VM
-if rpm -qa | grep -q firewalld; then
-    sudo systemctl disable firewalld --now
-fi
-
 # Install required packages
 greenprint "Install required packages"
 # Install epel repo for ansible
 sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-sudo dnf install -y --nogpgcheck ansible httpd osbuild osbuild-composer composer-cli podman skopeo wget
+sudo dnf install -y --nogpgcheck ansible httpd osbuild osbuild-composer composer-cli podman skopeo wget firewalld
 
 # Start httpd server as prod ostree repo
 greenprint "Start httpd service"
@@ -84,6 +78,10 @@ sudo systemctl enable --now httpd.service
 # Start osbuild-composer.socket
 greenprint "Start osbuild-composer.socket"
 sudo systemctl enable --now osbuild-composer.socket
+
+# Start firewalld
+greenprint "Start firewalld"
+sudo systemctl enable --now firewalld
 
 # Start libvirtd and test it.
 greenprint "🚀 Starting libvirt daemon"
@@ -102,7 +100,7 @@ sudo tee /tmp/integration.xml > /dev/null << EOF
       <port start='1024' end='65535'/>
     </nat>
   </forward>
-  <bridge name='integration' stp='on' delay='0'/>
+  <bridge name='integration' zone='trusted' stp='on' delay='0'/>
   <mac address='52:54:00:36:46:ef'/>
   <ip address='192.168.100.1' netmask='255.255.255.0'>
     <dhcp>
@@ -113,13 +111,13 @@ sudo tee /tmp/integration.xml > /dev/null << EOF
   </ip>
 </network>
 EOF
-if ! sudo virsh net-info integration > /dev/null 2>&1; then
-    sudo virsh net-define /tmp/integration.xml
+if sudo virsh net-info integration > /dev/null 2>&1; then
+    sudo virsh net-destroy integration
+    sudo virsh net-undefine integration
 fi
 
-if [[ $(sudo virsh net-info integration | grep 'Active' | awk '{print $2}') == 'no' ]]; then
-    sudo virsh net-start integration
-fi
+sudo virsh net-define /tmp/integration.xml
+sudo virsh net-start integration
 
 # Allow anyone in the wheel group to talk to libvirt.
 greenprint "🚪 Allowing users in wheel group to talk to libvirt"

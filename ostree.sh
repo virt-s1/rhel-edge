@@ -32,7 +32,7 @@ source /etc/os-release
 
 # Install packages
 sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-sudo dnf install -y --nogpgcheck osbuild-composer composer-cli ansible podman httpd wget
+sudo dnf install -y --nogpgcheck osbuild-composer composer-cli ansible podman httpd wget firewalld
 sudo rpm -qa | grep -i osbuild
 
 # Prepare osbuild-composer repository file
@@ -60,14 +60,11 @@ case "${ID}-${VERSION_ID}" in
         exit 1;;
 esac
 
-# Disalbe firewalld if firewalld gets installed
-# firewalld is not installed in PSI openstack VM
-if rpm -qa | grep -q firewalld; then
-    sudo systemctl disable firewalld --now
-fi
-
 # Start image builder service
 sudo systemctl enable --now osbuild-composer.socket
+
+# Start firewalld
+sudo systemctl enable --now firewalld
 
 # Basic verification
 sudo composer-cli status show
@@ -97,7 +94,7 @@ sudo tee /tmp/integration.xml > /dev/null << EOF
       <port start='1024' end='65535'/>
     </nat>
   </forward>
-  <bridge name='integration' stp='on' delay='0'/>
+  <bridge name='integration' zone='trusted' stp='on' delay='0'/>
   <mac address='52:54:00:36:46:ef'/>
   <ip address='192.168.100.1' netmask='255.255.255.0'>
     <dhcp>
@@ -112,10 +109,13 @@ sudo tee /tmp/integration.xml > /dev/null << EOF
   </dnsmasq:options>
 </network>
 EOF
-if ! sudo virsh net-info integration > /dev/null 2>&1; then
-    sudo virsh net-define /tmp/integration.xml
-    sudo virsh net-start integration
+if sudo virsh net-info integration > /dev/null 2>&1; then
+    sudo virsh net-destroy integration
+    sudo virsh net-undefine integration
 fi
+
+sudo virsh net-define /tmp/integration.xml
+sudo virsh net-start integration
 
 # Allow anyone in the wheel group to talk to libvirt.
 greenprint "🚪 Allowing users in wheel group to talk to libvirt"
