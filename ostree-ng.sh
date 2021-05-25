@@ -508,7 +508,7 @@ sudo ANSIBLE_STDOUT_CALLBACK=debug ansible-playbook -v -i "${TEMPDIR}"/inventory
 check_result
 
 # Clean BIOS VM
-if [[ $(sudo virsh domstate "${IMAGE_KEY}-uefi") == "running" ]]; then
+if [[ $(sudo virsh domstate "${IMAGE_KEY}-bios") == "running" ]]; then
     sudo virsh destroy "${IMAGE_KEY}-bios"
 fi
 sudo virsh undefine "${IMAGE_KEY}-bios"
