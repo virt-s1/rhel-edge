@@ -253,7 +253,7 @@ clean_up () {
         sudo virsh destroy "${IMAGE_KEY}-uefi"
     fi
     sudo virsh undefine "${IMAGE_KEY}-uefi" --nvram
-    sudo rm -f "$LIBVIRT_UEFI_IMAGE_PATH"
+    sudo sudo virsh vol-delete --pool images "${IMAGE_KEY}-uefi.qcow2"
 
     # Remove any status containers if exist
     sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f
@@ -512,7 +512,7 @@ if [[ $(sudo virsh domstate "${IMAGE_KEY}-bios") == "running" ]]; then
     sudo virsh destroy "${IMAGE_KEY}-bios"
 fi
 sudo virsh undefine "${IMAGE_KEY}-bios"
-sudo rm -f "$LIBVIRT_BIOS_IMAGE_PATH"
+sudo sudo virsh vol-delete --pool images "${IMAGE_KEY}-bios.qcow2"
 
 # Install ostree image via ISO on UEFI vm
 greenprint "💿 Install ostree image via installer(ISO) on UEFI vm"

@@ -272,7 +272,7 @@ clean_up () {
     sudo virsh destroy "${IMAGE_KEY}"
     sudo virsh undefine "${IMAGE_KEY}" --nvram
     # Remove qcow2 file.
-    sudo rm -f "$LIBVIRT_IMAGE_PATH"
+    sudo sudo virsh vol-delete --pool images "${IMAGE_KEY}.qcow2"
     # Remove extracted upgrade image-tar.
     sudo rm -rf "$UPGRADE_PATH"
     # Remove "remote" repo.
