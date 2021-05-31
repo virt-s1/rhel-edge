@@ -60,6 +60,21 @@ case "${ID}-${VERSION_ID}" in
         exit 1;;
 esac
 
+# Set some arch depend variables.
+case "${ARCH}" in
+    "x86_64")
+	BOOT_EFI="BOOTX64.EFI"
+	NVRAM_TEMPLATE="/usr/share/edk2/ovmf/OVMF_VARS.fd"
+	;;
+    "aarch64")
+	BOOT_EFI="BOOTAA64.EFI"
+	NVRAM_TEMPLATE="/usr/share/AAVMF/AAVMF_VARS.fd"
+        ;;
+    *)
+        echo "unsupported arch: ${ARCH}"
+        exit 1;;
+esac
+
 # Start image builder service
 sudo systemctl enable --now osbuild-composer.socket
 
@@ -105,7 +120,7 @@ sudo tee /tmp/integration.xml > /dev/null << EOF
   <dnsmasq:options>
     <dnsmasq:option value='dhcp-vendorclass=set:efi-http,HTTPClient:Arch:00016'/>
     <dnsmasq:option value='dhcp-option-force=tag:efi-http,60,HTTPClient'/>
-    <dnsmasq:option value='dhcp-boot=tag:efi-http,&quot;http://192.168.100.1/httpboot/EFI/BOOT/BOOTX64.EFI&quot;'/>
+    <dnsmasq:option value='dhcp-boot=tag:efi-http,&quot;http://192.168.100.1/httpboot/EFI/BOOT/${BOOT_EFI}&quot;'/>
   </dnsmasq:options>
 </network>
 EOF
@@ -397,7 +412,7 @@ sudo virt-install  --name="${IMAGE_KEY}"\
                    --os-type linux \
                    --os-variant ${OS_VARIANT} \
                    --pxe \
-                   --boot uefi,loader_ro=yes,loader_type=pflash,nvram_template=/usr/share/edk2/ovmf/OVMF_VARS.fd,loader_secure=no \
+                   --boot uefi,loader_ro=yes,loader_type=pflash,nvram_template="${NVRAM_TEMPLATE}",loader_secure=no \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \
