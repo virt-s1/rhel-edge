@@ -7,7 +7,7 @@ if [[ $# -eq 1 || $# -eq 2 ]]; then
     sudo tee "/etc/yum.repos.d/osbuild-composer.repo" > /dev/null << EOF
 [osbuild-composer]
 name=osbuild-composer ${osbuild_composer_commit_sha}
-baseurl=http://osbuild-composer-repos.s3-website.us-east-2.amazonaws.com/osbuild-composer/rhel-8.4/x86_64/${osbuild_composer_commit_sha}
+baseurl=http://osbuild-composer-repos.s3-website.us-east-2.amazonaws.com/osbuild-composer/rhel-8.4/\$basearch/${osbuild_composer_commit_sha}
 enabled=1
 gpgcheck=0
 priority=5
@@ -19,7 +19,7 @@ if [[ $# -eq 2 ]]; then
     sudo tee "/etc/yum.repos.d/osbuild.repo" > /dev/null << EOF
 [osbuild]
 name=osbuild ${osbuild_commit_sha}
-baseurl=http://osbuild-composer-repos.s3-website.us-east-2.amazonaws.com/osbuild/rhel-8.4/x86_64/${osbuild_commit_sha}
+baseurl=http://osbuild-composer-repos.s3-website.us-east-2.amazonaws.com/osbuild/rhel-8.4/\$basearch/${osbuild_commit_sha}
 enabled=1
 gpgcheck=0
 priority=10
