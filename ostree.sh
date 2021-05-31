@@ -150,7 +150,7 @@ GRUB_CFG=${HTTPD_PATH}/httpboot/EFI/BOOT/grub.cfg
 greenprint "📥 Download HTTP boot required files"
 sudo rm -fr "${HTTPD_PATH}/httpboot"
 sudo mkdir "${HTTPD_PATH}/httpboot"
-REQUIRED_FOLDERS=( "EFI" "images" "isolinux" )
+REQUIRED_FOLDERS=( "EFI" "images" )
 for i in "${REQUIRED_FOLDERS[@]}"
 do
     sudo wget -r --no-parent -nH --cut-dirs="$CUT_DIRS" --reject "index.html*" --reject "boot.iso" "${BOOT_LOCATION}${i}/" -P "${HTTPD_PATH}/httpboot/"
