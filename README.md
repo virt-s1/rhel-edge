@@ -107,7 +107,7 @@ In this scenario, environment setup and test running are based on Ansible playbo
 
 ### Scenario 1
 
-    $ WORKSPACE=/home/admin ./ostree.sh
+    $ ./ostree.sh
     $ QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./ostree-ng.sh
 
 ### Scenario 2
@@ -124,7 +124,6 @@ You can set these environment variables to configure to run test
     ARCH               The arch to build image and run test on.  Currently supported values:
                            "x86_64"
     VAULT_PASSWORD     Decrypt "files/clouds-yaml"
-    WORKSPACE          Use with Jenkins, used as path to save osbuild-composer logs
     QUAY_USERNAME      quay.io username
                            Used to test pushing Edge OCI-archive image to quay.io
     QUAY_PASSWORD      quay.io password
