@@ -39,6 +39,7 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_TYPE=fedora-iot-commit
         OSTREE_REF="fedora/33/${ARCH}/iot"
         OS_VARIANT="fedora33"
+        USER_IN_COMMIT="false"
         BOOT_LOCATION="https://mirrors.rit.edu/fedora/fedora/linux/releases/33/Everything/x86_64/os/"
         CUT_DIRS=8
         sudo cp files/fedora-33.json /etc/osbuild-composer/repositories/fedora-33.json;;
@@ -46,6 +47,7 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_TYPE=rhel-edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8.3"
+        USER_IN_COMMIT="false"
         sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.3.1/compose/BaseOS/x86_64/os/"
         CUT_DIRS=9
@@ -54,10 +56,20 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_TYPE=rhel-edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
+        USER_IN_COMMIT="false"
         sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
+        sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
+    "rhel-8.5")
+        IMAGE_TYPE=edge-commit
+        OSTREE_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8-unknown"
+        USER_IN_COMMIT="true"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.5.0/compose/BaseOS/x86_64/os/"
+        CUT_DIRS=8
+        sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
         sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -145,6 +157,7 @@ EOF
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="osbuild-composer-ostree-test-${TEST_UUID}"
 GUEST_ADDRESS=192.168.100.50
+SSH_USER="admin"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -157,7 +170,8 @@ GRUB_CFG=${HTTPD_PATH}/httpboot/EFI/BOOT/grub.cfg
 
 # Download HTTP boot required files
 greenprint "📥 Download HTTP boot required files"
-sudo mkdir "${HTTPD_PATH}/httpboot"
+sudo rm -rf "${HTTPD_PATH}/httpboot"
+sudo mkdir -p "${HTTPD_PATH}/httpboot"
 REQUIRED_FOLDERS=( "EFI" "images" "isolinux" )
 for i in "${REQUIRED_FOLDERS[@]}"
 do
@@ -267,7 +281,7 @@ build_image() {
 
 # Wait for the ssh server up to be.
 wait_for_ssh_up () {
-    SSH_STATUS=$(sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@"${1}" '/bin/bash -c "echo -n READY"')
+    SSH_STATUS=$(sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${1}" '/bin/bash -c "echo -n READY"')
     if [[ $SSH_STATUS == READY ]]; then
         echo 1
     else
@@ -322,6 +336,19 @@ name = "python36"
 version = "*"
 EOF
 
+# RHEL 8.5 and later support user configuration in blueprint for edge-commit image
+if [[ "${USER_IN_COMMIT}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[customizations.user]]
+name = "${SSH_USER}"
+description = "Administrator account"
+password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl."
+key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"
+home = "/home/${SSH_USER}/"
+groups = ["wheel"]
+EOF
+fi
+
 # Build installation image.
 build_image "$BLUEPRINT_FILE" ostree
 
@@ -359,8 +386,8 @@ keyboard us
 timezone --utc Etc/UTC
 selinux --enforcing
 rootpw --lock --iscrypted locked
-user --name=admin --groups=wheel --iscrypted --password=\$6\$1LgwKw9aOoAi/Zy9\$Pn3ErY1E8/yEanJ98evqKEW.DZp24HTuqXPJl6GYCm8uuobAmwxLv7rGCvTRZhxtcYdmC0.XnYRSR9Sh6de3p0
-sshkey --username=admin "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"
+user --name=${SSH_USER} --groups=wheel --iscrypted --password=\$6\$1LgwKw9aOoAi/Zy9\$Pn3ErY1E8/yEanJ98evqKEW.DZp24HTuqXPJl6GYCm8uuobAmwxLv7rGCvTRZhxtcYdmC0.XnYRSR9Sh6de3p0
+sshkey --username=${SSH_USER} "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"
 bootloader --timeout=1 --append="net.ifnames=0 modprobe.blacklist=vc4"
 network --bootproto=dhcp --device=link --activate --onboot=on
 zerombr
@@ -369,8 +396,8 @@ autopart --nohome --noswap --type=plain
 ostreesetup --nogpg --osname=${IMAGE_TYPE} --remote=${IMAGE_TYPE} --url=http://192.168.100.1/repo/ --ref=${OSTREE_REF}
 poweroff
 %post --log=/var/log/anaconda/post-install.log --erroronfail
-# no sudo password for user admin
-echo -e 'admin\tALL=(ALL)\tNOPASSWD: ALL' >> /etc/sudoers
+# no sudo password for SSH user
+echo -e '${SSH_USER}\tALL=(ALL)\tNOPASSWD: ALL' >> /etc/sudoers
 # Remove any persistent NIC rules generated by udev
 rm -vf /etc/udev/rules.d/*persistent-net*.rules
 # And ensure that we will do DHCP on eth0 on startup
@@ -394,6 +421,12 @@ rm -f /var/tmp/zeros
 echo "(Don't worry -- that out-of-space error was expected.)"
 %end
 STOPHERE
+
+
+# RHEL 8.5 and later configures user in blueprint for edge-commit image
+if [[ "${USER_IN_COMMIT}" == "true" ]]; then
+    sudo sed -i '/^user\|^sshkey/d' "${KS_FILE}"
+fi
 
 # Install ostree image via anaconda.
 greenprint "Install ostree image via anaconda"
@@ -450,6 +483,19 @@ name = "wget"
 version = "*"
 EOF
 
+# RHEL 8.5 and later support user configuration in blueprint for edge-commit image
+if [[ "${USER_IN_COMMIT}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[customizations.user]]
+name = "${SSH_USER}"
+description = "Administrator account"
+password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl."
+key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"
+home = "/home/${SSH_USER}/"
+groups = ["wheel"]
+EOF
+fi
+
 # Build upgrade image.
 build_image "$BLUEPRINT_FILE" upgrade
 
@@ -482,8 +528,8 @@ UPGRADE_HASH=$(jq -r '."ostree-commit"' < "${UPGRADE_PATH}"/compose.json)
 
 # Upgrade image/commit.
 greenprint "Upgrade ostree image/commit"
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${GUEST_ADDRESS} 'sudo rpm-ostree upgrade'
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${GUEST_ADDRESS} 'nohup sudo systemctl reboot &>/dev/null & exit'
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${GUEST_ADDRESS}" 'sudo rpm-ostree upgrade'
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
 
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
@@ -509,7 +555,7 @@ sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
 ${GUEST_ADDRESS}
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=admin
+ansible_user=${SSH_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 EOF

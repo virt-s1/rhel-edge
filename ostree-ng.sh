@@ -57,8 +57,30 @@ source /etc/os-release
 
 # Customize repository
 sudo mkdir -p /etc/osbuild-composer/repositories
-sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
-sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json
+
+case "${ID}-${VERSION_ID}" in
+    "rhel-8.4")
+        CONTAINER_IMAGE_TYPE=rhel-edge-container
+        INSTALLER_IMAGE_TYPE=rhel-edge-installer
+        CONTAINER_FILENAME=rhel84-container.tar
+        INSTALLER_FILENAME=rhel84-boot.iso
+        OSTREE_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8-unknown"
+        sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
+        sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
+    "rhel-8.5")
+        CONTAINER_IMAGE_TYPE=edge-container
+        INSTALLER_IMAGE_TYPE=edge-installer
+        CONTAINER_FILENAME=container.tar
+        INSTALLER_FILENAME=installer.iso
+        OSTREE_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8-unknown"
+        sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
+        sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
+    *)
+        echo "unsupported distro: ${ID}-${VERSION_ID}"
+        exit 1;;
+esac
 
 # Colorful output.
 function greenprint {
@@ -132,8 +154,6 @@ EOF
 
 # Set up variables.
 ARCH=$(uname -m)
-OSTREE_REF="rhel/8/${ARCH}/edge"
-OS_VARIANT="rhel8-unknown"
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="rhel-edge-test-${TEST_UUID}"
 BIOS_GUEST_ADDRESS=192.168.100.50
@@ -333,7 +353,7 @@ sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve container
 
 # Build container image.
-build_image container rhel-edge-container
+build_image container "${CONTAINER_IMAGE_TYPE}"
 
 # Download the image
 greenprint "📥 Downloading the image"
@@ -352,7 +372,7 @@ sudo podman network inspect edge >/dev/null 2>&1 || sudo podman network create -
 
 # Deal with rhel-edge container
 greenprint "Uploading image to quay.io"
-IMAGE_FILENAME="${COMPOSE_ID}-rhel84-container.tar"
+IMAGE_FILENAME="${COMPOSE_ID}-${CONTAINER_FILENAME}"
 skopeo copy --dest-creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "oci-archive:${IMAGE_FILENAME}" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
 # Clear image file
 sudo rm -f "$IMAGE_FILENAME"
@@ -400,12 +420,12 @@ sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve installer
 
 # Build installer image.
-build_image installer rhel-edge-installer "$PROD_REPO_URL"
+build_image installer "${INSTALLER_IMAGE_TYPE}" "$PROD_REPO_URL"
 
 # Download the image
 greenprint "📥 Downloading the image"
 sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
-ISO_FILENAME="${COMPOSE_ID}-rhel84-boot.iso"
+ISO_FILENAME="${COMPOSE_ID}-${INSTALLER_FILENAME}"
 sudo mv "${ISO_FILENAME}" /var/lib/libvirt/images
 
 # Clean compose and blueprints.
@@ -590,7 +610,7 @@ sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve upgrade
 
 # Build installer image.
-build_image upgrade rhel-edge-container "$PROD_REPO_URL"
+build_image upgrade "${CONTAINER_IMAGE_TYPE}" "$PROD_REPO_URL"
 
 # Download the image
 greenprint "📥 Downloading the upgrade image"
@@ -605,7 +625,7 @@ sudo podman rmi -f -a
 
 # Deal with rhel-edge container
 greenprint "🗜 Extracting and running the image"
-IMAGE_FILENAME="${COMPOSE_ID}-rhel84-container.tar"
+IMAGE_FILENAME="${COMPOSE_ID}-${CONTAINER_FILENAME}"
 sudo podman pull "oci-archive:${IMAGE_FILENAME}"
 sudo podman images
 # Clear image file
