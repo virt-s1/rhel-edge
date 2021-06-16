@@ -1,0 +1,84 @@
+---
+apiVersion: v1
+kind: Template
+labels:
+  app: edge-stage-server
+  template: edge-stage-server
+metadata:
+  annotations:
+    description: edge stage repo server
+  name: edge-stage-server
+
+objects:
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: ${EDGE_STAGE_SERVER_NAME}
+    annotations:
+      template.openshift.io/expose-uri: http://{.spec.host}{.spec.path}
+  spec:
+    to:
+      kind: Service
+      name: ${EDGE_STAGE_SERVER_NAME}
+# file server deployment
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: ${EDGE_STAGE_SERVER_NAME}
+  spec:
+    replicas: 1
+    selector:
+      name: ${EDGE_STAGE_SERVER_NAME}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          name: ${EDGE_STAGE_SERVER_NAME}
+      spec:
+        containers:
+        - name: ${EDGE_STAGE_SERVER_NAME}
+          image: quay.io/rhel-edge/rhel-edge:nginx
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+            requests:
+              memory: "512Mi"
+              cpu: "50m"
+          securityContext:
+            capabilities: {}
+            privileged: false
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+    triggers:
+    - type: "ConfigChange"
+# Listening on TCP port 80
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: "${EDGE_STAGE_SERVER_NAME}"
+    annotations:
+      service.alpha.openshift.io/dependencies: '[{"name": "${EDGE_STAGE_SERVER_NAME}",
+        "namespace": "", "kind": "Service"}]'
+      service.openshift.io/infrastructure: 'true'
+    creationTimestamp:
+  spec:
+    ports:
+    - name: web
+      protocol: TCP
+      port: 80
+      targetPort: 8080
+      nodePort: 0
+    selector:
+      name: "${EDGE_STAGE_SERVER_NAME}"
+    type: ClusterIP
+    sessionAffinity: None
+
+parameters:
+- description: Edge stage repo server.
+  displayName: Edge stage repo server
+  name: EDGE_STAGE_SERVER_NAME
+  value: edge-stage-server
