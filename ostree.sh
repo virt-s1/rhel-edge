@@ -44,19 +44,34 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_TYPE=rhel-edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8.3"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.3.1/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.3.1/compose/BaseOS/${ARCH}/os/"
         CUT_DIRS=9
         sudo cp files/rhel-8-3-1.json /etc/osbuild-composer/repositories/rhel-8.json;;
     "rhel-8.4")
         IMAGE_TYPE=rhel-edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/${ARCH}/os/"
         CUT_DIRS=8
         sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
         sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
+        exit 1;;
+esac
+
+# Set some arch depend variables.
+case "${ARCH}" in
+    "x86_64")
+	BOOT_EFI="BOOTX64.EFI"
+	NVRAM_TEMPLATE="/usr/share/edk2/ovmf/OVMF_VARS.fd"
+	;;
+    "aarch64")
+	BOOT_EFI="BOOTAA64.EFI"
+	NVRAM_TEMPLATE="/usr/share/AAVMF/AAVMF_VARS.fd"
+        ;;
+    *)
+        echo "unsupported arch: ${ARCH}"
         exit 1;;
 esac
 
@@ -105,7 +120,7 @@ sudo tee /tmp/integration.xml > /dev/null << EOF
   <dnsmasq:options>
     <dnsmasq:option value='dhcp-vendorclass=set:efi-http,HTTPClient:Arch:00016'/>
     <dnsmasq:option value='dhcp-option-force=tag:efi-http,60,HTTPClient'/>
-    <dnsmasq:option value='dhcp-boot=tag:efi-http,&quot;http://192.168.100.1/httpboot/EFI/BOOT/BOOTX64.EFI&quot;'/>
+    <dnsmasq:option value='dhcp-boot=tag:efi-http,&quot;http://192.168.100.1/httpboot/EFI/BOOT/${BOOT_EFI}&quot;'/>
   </dnsmasq:options>
 </network>
 EOF
@@ -148,8 +163,9 @@ GRUB_CFG=${HTTPD_PATH}/httpboot/EFI/BOOT/grub.cfg
 
 # Download HTTP boot required files
 greenprint "📥 Download HTTP boot required files"
+sudo rm -fr "${HTTPD_PATH}/httpboot"
 sudo mkdir "${HTTPD_PATH}/httpboot"
-REQUIRED_FOLDERS=( "EFI" "images" "isolinux" )
+REQUIRED_FOLDERS=( "EFI" "images" )
 for i in "${REQUIRED_FOLDERS[@]}"
 do
     sudo wget -r --no-parent -nH --cut-dirs="$CUT_DIRS" --reject "index.html*" --reject "boot.iso" "${BOOT_LOCATION}${i}/" -P "${HTTPD_PATH}/httpboot/"
@@ -396,7 +412,7 @@ sudo virt-install  --name="${IMAGE_KEY}"\
                    --os-type linux \
                    --os-variant ${OS_VARIANT} \
                    --pxe \
-                   --boot uefi,loader_ro=yes,loader_type=pflash,nvram_template=/usr/share/edk2/ovmf/OVMF_VARS.fd,loader_secure=no \
+                   --boot uefi,loader_ro=yes,loader_type=pflash,nvram_template="${NVRAM_TEMPLATE}",loader_secure=no \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \
