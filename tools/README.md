@@ -14,6 +14,11 @@
         $ cd playbook
         $ VAULT_PASSWORD=foobar TEST_OS=centos-stream-8 ARCH=x86_64 ansible-playbook -v -i inventory vm-deploy.yaml
 
+## Deploy Edge container image on OpenShift 4
+
+        $ oc login --token=<token> --server=https://api.ocp4.prod.psi.redhat.com:6443
+        $ oc oc process -f tools/edge-stage-server-template.yaml | oc apply -f -
+
 ## Configuration
 
 You can set these environment variables to run test

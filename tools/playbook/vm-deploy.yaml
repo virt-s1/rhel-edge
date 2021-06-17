@@ -128,10 +128,6 @@
         config_drive: yes
         wait: yes
         timeout: 600
-        userdata: |
-          packages:
-            - python3
-            - python3-dnf
       register: instance_result
       when: "'centos' in os"
 
