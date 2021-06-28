@@ -30,20 +30,23 @@ echo -e "\033[0m"
 # Get OS data.
 source /etc/os-release
 
-# Install packages
-sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-sudo dnf install -y --nogpgcheck osbuild-composer composer-cli ansible podman httpd wget firewalld
-sudo rpm -qa | grep -i osbuild
-
 # Prepare osbuild-composer repository file
 sudo mkdir -p /etc/osbuild-composer/repositories
 
 # Set os-variant and boot location used by virt-install.
 case "${ID}-${VERSION_ID}" in
+    "fedora-33")
+        IMAGE_TYPE=fedora-iot-commit
+        OSTREE_REF="fedora/33/${ARCH}/iot"
+        OS_VARIANT="fedora33"
+        BOOT_LOCATION="https://mirrors.rit.edu/fedora/fedora/linux/releases/33/Everything/x86_64/os/"
+        CUT_DIRS=8
+        sudo cp files/fedora-33.json /etc/osbuild-composer/repositories/fedora-33.json;;
     "rhel-8.3")
         IMAGE_TYPE=rhel-edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8.3"
+        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.3.1/compose/BaseOS/x86_64/os/"
         CUT_DIRS=9
         sudo cp files/rhel-8-3-1.json /etc/osbuild-composer/repositories/rhel-8.json;;
@@ -51,6 +54,7 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_TYPE=rhel-edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
+        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
@@ -59,6 +63,11 @@ case "${ID}-${VERSION_ID}" in
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
 esac
+
+# Install packages
+sudo dnf install -y --nogpgcheck osbuild-composer composer-cli ansible podman httpd wget firewalld
+sudo rpm -qa | grep -i osbuild
+
 
 # Start image builder service
 sudo systemctl enable --now osbuild-composer.socket
@@ -152,7 +161,7 @@ sudo mkdir "${HTTPD_PATH}/httpboot"
 REQUIRED_FOLDERS=( "EFI" "images" "isolinux" )
 for i in "${REQUIRED_FOLDERS[@]}"
 do
-    sudo wget -r --no-parent -nH --cut-dirs="$CUT_DIRS" --reject "index.html*" --reject "boot.iso" "${BOOT_LOCATION}${i}/" -P "${HTTPD_PATH}/httpboot/"
+    sudo wget --inet4-only -r --no-parent -e robots=off -nH --cut-dirs="$CUT_DIRS" --reject "index.html*" --reject "boot.iso" "${BOOT_LOCATION}${i}/" -P "${HTTPD_PATH}/httpboot/"
 done
 
 # Update grub.cfg to work with HTTP boot
