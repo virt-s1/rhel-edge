@@ -18,4 +18,5 @@ images:
   centos-stream-8: edge-centos-stream-8
   rhel-8-4: RHEL-8.4.0-x86_64-nightly-latest
   rhel-8-5: RHEL-8.5.0-x86_64-nightly-latest
+  fedora-33: Fedora-Cloud-Base-33
   fedora-34: Fedora-Cloud-Base-34
