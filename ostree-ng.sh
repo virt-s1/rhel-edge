@@ -156,14 +156,16 @@ EOF
 ARCH=$(uname -m)
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="rhel-edge-test-${TEST_UUID}"
+QUAY_REPO_URL="docker://quay.io/rhel-edge/edge-containers"
+QUAY_REPO_TAG=$(tr -dc a-z0-9 < /dev/urandom | head -c 4 ; echo '')
 BIOS_GUEST_ADDRESS=192.168.100.50
 UEFI_GUEST_ADDRESS=192.168.100.51
 PROD_REPO_URL=http://192.168.100.1/repo/
 PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
-STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}/repo/"
-QUAY_REPO_URL="docker://quay.io/rhel-edge/edge-containers"
-QUAY_REPO_TAG=$(tr -dc a-z0-9 < /dev/urandom | head -c 4 ; echo '')
+STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
+STAGE_OCP4_SERVER_NAME="edge-stage-server"
+STAGE_OCP4_REPO_URL="http://${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/repo/"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -313,6 +315,7 @@ sudo rm -rf "$PROD_REPO"
 sudo mkdir -p "$PROD_REPO"
 sudo ostree --repo="$PROD_REPO" init --mode=archive
 sudo ostree --repo="$PROD_REPO" remote add --no-gpg-verify edge-stage "$STAGE_REPO_URL"
+sudo ostree --repo="$PROD_REPO" remote add --no-gpg-verify edge-stage-ocp4 "$STAGE_OCP4_REPO_URL"
 
 ###########################################################
 ##
@@ -377,24 +380,32 @@ skopeo copy --dest-creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "oci-archive:${IMAG
 # Clear image file
 sudo rm -f "$IMAGE_FILENAME"
 
-greenprint "Downloading image from quay.io"
-sudo podman pull "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
-sudo podman images
+# Run stage repo in OCP4
+greenprint "Running stage repo in OCP4"
+oc login --token="${OCP4_TOKEN}" --server=https://api.ocp4.prod.psi.redhat.com:6443
+oc project virt-qe-3rd
+oc process -f tools/edge-stage-server-template.yaml -p EDGE_STAGE_REPO_TAG="${QUAY_REPO_TAG}" -p EDGE_STAGE_SERVER_NAME="${STAGE_OCP4_SERVER_NAME}" | oc apply -f -
 
-greenprint "🗜 Running the image"
-sudo podman run -d --name rhel-edge --network edge --ip "$STAGE_REPO_ADDRESS" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
-# Wait for container to be running
-until [ "$(sudo podman inspect -f '{{.State.Running}}' rhel-edge)" == "true" ]; do
-    sleep 1;
-done;
+for LOOP_COUNTER in $(seq 0 60); do
+    RETURN_CODE=$(curl -o /dev/null -s -w "%{http_code}" "${STAGE_OCP4_REPO_URL}refs/heads/${OSTREE_REF}")
+    if [[ $RETURN_CODE == 200 ]]; then
+        echo "Stage repo is ready"
+        break
+    fi
+    sleep 10
+done
 
 # Sync installer ostree content
-sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage "$OSTREE_REF"
+sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage-ocp4 "$OSTREE_REF"
 
 # Clean compose and blueprints.
 greenprint "🧹 Clean up compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete container > /dev/null
+
+# Clean up OCP4
+greenprint " Clean up OCP4"
+oc delete all -l app="${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}"
 
 ########################################################
 ##
