@@ -66,6 +66,9 @@ case "${ID}-${VERSION_ID}" in
         INSTALLER_FILENAME=rhel84-boot.iso
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
+        USER_IN_UPGRADE_BP="true"
+        INSTALLER_PATH="/ostree/repo"
+        RT_TO_RT="true"
         sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
         sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
     "rhel-8.5")
@@ -75,6 +78,9 @@ case "${ID}-${VERSION_ID}" in
         INSTALLER_FILENAME=installer.iso
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
+        USER_IN_UPGRADE_BP="false"
+        INSTALLER_PATH="/run/install/repo/ostree/repo"
+        RT_TO_RT="false"
         sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
         sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
     *)
@@ -160,7 +166,7 @@ QUAY_REPO_URL="docker://quay.io/rhel-edge/edge-containers"
 QUAY_REPO_TAG=$(tr -dc a-z0-9 < /dev/urandom | head -c 4 ; echo '')
 BIOS_GUEST_ADDRESS=192.168.100.50
 UEFI_GUEST_ADDRESS=192.168.100.51
-PROD_REPO_URL=http://192.168.100.1/repo/
+PROD_REPO_URL=http://192.168.100.1/repo
 PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
@@ -267,8 +273,6 @@ wait_for_ssh_up () {
 # Clean up our mess.
 clean_up () {
     greenprint "🧼 Cleaning up"
-    # Remove tag from quay.io repo
-    skopeo delete --creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
 
     # Clear vm
     if [[ $(sudo virsh domstate "${IMAGE_KEY}-uefi") == "running" ]]; then
@@ -300,7 +304,7 @@ check_result () {
         greenprint "💚 Success"
     else
         greenprint "❌ Failed"
-        # clean_up
+        clean_up
         exit 1
     fi
 }
@@ -335,9 +339,6 @@ groups = []
 name = "python36"
 version = "*"
 
-[customizations.kernel]
-name = "kernel-rt"
-
 [[customizations.user]]
 name = "admin"
 description = "Administrator account"
@@ -346,6 +347,13 @@ key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCk
 home = "/home/admin/"
 groups = ["wheel"]
 EOF
+
+if [[ "${RT_TO_RT}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[customizations.kernel]
+name = "kernel-rt"
+EOF
+fi
 
 greenprint "📄 Which blueprint are we using"
 cat "$BLUEPRINT_FILE"
@@ -382,8 +390,7 @@ sudo rm -f "$IMAGE_FILENAME"
 
 # Run stage repo in OCP4
 greenprint "Running stage repo in OCP4"
-oc login --token="${OCP4_TOKEN}" --server=https://api.ocp4.prod.psi.redhat.com:6443
-oc project virt-qe-3rd
+oc login --token="${OCP4_TOKEN}" --server=https://api.ocp4.prod.psi.redhat.com:6443 -n virt-qe-3rd
 oc process -f tools/edge-stage-server-template.yaml -p EDGE_STAGE_REPO_TAG="${QUAY_REPO_TAG}" -p EDGE_STAGE_SERVER_NAME="${STAGE_OCP4_SERVER_NAME}" | oc apply -f -
 
 for LOOP_COUNTER in $(seq 0 60); do
@@ -403,9 +410,12 @@ greenprint "🧹 Clean up compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete container > /dev/null
 
+# Remove tag from quay.io repo
+skopeo delete --creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
+
 # Clean up OCP4
 greenprint " Clean up OCP4"
-oc delete all -l app="${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}"
+oc delete pod,rc,service,route,dc -l app="${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}"
 
 ########################################################
 ##
@@ -431,7 +441,8 @@ sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve installer
 
 # Build installer image.
-build_image installer "${INSTALLER_IMAGE_TYPE}" "$PROD_REPO_URL"
+# Test --url arg following by URL with tailling slash for bz#1942029
+build_image installer "${INSTALLER_IMAGE_TYPE}" "${PROD_REPO_URL}/"
 
 # Download the image
 greenprint "📥 Downloading the image"
@@ -469,7 +480,7 @@ network --bootproto=dhcp --device=link --activate --onboot=on
 zerombr
 clearpart --all --initlabel --disklabel=msdos
 autopart --nohome --noswap --type=plain
-ostreesetup --nogpg --osname=rhel-edge --remote=rhel-edge --url=file:///ostree/repo --ref=${OSTREE_REF}
+ostreesetup --nogpg --osname=rhel-edge --remote=rhel-edge --url=file://${INSTALLER_PATH} --ref=${OSTREE_REF}
 poweroff
 %post --log=/var/log/anaconda/post-install.log --erroronfail
 # no sudo password for user admin
@@ -517,7 +528,7 @@ check_result
 
 # Get ostree commit value.
 greenprint "🕹 Get ostree install commit value"
-INSTALL_HASH=$(curl "${PROD_REPO_URL}refs/heads/${OSTREE_REF}")
+INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
 
 # Run Edge test on BIOS VM
 # Add instance IP address into /etc/ansible/hosts
@@ -607,10 +618,15 @@ name = "kernel-rt"
 name = "admin"
 description = "Administrator account"
 password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl."
-key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"
 home = "/home/admin/"
 groups = ["wheel"]
 EOF
+
+if [[ "${USER_IN_UPGRADE_BP}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"
+EOF
+fi
 
 greenprint "📄 Which blueprint are we using"
 cat "$BLUEPRINT_FILE"
@@ -621,6 +637,7 @@ sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve upgrade
 
 # Build installer image.
+# Test --url arg following by URL without tailling slash for bz#1942029
 build_image upgrade "${CONTAINER_IMAGE_TYPE}" "$PROD_REPO_URL"
 
 # Download the image
@@ -656,7 +673,7 @@ sudo ostree --repo="$PROD_REPO" summary -u
 
 # Get ostree commit value.
 greenprint "🕹 Get ostree upgrade commit value"
-UPGRADE_HASH=$(curl "${PROD_REPO_URL}refs/heads/${OSTREE_REF}")
+UPGRADE_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
 
 # Clean compose and blueprints.
 greenprint "Clean up osbuild-composer again"
