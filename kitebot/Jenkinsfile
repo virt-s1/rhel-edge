@@ -151,6 +151,103 @@ pipeline {
                         }
                     }
                 }
+                stage('EL8.5 Virt') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '8.5.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.5.1'
+                                }
+                            }
+                        }
+                    }
+                    agent { label 'vm-rhel-8-5-0' }
+                    environment {
+                        TEST_OS = "rhel-8-5"
+                    }
+                    steps {
+                        run_virt_test('ostree-legacy')
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            get_package_info()
+                            send_result('Virt-KVM')
+                        }
+                    }
+                }
+                stage('EL8.5 ng Virt') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '8.5.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.5.1'
+                                }
+                            }
+                        }
+                    }
+                    agent { label 'vm-rhel-8-5-0' }
+                    environment {
+                        TEST_OS = "rhel-8-5"
+                    }
+                    steps {
+                        run_virt_test('ostree-ng')
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            get_package_info()
+                            send_result('Virt-NG-KVM')
+                        }
+                    }
+                }
+                stage('EL8.5 ng Bare') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '8.5.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.5.1'
+                                }
+                            }
+                        }
+                    }
+                    agent { label 'container-fedora-33-prod' }
+                    environment {
+                        TEST_OS = "rhel-8-5"
+                        ARCH = 'x86_64'
+                    }
+                    steps {
+                        run_bare_test()
+                    }
+                    post {
+                        always {
+                            preserve_bare_logs()
+                            send_result('Bare-metal-beaker')
+                            bare_clean()
+                        }
+                    }
+                }
             }
         }
     }
@@ -180,7 +277,7 @@ void run_virt_test(test_type) {
     """
 
     if (test_type == 'ostree-ng') {
-        withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME')]) {
+        withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
             sh "./ostree-ng.sh"
         }
     }
