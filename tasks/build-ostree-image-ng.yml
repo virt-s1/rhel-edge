@@ -95,6 +95,17 @@
     - "rhel-8.json"
     - "rhel-8-beta.json"
 
+- name: copy rhel-85.json to /etc/osbuild-composer/repositories
+  copy:
+    src: "{{ playbook_dir }}/files/rhel-8-5-0.json"
+    dest: /etc/osbuild-composer/repositories/{{ item }}
+  become: yes
+  when: os == "rhel-8-5"
+  loop:
+    - "rhel-85.json"
+    - "rhel-8.json"
+    - "rhel-8-beta.json"
+
 - name: start osbuild-composer.socket
   systemd:
     name: osbuild-composer.socket
@@ -229,6 +240,14 @@
     ostree --repo=/var/www/html/repo init --mode=archive
     ostree --repo=/var/www/html/repo remote add --no-gpg-verify edge-stage http://192.168.200.1/repo/
   become: yes
+  when: os == "rhel-8-4"
+
+- name: init ostree repo
+  shell: |
+    ostree --repo=/var/www/html/repo init --mode=archive
+    ostree --repo=/var/www/html/repo remote add --no-gpg-verify edge-stage http://192.168.200.1:8080/repo/
+  become: yes
+  when: os == "rhel-8-5"
 
 # Cannot find how to remove all containers/images in ansible, use shell instead
 - name: remove all containers and images
@@ -241,6 +260,12 @@
 - name: pull image from rhel for edge container tar file
   shell: podman pull "oci-archive:{{ compose_uuid }}-rhel84-container.tar"
   become: yes
+  when: os == "rhel-8-4"
+
+- name: pull image from rhel for edge container tar file
+  shell: podman pull "oci-archive:{{ compose_uuid }}-container.tar"
+  become: yes
+  when: os == "rhel-8-5"
 
 - name: Create podman network
   containers.podman.podman_network:
