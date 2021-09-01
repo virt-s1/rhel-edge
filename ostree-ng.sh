@@ -58,6 +58,30 @@ source /etc/os-release
 # Customize repository
 sudo mkdir -p /etc/osbuild-composer/repositories
 
+# Set up variables.
+ARCH=$(uname -m)
+TEST_UUID=$(uuidgen)
+IMAGE_KEY="rhel-edge-test-${TEST_UUID}"
+QUAY_REPO_URL="docker://quay.io/rhel-edge/edge-containers"
+QUAY_REPO_TAG=$(tr -dc a-z0-9 < /dev/urandom | head -c 4 ; echo '')
+BIOS_GUEST_ADDRESS=192.168.100.50
+UEFI_GUEST_ADDRESS=192.168.100.51
+PROD_REPO=/var/www/html/repo
+STAGE_REPO_ADDRESS=192.168.200.1
+STAGE_OCP4_SERVER_NAME="edge-stage-server"
+STAGE_OCP4_REPO_URL="http://${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/repo/"
+
+# Set up temporary files.
+TEMPDIR=$(mktemp -d)
+BLUEPRINT_FILE=${TEMPDIR}/blueprint.toml
+KS_FILE=${TEMPDIR}/ks.cfg
+COMPOSE_START=${TEMPDIR}/compose-start-${IMAGE_KEY}.json
+COMPOSE_INFO=${TEMPDIR}/compose-info-${IMAGE_KEY}.json
+
+# SSH setup.
+SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5)
+SSH_KEY=key/ostree_key
+
 case "${ID}-${VERSION_ID}" in
     "rhel-8.4")
         CONTAINER_IMAGE_TYPE=rhel-edge-container
@@ -66,9 +90,13 @@ case "${ID}-${VERSION_ID}" in
         INSTALLER_FILENAME=rhel84-boot.iso
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
+        PROD_REPO_URL=http://192.168.100.1/repo/
+        PROD_REPO_URL_2=$PROD_REPO_URL
         USER_IN_UPGRADE_BP="true"
         INSTALLER_PATH="/ostree/repo"
         RT_TO_RT="true"
+        SUPPORT_OCP="false"
+        STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}/repo/"
         sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
         sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
     "rhel-8.5")
@@ -78,11 +106,16 @@ case "${ID}-${VERSION_ID}" in
         INSTALLER_FILENAME=installer.iso
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
+        PROD_REPO_URL=http://192.168.100.1/repo
+        PROD_REPO_URL_2="${PROD_REPO_URL}/"
         USER_IN_UPGRADE_BP="false"
         INSTALLER_PATH="/run/install/repo/ostree/repo"
         RT_TO_RT="false"
-        sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
-        sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
+        SUPPORT_OCP="true"
+        STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
+        # Install openshift client
+        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
+        sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-85.json;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
@@ -157,32 +190,6 @@ polkit.addRule(function(action, subject) {
     }
 });
 EOF
-
-# Set up variables.
-ARCH=$(uname -m)
-TEST_UUID=$(uuidgen)
-IMAGE_KEY="rhel-edge-test-${TEST_UUID}"
-QUAY_REPO_URL="docker://quay.io/rhel-edge/edge-containers"
-QUAY_REPO_TAG=$(tr -dc a-z0-9 < /dev/urandom | head -c 4 ; echo '')
-BIOS_GUEST_ADDRESS=192.168.100.50
-UEFI_GUEST_ADDRESS=192.168.100.51
-PROD_REPO_URL=http://192.168.100.1/repo
-PROD_REPO=/var/www/html/repo
-STAGE_REPO_ADDRESS=192.168.200.1
-STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
-STAGE_OCP4_SERVER_NAME="edge-stage-server"
-STAGE_OCP4_REPO_URL="http://${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/repo/"
-
-# Set up temporary files.
-TEMPDIR=$(mktemp -d)
-BLUEPRINT_FILE=${TEMPDIR}/blueprint.toml
-KS_FILE=${TEMPDIR}/ks.cfg
-COMPOSE_START=${TEMPDIR}/compose-start-${IMAGE_KEY}.json
-COMPOSE_INFO=${TEMPDIR}/compose-info-${IMAGE_KEY}.json
-
-# SSH setup.
-SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5)
-SSH_KEY=key/ostree_key
 
 # Get the compose log.
 get_compose_log () {
@@ -388,22 +395,45 @@ skopeo copy --dest-creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "oci-archive:${IMAG
 # Clear image file
 sudo rm -f "$IMAGE_FILENAME"
 
-# Run stage repo in OCP4
-greenprint "Running stage repo in OCP4"
-oc login --token="${OCP4_TOKEN}" --server=https://api.ocp4.prod.psi.redhat.com:6443 -n virt-qe-3rd
-oc process -f tools/edge-stage-server-template.yaml -p EDGE_STAGE_REPO_TAG="${QUAY_REPO_TAG}" -p EDGE_STAGE_SERVER_NAME="${STAGE_OCP4_SERVER_NAME}" | oc apply -f -
+if [[ "${SUPPORT_OCP}" == "true" ]]; then
+    # Run stage repo in OCP4
+    greenprint "Running stage repo in OCP4"
+    oc login --token="${OCP4_TOKEN}" --server=https://api.ocp4.prod.psi.redhat.com:6443 -n virt-qe-3rd --insecure-skip-tls-verify
+    oc process -f tools/edge-stage-server-template.yaml -p EDGE_STAGE_REPO_TAG="${QUAY_REPO_TAG}" -p EDGE_STAGE_SERVER_NAME="${STAGE_OCP4_SERVER_NAME}" | oc apply -f -
 
-for LOOP_COUNTER in $(seq 0 60); do
-    RETURN_CODE=$(curl -o /dev/null -s -w "%{http_code}" "${STAGE_OCP4_REPO_URL}refs/heads/${OSTREE_REF}")
-    if [[ $RETURN_CODE == 200 ]]; then
-        echo "Stage repo is ready"
-        break
-    fi
-    sleep 10
-done
+    for LOOP_COUNTER in $(seq 0 60); do
+        RETURN_CODE=$(curl -o /dev/null -s -w "%{http_code}" "${STAGE_OCP4_REPO_URL}refs/heads/${OSTREE_REF}")
+        if [[ $RETURN_CODE == 200 ]]; then
+            echo "Stage repo is ready"
+            break
+        fi
+        sleep 10
+    done
 
-# Sync installer ostree content
-sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage-ocp4 "$OSTREE_REF"
+    # Sync installer ostree content
+    greenprint "Sync ostree repo with stage repo"
+    sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage-ocp4 "$OSTREE_REF"
+
+    # Clean up OCP4
+    greenprint "Clean up OCP4"
+    oc delete pod,rc,service,route,dc -l app="${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}"
+else
+    greenprint "Downloading image from quay.io"
+    sudo podman pull "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
+    sudo podman images
+
+    greenprint "🗜 Running the image"
+    sudo podman run -d --name rhel-edge --network edge --ip "$STAGE_REPO_ADDRESS" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
+    # Wait for container to be running
+    until [ "$(sudo podman inspect -f '{{.State.Running}}' rhel-edge)" == "true" ]; do
+        sleep 1;
+    done;
+
+    # Sync installer ostree content
+    greenprint "Sync ostree repo with stage repo"
+    sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage "$OSTREE_REF"
+fi
+
 
 # Clean compose and blueprints.
 greenprint "🧹 Clean up compose"
@@ -411,11 +441,8 @@ sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete container > /dev/null
 
 # Remove tag from quay.io repo
+greenprint "Remove tag from quay.io repo"
 skopeo delete --creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
-
-# Clean up OCP4
-greenprint " Clean up OCP4"
-oc delete pod,rc,service,route,dc -l app="${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}"
 
 ########################################################
 ##
@@ -442,7 +469,7 @@ sudo composer-cli blueprints depsolve installer
 
 # Build installer image.
 # Test --url arg following by URL with tailling slash for bz#1942029
-build_image installer "${INSTALLER_IMAGE_TYPE}" "${PROD_REPO_URL}/"
+build_image installer "${INSTALLER_IMAGE_TYPE}" "${PROD_REPO_URL_2}"
 
 # Download the image
 greenprint "📥 Downloading the image"
@@ -528,7 +555,7 @@ check_result
 
 # Get ostree commit value.
 greenprint "🕹 Get ostree install commit value"
-INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
+INSTALL_HASH=$(curl "${PROD_REPO_URL_2}refs/heads/${OSTREE_REF}")
 
 # Run Edge test on BIOS VM
 # Add instance IP address into /etc/ansible/hosts
@@ -673,7 +700,7 @@ sudo ostree --repo="$PROD_REPO" summary -u
 
 # Get ostree commit value.
 greenprint "🕹 Get ostree upgrade commit value"
-UPGRADE_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
+UPGRADE_HASH=$(curl "${PROD_REPO_URL_2}refs/heads/${OSTREE_REF}")
 
 # Clean compose and blueprints.
 greenprint "Clean up osbuild-composer again"

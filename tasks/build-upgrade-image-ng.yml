@@ -79,6 +79,12 @@
 - name: pull image from rhel for edge container tar file
   shell: podman pull "oci-archive:{{ compose_uuid }}-rhel84-container.tar"
   become: yes
+  when: os == "rhel-8-4"
+
+- name: pull image from rhel for edge container tar file
+  shell: podman pull "oci-archive:{{ compose_uuid }}-container.tar"
+  become: yes
+  when: os == "rhel-8-5"
 
 - name: Gather info for all images
   containers.podman.podman_image_info:
