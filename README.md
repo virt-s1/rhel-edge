@@ -108,7 +108,7 @@ In this scenario, environment setup and test running are based on Ansible playbo
 ### Scenario 1
 
     $ ./ostree.sh
-    $ QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./ostree-ng.sh
+    $ OCP4_TOKEN=abcdefg QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./ostree-ng.sh
 
 ### Scenario 2
 
@@ -121,6 +121,7 @@ You can set these environment variables to run test
     TEST_OS            The OS to run the tests in.  Currently supported values:
                            "rhel-8-3"
                            "rhel-8-4"
+                           "rhel-8-5"
     ARCH               The arch to build image and run test on.  Currently supported values:
                            "x86_64"
     VAULT_PASSWORD     Decrypt "files/clouds-yaml"
@@ -128,6 +129,8 @@ You can set these environment variables to run test
                            Used to test pushing Edge OCI-archive image to quay.io
     QUAY_PASSWORD      quay.io password
                            Used to test pushing Edge OCI-archive image to quay.io
+    OCP4_TOKEN         Edit-able SA token on PSI Openshift 4
+                           Deploy edge-container on PSI OCP4
 
 ## Contact us
 
