@@ -16,6 +16,8 @@ RHEL for Edge test from QE is more like an integration test. The test flow align
     - `rhel-edge-commit`/`edge-commit`: Setup HTTP server to serve as ostree repo, and install with kickstart
     - `rhel-edge-container`/`edge-container`: Setup prod ostree repo, `rhel-edge-container`/`edge-container` as stage repo, and install with kickstart from prod ostree repo
     - `rhel-edge-installer`/`edge-installer`: Install from `rhel-edge-installer`/`edge-installer` ISO
+    - `edge-raw-image`: Boot from raw image with KVM
+    - `edge-simplified-installer`: Install from `edge-simplified-installer` ISO
 
 3. checkings after installation/upgrade.
 
@@ -61,7 +63,9 @@ Test of this CI includes:
 Two test suites in scenario 1:
 
 1. [`ostree.sh`](ostree.sh): rhel-edge-commit/edge-commit(tar) image type test on both RHEL 8.3 and RHEL 8.4
-2. [`ostree-ng.sh`](ostree-ng.sh): rhel-edge-container/edge-container(tar) and rhel-edge-installer/edge-installer(ISO) image types test on RHEL 8.4 only
+2. [`ostree-ng.sh`](ostree-ng.sh): rhel-edge-container/edge-container(tar) and rhel-edge-installer/edge-installer(ISO) image types test on RHEL 8.4 and later
+3. [`ostree-raw-image.sh`](ostree-raw-image.sh): edge-raw-image image types test on RHEL 8.5 and later
+4. [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh): edge-simplified-installer image types test on RHEL 8.5 and later
 
 #### Test environment prpare
 
@@ -109,6 +113,8 @@ In this scenario, environment setup and test running are based on Ansible playbo
 
     $ ./ostree.sh
     $ OCP4_TOKEN=abcdefg QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./ostree-ng.sh
+    $ ./ostree-raw-image.sh
+    $ ./ostree-simplified-installer.sh
 
 ### Scenario 2
 
