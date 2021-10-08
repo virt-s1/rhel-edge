@@ -55,7 +55,7 @@
         ostreesetup --nogpg --osname=fedora-iot --remote=fedora-iot --url=http://{{ builder_ip }}/repo/ --ref=fedora/32/{{ arch }}/iot
 {% endif %}
 {% if "rhel" in os %}
-        ostreesetup --nogpg --osname=rhel-edge --remote=rhel-edge --url=http://{{ builder_ip }}/repo/ --ref=rhel/8/{{ arch }}/edge
+        ostreesetup --nogpg --osname=rhel-edge --remote=rhel-edge --url=http://{{ builder_ip }}/repo/ --ref={{ ostree_ref[os] }}
 {% endif %}
         reboot
         %post --log=/var/log/anaconda/post-install.log --erroronfail
