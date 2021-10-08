@@ -38,7 +38,7 @@
     # enablerepo: updates-testing
     state: latest
   become: yes
-  when: os == "rhel-8-6"
+  when: os == "rhel-8-6" or os == "rhel-9-0"
 
 - name: update all packages to latest
   dnf:
@@ -55,7 +55,6 @@
     - osbuild-ostree
     - python3-osbuild
     - composer-cli
-  register: result_packages
   when: os == "rhel-8-4" or os == "rhel-8-5"
 
 - name: check package version
@@ -67,27 +66,7 @@
     - osbuild-ostree
     - python3-osbuild
     - weldr-client
-  register: result_packages
-  when: os == "rhel-8-6"
-
-- debug:
-    var: result_packages
-
-- name: generate empty report.xml
-  template:
-    src: templates/report-xml.j2
-    dest: "{{ playbook_dir }}/report.xml"
-  delegate_to: localhost
-
-- name: add package info into report.xml
-  xml:
-    path: "{{ playbook_dir }}/report.xml"
-    xpath: /testsuite/properties
-    input_type: xml
-    add_children:
-      - <property name="package" value="{{ item.stdout }}"/>
-  loop: "{{ result_packages.results }}"
-  delegate_to: localhost
+  when: os == "rhel-8-6" or os == "rhel-9-0"
 
 - name: create osbuild-composer blueprint file
   template:
@@ -143,6 +122,13 @@
     - "rhel-86.json"
     - "rhel-8.json"
     - "rhel-8-beta.json"
+
+- name: copy rhel-90.json to /etc/osbuild-composer/repositories
+  copy:
+    src: "{{ playbook_dir }}/files/rhel-9-0-0.json"
+    dest: /etc/osbuild-composer/repositories/rhel-90.json
+  become: yes
+  when: os == "rhel-9-0"
 
 - name: start osbuild-composer.socket
   systemd:
@@ -228,25 +214,6 @@
         dest: "{{ playbook_dir }}/log/"
         flat: yes
 
-- name: add image building result into report.xml
-  xml:
-    path: "{{ playbook_dir }}/report.xml"
-    xpath: /testsuite
-    input_type: xml
-    add_children:
-      - <testcase name="build {{ ostree_type[os] }}" classname="image building"></testcase>
-  delegate_to: localhost
-
-- name: add failure result into report.xml
-  xml:
-    path: "{{ playbook_dir }}/report.xml"
-    xpath: /testsuite/testcase[@name="build {{ ostree_type[os] }}"]
-    input_type: xml
-    add_children:
-      - <failure message="building {{ ostree_name[os] }} failed">building {{ ostree_name[os] }} failed</failure>
-  delegate_to: localhost
-  when: compose_status is failed
-
 - fail:
     msg: building ostree image fail
   when: compose_status is failed
@@ -285,7 +252,7 @@
     ostree --repo=/var/www/html/repo init --mode=archive
     ostree --repo=/var/www/html/repo remote add --no-gpg-verify edge-stage http://192.168.200.1:8080/repo/
   become: yes
-  when: os == "rhel-8-5" or os == "rhel-8-6"
+  when: os == "rhel-8-5" or os == "rhel-8-6" or os == "rhel-9-0"
 
 # Cannot find how to remove all containers/images in ansible, use shell instead
 - name: remove all containers and images
@@ -303,7 +270,7 @@
 - name: pull image from rhel for edge container tar file
   shell: podman pull "oci-archive:{{ compose_uuid }}-container.tar"
   become: yes
-  when: os == "rhel-8-5" or os == "rhel-8-6"
+  when: os == "rhel-8-5" or os == "rhel-8-6" or os == "rhel-9-0"
 
 - name: Create podman network
   containers.podman.podman_network:
@@ -338,24 +305,12 @@
   become: yes
 
 - name: Get ostree commit hash from prod repo
-  command: cat /var/www/html/repo/refs/heads/rhel/8/x86_64/edge
+  command: cat "/var/www/html/repo/refs/heads/{{ ostree_ref[os] }}"
   register: result_commit_hash
 
 - name: Set ostree commit has to var->ostree_commit
   set_fact:
     ostree_commit: "{{ result_commit_hash.stdout }}"
-
-- debug:
-    var: ostree_commit
-
-- name: add failure result into report.xml
-  xml:
-    path: "{{ playbook_dir }}/report.xml"
-    xpath: /testsuite/testcase[@name="build {{ ostree_type[os] }}"]
-    input_type: xml
-    add_children:
-      - <system-out>{{ ostree_commit }}</system-out>
-  delegate_to: localhost
 
 - name: delete generated image
   command: "composer-cli compose delete {{ compose_uuid }}"

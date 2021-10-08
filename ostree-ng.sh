@@ -97,6 +97,9 @@ case "${ID}-${VERSION_ID}" in
         STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}/repo/"
         USER_IN_INSTALLER_BP="false"
         ANSIBLE_USER_FOR_BIOS="admin"
+        # Install epel repo for ansible
+        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        sudo dnf install -y ansible
         sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
         sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
     "rhel-8.5")
@@ -114,6 +117,9 @@ case "${ID}-${VERSION_ID}" in
         STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
         USER_IN_INSTALLER_BP="false"
         ANSIBLE_USER_FOR_BIOS="admin"
+        # Install epel repo for ansible
+        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        sudo dnf install -y ansible
         # Install openshift client
         curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
         sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-85.json;;
@@ -133,9 +139,35 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_INSTALLER_BP="false"
         ANSIBLE_USER_FOR_BIOS="admin"
         # ANSIBLE_USER_FOR_BIOS="installeruser"
+        # Install epel repo for ansible
+        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        sudo dnf install -y ansible
         # Install openshift client
         curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
         sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
+    "rhel-9.0")
+        CONTAINER_IMAGE_TYPE=edge-container
+        INSTALLER_IMAGE_TYPE=edge-installer
+        CONTAINER_FILENAME=container.tar
+        INSTALLER_FILENAME=installer.iso
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        PROD_REPO_URL=http://192.168.100.1/repo
+        PROD_REPO_URL_2="${PROD_REPO_URL}/"
+        USER_IN_UPGRADE_BP="false"
+        RT_TO_RT="false"
+        SUPPORT_OCP="true"
+        STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
+        USER_IN_INSTALLER_BP="false"
+        ANSIBLE_USER_FOR_BIOS="admin"
+        # ANSIBLE_USER_FOR_BIOS="installeruser"
+        # Install openshift client
+        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
+        # Install ansible
+        sudo dnf install -y --nogpgcheck ansible-core python-jmespath
+        # To support stdout_callback = yaml
+        sudo ansible-galaxy collection install community.general
+        sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
@@ -148,9 +180,7 @@ function greenprint {
 
 # Install required packages
 greenprint "Install required packages"
-# Install epel repo for ansible
-sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-sudo dnf install -y --nogpgcheck ansible httpd osbuild osbuild-composer composer-cli podman skopeo wget firewalld lorax xorriso
+sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli podman skopeo wget firewalld lorax xorriso
 
 # Start httpd server as prod ostree repo
 greenprint "Start httpd service"
@@ -427,7 +457,7 @@ modules = []
 groups = []
 
 [[packages]]
-name = "python36"
+name = "python3"
 version = "*"
 
 [[customizations.user]]
@@ -672,7 +702,7 @@ EOF
 
 # Test IoT/Edge OS
 greenprint "📼 Run Edge tests on BIOS VM"
-sudo ANSIBLE_STDOUT_CALLBACK=debug ansible-playbook -v -i "${TEMPDIR}"/inventory -e image_type=rhel -e ostree_commit="${INSTALL_HASH}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e image_type=rhel -e ostree_commit="${INSTALL_HASH}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Clean BIOS VM
@@ -731,7 +761,7 @@ modules = []
 groups = []
 
 [[packages]]
-name = "python36"
+name = "python3"
 version = "*"
 [[packages]]
 name = "wget"
@@ -841,7 +871,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=debug ansible-playbook -v -i "${TEMPDIR}"/inventory -e image_type=rhel -e ostree_commit="${UPGRADE_HASH}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e image_type=rhel -e ostree_commit="${UPGRADE_HASH}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up

@@ -46,9 +46,10 @@ case "${ID}-${VERSION_ID}" in
     "rhel-8.3")
         IMAGE_TYPE=rhel-edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8.3"
+        OS_VARIANT="rhel8-unknown"
         USER_IN_COMMIT="false"
         sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        sudo dnf install -y ansible
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.3.1/compose/BaseOS/x86_64/os/"
         CUT_DIRS=9
         sudo cp files/rhel-8-3-1.json /etc/osbuild-composer/repositories/rhel-8.json;;
@@ -58,6 +59,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel8-unknown"
         USER_IN_COMMIT="false"
         sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        sudo dnf install -y ansible
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
@@ -68,6 +70,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel8-unknown"
         USER_IN_COMMIT="true"
         sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        sudo dnf install -y ansible
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.5.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-85.json;;
@@ -77,18 +80,30 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel8-unknown"
         USER_IN_COMMIT="true"
         sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        sudo dnf install -y ansible
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
+    "rhel-9.0")
+        IMAGE_TYPE=edge-commit
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9.0"
+        USER_IN_COMMIT="false"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
+        CUT_DIRS=8
+        # Install ansible
+        sudo dnf install -y --nogpgcheck ansible-core python-jmespath
+        # To support stdout_callback = yaml
+        sudo ansible-galaxy collection install community.general
+        sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
 esac
 
 # Install packages
-sudo dnf install -y --nogpgcheck osbuild-composer composer-cli ansible podman httpd wget firewalld
+sudo dnf install -y --nogpgcheck osbuild-composer composer-cli podman httpd wget firewalld
 sudo rpm -qa | grep -i osbuild
-
 
 # Start image builder service
 sudo systemctl enable --now osbuild-composer.socket
@@ -352,7 +367,7 @@ version = "0.0.1"
 modules = []
 groups = []
 [[packages]]
-name = "python36"
+name = "python3"
 version = "*"
 EOF
 
@@ -496,7 +511,7 @@ version = "0.0.2"
 modules = []
 groups = []
 [[packages]]
-name = "python36"
+name = "python3"
 version = "*"
 [[packages]]
 name = "wget"

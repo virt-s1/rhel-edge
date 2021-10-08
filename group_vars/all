@@ -10,6 +10,7 @@ os_images:
   rhel-8-4: RHEL-8.4.0-x86_64-nightly-latest
   rhel-8-5: RHEL-8.5.0-x86_64-nightly-latest
   rhel-8-6: RHEL-8.6.0-x86_64-nightly-latest
+  rhel-9-0: RHEL-9.0.0-x86_64-nightly-latest
 
 os_flavor: ci.m1.large
 os_network: provider_net_cci_9
@@ -20,6 +21,7 @@ ostree_type:
   rhel-8-4: rhel-edge-commit
   rhel-8-5: edge-commit
   rhel-8-6: edge-commit
+  rhel-9-0: edge-commit
 
 distros:
   fedora-33: fedora-33
@@ -27,6 +29,7 @@ distros:
   rhel-8-4: RHEL-8.4.0
   rhel-8-5: RHEL-8.5.0
   rhel-8-6: RHEL-8.6.0
+  rhel-9-0: RHEL-9.0.0
 
 repo:
   fedora-33: https://mirrors.rit.edu/fedora/fedora/linux/releases/33/Everything/x86_64/os/
@@ -34,6 +37,7 @@ repo:
   rhel-8-4: http://download.devel.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/
   rhel-8-5: http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.5.0/compose/BaseOS/x86_64/os
   rhel-8-6: http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os
+  rhel-9-0: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os
 
 ostree_ref:
   fedora-33: "fedora/33/{{ arch }}/iot"
@@ -41,6 +45,7 @@ ostree_ref:
   rhel-8-4: "rhel/8/{{ arch }}/edge"
   rhel-8-5: "rhel/8/{{ arch }}/edge"
   rhel-8-6: "rhel/8/{{ arch }}/edge"
+  rhel-9-0: "rhel/9/{{ arch }}/edge"
 
 ostree_name:
   fedora-33: "fedora-iot"
@@ -48,3 +53,4 @@ ostree_name:
   rhel-8-4: "rhel-edge"
   rhel-8-5: "rhel-edge"
   rhel-8-6: "rhel-edge"
+  rhel-9-0: "rhel-edge"

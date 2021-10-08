@@ -32,8 +32,6 @@ source /etc/os-release
 ARCH=$(uname -m)
 
 # Set up variables.
-OSTREE_REF="rhel/8/${ARCH}/edge"
-OS_VARIANT="rhel8-unknown"
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="edge-${TEST_UUID}"
 HTTP_GUEST_ADDRESS=192.168.100.50
@@ -60,17 +58,39 @@ sudo mkdir -p /etc/osbuild-composer/repositories
 
 case "${ID}-${VERSION_ID}" in
     "rhel-8.5")
+        OSTREE_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8-unknown"
         CONTAINER_TYPE=edge-container
         CONTAINER_FILENAME=container.tar
         INSTALLER_TYPE=edge-simplified-installer
         INSTALLER_FILENAME=simplified-installer.iso
+        # Install epel repo for ansible
+        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        sudo dnf install -y ansible
         sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-85.json;;
     "rhel-8.6")
+        OSTREE_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8-unknown"
         CONTAINER_TYPE=edge-container
         CONTAINER_FILENAME=container.tar
         INSTALLER_TYPE=edge-simplified-installer
         INSTALLER_FILENAME=simplified-installer.iso
+        # Install epel repo for ansible
+        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        sudo dnf install -y ansible
         sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
+    "rhel-9.0")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        CONTAINER_TYPE=edge-container
+        CONTAINER_FILENAME=container.tar
+        INSTALLER_TYPE=edge-simplified-installer
+        INSTALLER_FILENAME=simplified-installer.iso
+        # Install ansible
+        sudo dnf install -y --nogpgcheck ansible-core python-jmespath
+        # To support stdout_callback = yaml
+        sudo ansible-galaxy collection install community.general
+        sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
@@ -83,9 +103,7 @@ function greenprint {
 
 # Install required packages
 greenprint "Install required packages"
-# Install epel repo for ansible
-sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-sudo dnf install -y --nogpgcheck ansible httpd osbuild osbuild-composer composer-cli podman wget firewalld curl jq expect qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm virt-install
+sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli podman wget firewalld curl jq expect qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm virt-install
 
 # Start osbuild-composer.socket
 greenprint "Start osbuild-composer.socket"
@@ -272,6 +290,9 @@ clean_up () {
     # Remomve tmp dir.
     sudo rm -rf "$TEMPDIR"
 
+    # Remove mount dir
+    sudo rm -rf /mnt/installer
+
     # Stop prod repo http service
     sudo systemctl disable --now httpd
 }
@@ -319,7 +340,7 @@ modules = []
 groups = []
 
 [[packages]]
-name = "python36"
+name = "python3"
 version = "*"
 
 [customizations.kernel]
@@ -439,10 +460,11 @@ GRUB_CFG=${HTTPD_PATH}/httpboot/EFI/BOOT/grub.cfg
 
 greenprint "📋 Mount simplified installer iso and copy content to webserver/httpboot"
 sudo mkdir -p ${HTTPD_PATH}/httpboot
-sudo mkdir /mnt/installer
+sudo mkdir -p /mnt/installer
 sudo mount -o loop "${ISO_FILENAME}" /mnt/installer
 sudo cp -R /mnt/installer/* ${HTTPD_PATH}/httpboot/
 sudo chmod -R +r ${HTTPD_PATH}/httpboot/*
+sudo umount --detach-loop --lazy /mnt/installer
 
 greenprint "📋 Update grub.cfg file for http boot"
 sudo sed -i 's/timeout=60/timeout=10/' "${GRUB_CFG}"
@@ -558,7 +580,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=debug ansible-playbook -v -i "${TEMPDIR}"/inventory -e image_type=redhat -e ostree_commit="${INSTALL_HASH}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e image_type=redhat -e ostree_commit="${INSTALL_HASH}" check-ostree.yaml || RESULTS=0
 check_result
 
 ##################################################################
@@ -577,7 +599,7 @@ modules = []
 groups = []
 
 [[packages]]
-name = "python36"
+name = "python3"
 version = "*"
 
 [[packages]]
@@ -695,7 +717,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=debug ansible-playbook -v -i "${TEMPDIR}"/inventory -e image_type=redhat -e ostree_commit="${UPGRADE_HASH}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e image_type=redhat -e ostree_commit="${UPGRADE_HASH}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up

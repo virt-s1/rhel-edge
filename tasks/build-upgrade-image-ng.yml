@@ -41,25 +41,6 @@
         dest: "{{ playbook_dir }}/log/"
         flat: yes
 
-- name: add upgrade image building result into report.xml
-  xml:
-    path: "{{ playbook_dir }}/report.xml"
-    xpath: /testsuite
-    input_type: xml
-    add_children:
-      - <testcase name="build upgrade {{ ostree_type[os] }}" classname="image building"></testcase>
-  delegate_to: localhost
-
-- name: add failure result into report.xml
-  xml:
-    path: "{{ playbook_dir }}/report.xml"
-    xpath: /testsuite/testcase[@name="build upgrade {{ ostree_type[os] }}"]
-    input_type: xml
-    add_children:
-      - <failure message="building upgrade image {{ ostree_name[os] }} failed">building upgrade image {{ ostree_name[os] }} failed</failure>
-  delegate_to: localhost
-  when: compose_status is failed
-
 - fail:
     msg: building ostree image fail
   when: compose_status is failed
@@ -84,7 +65,7 @@
 - name: pull image from rhel for edge container tar file
   shell: podman pull "oci-archive:{{ compose_uuid }}-container.tar"
   become: yes
-  when: os == "rhel-8-5" or os == "rhel-8-6"
+  when: os == "rhel-8-5" or os == "rhel-8-6" or os == "rhel-9-0"
 
 - name: Gather info for all images
   containers.podman.podman_image_info:
@@ -124,24 +105,6 @@
 
 - debug:
     var: ostree_commit
-
-- name: add failure result into report.xml
-  xml:
-    path: "{{ playbook_dir }}/report.xml"
-    xpath: /testsuite/testcase[@name="build upgrade {{ ostree_type[os] }}"]
-    input_type: xml
-    add_children:
-      - <system-out>{{ ostree_commit }}</system-out>
-  delegate_to: localhost
-
-- name: add migrate repo result into report.xml
-  xml:
-    path: "{{ playbook_dir }}/report.xml"
-    xpath: /testsuite
-    input_type: xml
-    add_children:
-      - <testcase name="migrate repo" classname="migrate repo"></testcase>
-  delegate_to: localhost
 
 - name: delete generated image
   command: "composer-cli compose delete {{ compose_uuid }}"
