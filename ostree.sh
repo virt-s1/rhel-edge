@@ -88,7 +88,7 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_TYPE=edge-commit
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
-        USER_IN_COMMIT="false"
+        USER_IN_COMMIT="true"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         # Install ansible
