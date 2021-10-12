@@ -116,6 +116,23 @@ case "${ID}-${VERSION_ID}" in
         # Install openshift client
         curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
         sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-85.json;;
+    "rhel-8.6")
+        CONTAINER_IMAGE_TYPE=edge-container
+        INSTALLER_IMAGE_TYPE=edge-installer
+        CONTAINER_FILENAME=container.tar
+        INSTALLER_FILENAME=installer.iso
+        OSTREE_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8-unknown"
+        PROD_REPO_URL=http://192.168.100.1/repo
+        PROD_REPO_URL_2="${PROD_REPO_URL}/"
+        USER_IN_UPGRADE_BP="false"
+        INSTALLER_PATH="/run/install/repo/ostree/repo"
+        RT_TO_RT="false"
+        SUPPORT_OCP="true"
+        STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
+        # Install openshift client
+        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
+        sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
@@ -386,7 +403,7 @@ sudo podman rmi -f -a
 
 # Prepare rhel-edge container network
 greenprint "Prepare container network"
-sudo podman network inspect edge >/dev/null 2>&1 || sudo podman network create --driver=bridge --subnet=192.168.200.0/24 --ip-range=192.168.200.0/24 --gateway=192.168.200.254 edge
+sudo podman network inspect edge >/dev/null 2>&1 || sudo podman network create --driver=bridge --subnet=192.168.200.0/24 --gateway=192.168.200.254 edge
 
 # Deal with rhel-edge container
 greenprint "Uploading image to quay.io"
