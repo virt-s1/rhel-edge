@@ -128,6 +128,7 @@ You can set these environment variables to run test
                            "rhel-8-3"
                            "rhel-8-4"
                            "rhel-8-5"
+                           "rhel-8-6"
     ARCH               The arch to build image and run test on.  Currently supported values:
                            "x86_64"
     VAULT_PASSWORD     Decrypt "files/clouds-yaml"

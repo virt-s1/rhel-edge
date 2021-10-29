@@ -57,19 +57,22 @@ SSH_KEY=key/ostree_key
 SSH_KEY_PUB=$(cat "${SSH_KEY}".pub)
 EDGE_USER_PASSWORD=foobar
 
+# Prepare osbuild-composer repository file
+sudo mkdir -p /etc/osbuild-composer/repositories
+
 case "${ID}-${VERSION_ID}" in
     "rhel-8.5")
         CONTAINER_TYPE=edge-container
         CONTAINER_FILENAME=container.tar
         INSTALLER_TYPE=edge-simplified-installer
         INSTALLER_FILENAME=simplified-installer.iso
-        ;;
-    "rhel-9.0")
+        sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-85.json;;
+    "rhel-8.6")
         CONTAINER_TYPE=edge-container
         CONTAINER_FILENAME=container.tar
         INSTALLER_TYPE=edge-simplified-installer
         INSTALLER_FILENAME=simplified-installer.iso
-        ;;
+        sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
@@ -85,8 +88,6 @@ greenprint "Install required packages"
 # Install epel repo for ansible
 sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
 sudo dnf install -y --nogpgcheck ansible httpd osbuild osbuild-composer composer-cli podman wget firewalld curl jq expect qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm virt-install
-sudo mkdir -p /etc/osbuild-composer/repositories
-sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-85.json
 
 # Start osbuild-composer.socket
 greenprint "Start osbuild-composer.socket"
@@ -292,7 +293,7 @@ sudo ostree --repo="$PROD_REPO" remote add --no-gpg-verify edge-stage "$STAGE_RE
 
 # Prepare stage repo network
 greenprint "🔧 Prepare stage repo network"
-sudo podman network inspect edge >/dev/null 2>&1 || sudo podman network create --driver=bridge --subnet=192.168.200.0/24 --ip-range=192.168.200.0/24 --gateway=192.168.200.254 edge
+sudo podman network inspect edge >/dev/null 2>&1 || sudo podman network create --driver=bridge --subnet=192.168.200.0/24 --gateway=192.168.200.254 edge
 
 ##########################################################
 ##

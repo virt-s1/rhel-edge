@@ -75,7 +75,7 @@
     timeout: 600
     userdata: |
       #cloud-config
-      {% if "8-5" in os %}
+      {% if "8-6" in os %}
       yum_repos:
         baseos:
           name: rhel8-baseos
@@ -86,6 +86,21 @@
         appstream:
           name: rhel8-appstream
           baseurl: "https://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-{{ distros[os] }}/compose/AppStream/x86_64/os/"
+          enabled: true
+          gpgcheck: false
+          sslverify: false
+      {% endif %}
+      {% if "8-5" in os %}
+      yum_repos:
+        baseos:
+          name: rhel8-baseos
+          baseurl: "https://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-{{ distros[os] }}/compose/BaseOS/x86_64/os/"
+          enabled: true
+          gpgcheck: false
+          sslverify: false
+        appstream:
+          name: rhel8-appstream
+          baseurl: "https://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-{{ distros[os] }}/compose/AppStream/x86_64/os/"
           enabled: true
           gpgcheck: false
           sslverify: false

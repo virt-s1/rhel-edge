@@ -106,6 +106,17 @@
     - "rhel-8.json"
     - "rhel-8-beta.json"
 
+- name: copy rhel-86.json to /etc/osbuild-composer/repositories
+  copy:
+    src: "{{ playbook_dir }}/files/rhel-8-6-0.json"
+    dest: /etc/osbuild-composer/repositories/{{ item }}
+  become: yes
+  when: os == "rhel-8-6"
+  loop:
+    - "rhel-86.json"
+    - "rhel-8.json"
+    - "rhel-8-beta.json"
+
 - name: start osbuild-composer.socket
   systemd:
     name: osbuild-composer.socket
@@ -265,12 +276,11 @@
 - name: pull image from rhel for edge container tar file
   shell: podman pull "oci-archive:{{ compose_uuid }}-container.tar"
   become: yes
-  when: os == "rhel-8-5"
+  when: os == "rhel-8-5" or os == "rhel-8-6"
 
 - name: Create podman network
   containers.podman.podman_network:
     name: edge
-    ip_range: 192.168.200.0/24
     subnet: 192.168.200.0/24
     gateway: 192.168.200.254
   become: yes
