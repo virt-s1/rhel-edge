@@ -316,8 +316,8 @@
       block:
         - assert:
             that:
-              - result_dmesg_error.stdout == ""
-            fail_msg: "no any error or fail log"
+              - result_dmesg_error.stdout_lines | length <= 1
+            fail_msg: "no any error fail log or only have one log"
             success_msg: "everything works as expected"
       always:
         - set_fact:
