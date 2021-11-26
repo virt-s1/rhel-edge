@@ -15,7 +15,8 @@ pipeline {
             steps {
                 script {
                     env.COMPOSE_ID = sh(returnStdout: true, script: 'echo $CI_MESSAGE | /usr/bin/jq -r ".compose_id"').trim()
-                    if (env.COMPOSE_ID == "") {
+                    print(env.COMPOSE_ID)
+                    if (env.COMPOSE_ID == "null") {
                         env.COMPOSE_ID = sh(returnStdout: true, script: 'echo $CI_MESSAGE | /usr/bin/jq -r ".compose.compose_info.payload.compose.id"').trim()
                         env.RELEASE_VERSION = sh(returnStdout: true, script: 'echo $CI_MESSAGE | /usr/bin/jq -r ".compose.compose_info.payload.release.version"').trim()
                     } else {
