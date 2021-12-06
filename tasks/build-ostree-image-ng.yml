@@ -25,6 +25,20 @@
     # enablerepo: updates-testing
     state: latest
   become: yes
+  when: os == "rhel-8-4" or os == "rhel-8-5"
+
+- name: install required packages
+  dnf:
+    name:
+      - httpd
+      - podman
+      - osbuild-composer
+      - cockpit-composer
+      - weldr-client
+    # enablerepo: updates-testing
+    state: latest
+  become: yes
+  when: os == "rhel-8-6"
 
 - name: update all packages to latest
   dnf:
@@ -42,6 +56,19 @@
     - python3-osbuild
     - composer-cli
   register: result_packages
+  when: os == "rhel-8-4" or os == "rhel-8-5"
+
+- name: check package version
+  command: rpm -q {{ item }}
+  loop:
+    - osbuild-composer
+    - osbuild
+    - osbuild-composer-worker
+    - osbuild-ostree
+    - python3-osbuild
+    - weldr-client
+  register: result_packages
+  when: os == "rhel-8-6"
 
 - debug:
     var: result_packages

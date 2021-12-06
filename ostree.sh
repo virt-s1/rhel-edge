@@ -225,11 +225,11 @@ get_compose_metadata () {
 
     # Find the tarball and extract it.
     TARBALL=$(basename "$(find . -maxdepth 1 -type f -name "*-metadata.tar")")
-    tar -xf "$TARBALL" -C "${TEMPDIR}"
-    rm -f "$TARBALL"
+    sudo tar -xf "$TARBALL" -C "${TEMPDIR}"
+    sudo rm -f "$TARBALL"
 
     # Move the JSON file into place.
-    cat "${TEMPDIR}"/"${COMPOSE_ID}".json | jq -M '.' | tee "$METADATA_FILE" > /dev/null
+    sudo cat "${TEMPDIR}"/"${COMPOSE_ID}".json | jq -M '.' | tee "$METADATA_FILE" > /dev/null
 }
 
 # Build ostree image.
@@ -256,13 +256,24 @@ build_image() {
     else
         sudo composer-cli --json compose start "$blueprint_name" $IMAGE_TYPE | tee "$COMPOSE_START"
     fi
-    COMPOSE_ID=$(jq -r '.build_id' "$COMPOSE_START")
+    # RHEL 8.6 and 9 use new command line tool weldr-client which has new response body
+    if rpm -q --quiet weldr-client; then
+        COMPOSE_ID=$(jq -r '.body.build_id' "$COMPOSE_START")
+    else
+        COMPOSE_ID=$(jq -r '.build_id' "$COMPOSE_START")
+    fi
 
     # Wait for the compose to finish.
     greenprint "⏱ Waiting for compose to finish: ${COMPOSE_ID}"
     while true; do
         sudo composer-cli --json compose info "${COMPOSE_ID}" | tee "$COMPOSE_INFO" > /dev/null
-        COMPOSE_STATUS=$(jq -r '.queue_status' "$COMPOSE_INFO")
+
+        # RHEL 8.6 and 9 use new command line tool weldr-client which has new response body
+        if rpm -q --quiet weldr-client; then
+            COMPOSE_STATUS=$(jq -r '.body.queue_status' "$COMPOSE_INFO")
+        else
+            COMPOSE_STATUS=$(jq -r '.queue_status' "$COMPOSE_INFO")
+        fi
 
         # Is the compose finished?
         if [[ $COMPOSE_STATUS != RUNNING ]] && [[ $COMPOSE_STATUS != WAITING ]]; then
