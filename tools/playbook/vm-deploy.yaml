@@ -2,75 +2,26 @@
 - hosts: openstack
   gather_facts: no
   become: no
+  vars:
+    date_label: "{{ lookup('pipe', 'date +%y%m%d') }}"
 
   tasks:
-    - name: random number as part of instance name
-      set_fact:
-        random_number: "{{ 99 | random(start=11) }}"
-
-    - name: create openstack configuration folder
-      file:
-        path: ~/.config/openstack
-        state: directory
-
-    - name: set vault password file
-      copy:
-        content: "{{ lookup('env', 'VAULT_PASSWORD') }}"
-        dest: "~/.config/ansible-vault"
-
-    - name: save clouds.yaml to ~/.config/openstack
-      command: ansible-vault decrypt -v --vault-password-file ~/.config/ansible-vault {{ playbook_dir }}/files/clouds-yaml --output ~/.config/openstack/clouds.yaml
-
-    - name: create a new openstack keypair
-      os_keypair:
-        cloud: psi-openstack
+    - name: create keypair for rhel-edge test
+      openstack.cloud.keypair:
+        cloud: rhos-01
         state: present
-        name: "rhel-edge-key"
+        name: "rhel-edge"
         public_key_file: key/ostree_key.pub
 
-    - name: create security group
-      os_security_group:
-        cloud: psi-openstack
-        name: "rhel-edge"
-        state: present
-        description: security group for ostree image build server
-
-    - name: set ssh rule for security group
-      os_security_group_rule:
-        cloud: psi-openstack
-        security_group: "rhel-edge"
-        protocol: tcp
-        port_range_min: 22
-        port_range_max: 22
-        remote_ip_prefix: 0.0.0.0/0
-
-    - name: set http rule for security group
-      os_security_group_rule:
-        cloud: psi-openstack
-        security_group: "rhel-edge"
-        protocol: tcp
-        port_range_min: 80
-        port_range_max: 80
-        remote_ip_prefix: 0.0.0.0/0
-
-    - name: set cockpit rule for security group
-      os_security_group_rule:
-        cloud: psi-openstack
-        security_group: "rhel-edge"
-        protocol: tcp
-        port_range_min: 9090
-        port_range_max: 9090
-        remote_ip_prefix: 0.0.0.0/0
-
-    - name: "deploy {{ os }} instance"
-      os_server:
-        cloud: psi-openstack
-        name: "edge-test-{{ os }}-{{ random_number }}"
+    - name: "deploy RHEL instance"
+      openstack.cloud.server:
+        cloud: rhos-01
+        name: "{{ os }}-{{ date_label }}"
         image: "{{ images[os] }}"
-        flavor: "ci.m1.large"
-        network: "provider_net_cci_9"
-        key_name: rhel-edge-key
-        security_groups: rhel-edge
+        flavor: "ci.standard.large"
+        network: "shared_net_9"
+        key_name: xiaofwan
+        security_groups: debug_vm
         auto_ip: yes
         config_drive: yes
         wait: yes
@@ -93,13 +44,13 @@
                 expire: False
           yum_repos:
             baseos:
-              name: rhel8-baseos
+              name: rhel-baseos
               baseurl: "{{ repos[os]['baseos'] }}"
               enabled: true
               gpgcheck: false
               sslverify: false
             appstream:
-              name: rhel8-appstream
+              name: rhel-appstream
               baseurl: "{{ repos[os]['appstream'] }}"
               enabled: true
               gpgcheck: false
@@ -115,20 +66,20 @@
         instance_result: "{{ tmp_instance_result }}"
       when: tmp_instance_result.changed
 
-    - name: "deploy {{ os }} instance"
-      os_server:
-        cloud: psi-openstack
-        name: "edge-test-{{ os }}-{{ random_number }}"
+    - name: "deploy CentOS Stream instance"
+      openstack.cloud.server:
+        cloud: rhos-01
+        name: "{{ os }}-{{ date_label }}"
         image: "{{ images[os] }}"
-        flavor: "ci.m1.large"
-        network: "provider_net_cci_9"
-        key_name: rhel-edge-key
-        security_groups: rhel-edge
+        flavor: "ci.standard.large"
+        network: "shared_net_9"
+        key_name: xiaofwan
+        security_groups: debug_vm
         auto_ip: yes
         config_drive: yes
         wait: yes
         timeout: 600
-      register: instance_result
+      register: tmp_instance_result
       when: "'centos' in os"
 
     # avoid registering a variable when a “when” condition is *not* met
@@ -136,15 +87,15 @@
         instance_result: "{{ tmp_instance_result }}"
       when: tmp_instance_result.changed
 
-    - name: "deploy {{ os }} instance"
-      os_server:
-        cloud: psi-openstack
-        name: "edge-test-{{ os }}-{{ random_number }}"
+    - name: "deploy Fedora instance"
+      openstack.cloud.server:
+        cloud: rhos-01
+        name: "{{ os }}-{{ date_label }}"
         image: "{{ images[os] }}"
-        flavor: "ci.m1.large"
-        network: "provider_net_cci_9"
-        key_name: rhel-edge-key
-        security_groups: rhel-edge
+        flavor: "ci.standard.large"
+        network: "shared_net_9"
+        key_name: xiaofwan
+        security_groups: debug_vm
         auto_ip: yes
         config_drive: yes
         wait: yes
@@ -183,7 +134,7 @@
         search_regex: OpenSSH
         delay: 10
 
-    - name: add os instance ip into host group image_maker
+    - name: add instance ip into host group guest
       add_host:
         name: "{{ instance_result.openstack.public_v4 }}"
         groups: guest
@@ -207,22 +158,111 @@
 
   tasks:
     - name: Upgrade all packages
-      yum:
+      dnf:
         name: '*'
         state: latest
 
-    - name: Install Edge test required packages
-      yum:
+    - name: Install test required packages
+      dnf:
         name:
-          - git
-          - wget
+          - beaker-client
           - curl
-          - jq
           - expect
-          - qemu-img
-          - qemu-kvm
+          - firewalld
+          - git
+          - jq
           - libvirt-client
           - libvirt-daemon-kvm
+          - podman
+          - qemu-img
+          - qemu-kvm
+          - skopeo
+          - unzip
+          - vim
           - virt-install
+          - wget
         disable_gpg_check: yes
         state: present
+
+    - block:
+        - name: Import the Microsoft repository key
+          rpm_key:
+            state: present
+            key: https://packages.microsoft.com/keys/microsoft.asc
+
+        - name: Copy Azure-cli repo file
+          copy:
+            src: azure-cli.repo
+            dest: /etc/yum.repos.d/azure-cli.repo
+
+        - name: Copy google-cloud-sdk repo file
+          copy:
+            src: google-cloud-sdk.repo
+            dest: /etc/yum.repos.d/google-cloud-sdk.repo
+
+        - name: Install ansible-core, az cli and gcloud cli
+          dnf:
+            name:
+              - ansible-core
+              - azure-cli
+              - google-cloud-sdk
+            state: present
+
+        - name: Install required ansible modules
+          community.general.ansible_galaxy_install:
+            type: collection
+            name: "{{ item }}"
+          loop:
+            - "community.general"
+            - "openstack.cloud"
+            - "amazon.aws"
+            - "community.aws"
+            - "azure.azcollection"
+            - "community.vmware"
+            - "google.cloud"
+          become_user: fedora
+        # installing community.aws is for community.aws.aws_ssm_parameter_store
+
+        - name: Download AWS cli zip file and unzip it
+          unarchive:
+            src: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+            dest: /tmp
+            remote_src: yes
+
+        - name: Install AWS cli
+          command: /tmp/aws/install
+          become: yes
+
+        - name: "Check versions"
+          command: "{{ item }}"
+          loop:
+            - "ansible --version"
+            - "ansible-galaxy collection list"
+            - "aws --version"
+            - "az --version"
+            - "gcloud --version"
+
+        - name: Delete AWS folder
+          file:
+            path: /tmp/aws
+            state: absent
+
+        - name: Install ansible module required packages
+          pip:
+            name:
+              # required by openstack
+              - openstacksdk
+              # required by gcloud
+              - google-auth
+              # required by vmware
+              - pyvmomi
+              # required by aws
+              - boto3
+              - botocore
+          become_user: fedora
+
+        - name: Install azure module required packages
+          pip:
+            requirements: https://raw.githubusercontent.com/ansible-collections/azure/dev/requirements-azure.txt
+          become_user: fedora
+      when: "'fedora' in os"

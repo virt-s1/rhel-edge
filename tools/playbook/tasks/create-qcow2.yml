@@ -18,7 +18,7 @@
 
 - name: generate ks file for image_maker
   template:
-    src: "centos-stream-8-ks.j2"
+    src: "{{ os }}-{{ arch }}-ks.j2"
     dest: "/home/fedora/{{ os }}_{{ arch }}.ks"
 
 - name: copy virt-install-image shell script to image_maker

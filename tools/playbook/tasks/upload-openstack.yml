@@ -1,8 +1,8 @@
 ---
 - name: upload tmp image to psi openstack
-  os_image:
-    cloud: psi-openstack
-    name: "tmp-edge-openstack-{{ os }}"
+  openstack.cloud.image:
+    cloud: rhos-01
+    name: "tmp-edge-{{ os }}"
     filename: "{{ playbook_dir }}/{{ os }}_{{ arch }}.qcow2"
     # https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
     properties:
@@ -13,14 +13,14 @@
 # image test
 - block:
     - name: deploy image test instance
-      os_server:
-        cloud: psi-openstack
+      openstack.cloud.server:
+        cloud: rhos-01
         name: "edge-image-test-{{ os }}"
-        image: "tmp-edge-openstack-{{ os }}"
-        flavor: "ci.m1.large"
-        network: "provider_net_cci_9"
-        key_name: rhel-edge-key
-        security_groups: rhel-edge
+        image: "tmp-edge-{{ os }}"
+        flavor: "ci.standard.large"
+        network: "shared_net_9"
+        key_name: rhel-edge
+        security_groups: ssh_only
         auto_ip: yes
         config_drive: yes
         wait: yes
@@ -63,13 +63,13 @@
     - name: disk growpart not support
       fail:
         msg: "can't find disk growpart support, edge image {{ os }} {{ arch }} fail"
-      when: "'40G' not in result_growpart.stdout"
+      when: "'60G' not in result_growpart.stdout"
 
   rescue:
     - name: remove tmp image
-      os_image:
-        cloud: psi-openstack
-        name: "tmp-edge-openstack-{{ os }}"
+      openstack.cloud.image:
+        cloud: rhos-01
+        name: "tmp-edge-{{ os }}"
         state: absent
 
     - name: "building {{ os }} openstack image fail"
@@ -78,26 +78,26 @@
 
   always:
     - name: remove image test instance
-      os_server:
-        cloud: psi-openstack
+      openstack.cloud.server:
+        cloud: rhos-01
         name: "edge-image-test-{{ os }}"
         state: absent
 
     - name: delete tested tmp image
-      os_image:
-        cloud: psi-openstack
-        name: "tmp-edge-openstack-{{ os }}"
+      openstack.cloud.image:
+        cloud: rhos-01
+        name: "tmp-edge-{{ os }}"
         state: absent
 
 - name: "delete last {{ os }} openstack image"
-  os_image:
-    cloud: psi-openstack
+  openstack.cloud.image:
+    cloud: rhos-01
     name: edge-{{ os }}
     state: absent
 
 - name: "upload new {{ os }} openstack image to psi"
-  os_image:
-    cloud: psi-openstack
+  openstack.cloud.image:
+    cloud: rhos-01
     name: "edge-{{ os }}"
     filename: "{{ playbook_dir }}/{{ os }}_{{ arch }}.qcow2"
     # https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
@@ -106,6 +106,3 @@
       os_distro: centos
       hw_rng_model: virtio
   register: result_image
-
-- debug:
-    var: result_image

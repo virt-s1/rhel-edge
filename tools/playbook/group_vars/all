@@ -1,5 +1,3 @@
-random_number: "{{ 999 | random(start=101) }}"
-
 os: "{{ lookup('env', 'TEST_OS') }}"
 arch: "{{ lookup('env', 'ARCH') | default('x86_64', true) }}"
 
@@ -11,12 +9,20 @@ repos:
     baseos: http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/
     appstream: http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.4.0/compose/AppStream/x86_64/os/
   rhel-8-5:
-    baseos: http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.5.0/compose/BaseOS/x86_64/os/
-    appstream: http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.5.0/compose/AppStream/x86_64/os/
+    baseos: http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.5.0/compose/BaseOS/x86_64/os/
+    appstream: http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.5.0/compose/AppStream/x86_64/os/
+  rhel-8-6:
+    baseos: http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/
+    appstream: http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/AppStream/x86_64/os/
+  rhel-9-0:
+    baseos: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/
+    appstream: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/AppStream/x86_64/os/
 
 images:
   centos-stream-8: edge-centos-stream-8
   rhel-8-4: RHEL-8.4.0-x86_64-nightly-latest
   rhel-8-5: RHEL-8.5.0-x86_64-nightly-latest
+  rhel-8-6: RHEL-8.6.0-x86_64-nightly-latest
+  rhel-9-0: RHEL-9.0.0-x86_64-nightly-latest
   fedora-33: Fedora-Cloud-Base-33
   fedora-34: Fedora-Cloud-Base-34

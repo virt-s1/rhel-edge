@@ -1,75 +1,40 @@
 ---
-- name: random number as part of instance name
-  set_fact:
-    random_number: "{{ 99 | random(start=11) }}"
-
-- name: create openstack configuration folder
-  file:
-    path: ~/.config/openstack
-    state: directory
-
-- name: set vault password file
-  copy:
-    content: "{{ lookup('env', 'VAULT_PASSWORD') }}"
-    dest: "~/.config/ansible-vault"
-
-- name: save clouds.yaml to ~/.config/openstack
-  command: ansible-vault decrypt -v --vault-password-file ~/.config/ansible-vault {{ playbook_dir }}/files/clouds-yaml --output ~/.config/openstack/clouds.yaml
-
-- name: create a new openstack keypair
-  os_keypair:
-    cloud: psi-openstack
+- name: create keypair for rhel-edge test
+  openstack.cloud.keypair:
+    cloud: rhos-01
     state: present
-    name: "rhel-edge-key"
+    name: rhel-edge
     public_key_file: key/ostree_key.pub
 
-- name: create security group
-  os_security_group:
-    cloud: psi-openstack
-    name: "rhel-edge"
+- name: create security group for ssh only
+  openstack.cloud.security_group:
+    cloud: rhos-01
+    name: ssh_only
     state: present
-    description: security group for ostree image build server
+    description: security group for ssh only
 
-- name: set ssh rule for security group
-  os_security_group_rule:
-    cloud: psi-openstack
-    security_group: "rhel-edge"
+- name: permit ssh in security group ssh_only
+  openstack.cloud.security_group_rule:
+    cloud: rhos-01
+    security_group: ssh_only
     protocol: tcp
     port_range_min: 22
     port_range_max: 22
     remote_ip_prefix: 0.0.0.0/0
 
-- name: set http rule for security group
-  os_security_group_rule:
-    cloud: psi-openstack
-    security_group: "rhel-edge"
-    protocol: tcp
-    port_range_min: 80
-    port_range_max: 80
-    remote_ip_prefix: 0.0.0.0/0
-
-- name: set cockpit rule for security group
-  os_security_group_rule:
-    cloud: psi-openstack
-    security_group: "rhel-edge"
-    protocol: tcp
-    port_range_min: 9090
-    port_range_max: 9090
-    remote_ip_prefix: 0.0.0.0/0
-
 - name: set openstack instance name
   set_fact:
-    instance_name: "edge-image-maker-{{ os }}-{{ random_number }}"
+    instance_name: "edge-{{ os }}-image-maker"
 
 - name: deploy instance
-  os_server:
-    cloud: psi-openstack
+  openstack.cloud.server:
+    cloud: rhos-01
     name: "{{ instance_name }}"
-    image: "Fedora-Cloud-Base-34"
-    flavor: "ci.m1.large"
-    network: "provider_net_cci_9"
-    key_name: rhel-edge-key
-    security_groups: rhel-edge
+    image: Fedora-Cloud-Base-34
+    flavor: ci.standard.large
+    network: shared_net_9
+    key_name: rhel-edge
+    security_groups: ssh_only
     auto_ip: yes
     config_drive: yes
     wait: yes
@@ -93,8 +58,8 @@
 
 - name: keep private key permission to 600
   file:
-    path: "key/ostree_key"
-    mode: "0600"
+    path: key/ostree_key
+    mode: 0600
 
 - name: ensure cloud-init has finished
   raw: test -f /var/lib/cloud/instance/boot-finished

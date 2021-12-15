@@ -1,6 +1,6 @@
 ---
 - name: remove openstack instance
-  os_server:
-    cloud: psi-openstack
+  openstack.cloud.server:
+    cloud: rhos-01
     name: "{{ instance_name }}"
     state: absent
