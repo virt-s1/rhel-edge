@@ -46,7 +46,7 @@ cleanup_builder_vm
 
 supervised_virt_install $connect \
                         --initrd-inject="$ks" \
-                        --extra-args="ks=file:/$ks console=ttyS0,115200" \
+                        --extra-args="inst.ks=file:/$ks console=ttyS0,115200" \
                         --name="$name" \
                         --disk "path=$out,format=qcow2" \
                         --ram 4096 \

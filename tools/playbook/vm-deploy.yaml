@@ -79,6 +79,17 @@
         config_drive: yes
         wait: yes
         timeout: 600
+        userdata: |
+          #cloud-config
+          users:
+            - default
+            - name: admin
+              gecos: Administrator
+              groups: users,wheel
+              sudo: ALL=(ALL) NOPASSWD:ALL
+              ssh_authorized_keys:
+                - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test
+              ssh_pwauth: True
       register: tmp_instance_result
       when: "'centos' in os"
 
@@ -165,7 +176,6 @@
     - name: Install test required packages
       dnf:
         name:
-          - beaker-client
           - curl
           - expect
           - firewalld
@@ -203,6 +213,7 @@
         - name: Install ansible-core, az cli and gcloud cli
           dnf:
             name:
+              - beaker-client
               - ansible-core
               - azure-cli
               - google-cloud-sdk
@@ -220,6 +231,7 @@
             - "azure.azcollection"
             - "community.vmware"
             - "google.cloud"
+            - "ansible.posix"
           become_user: fedora
         # installing community.aws is for community.aws.aws_ssm_parameter_store
 
@@ -263,6 +275,6 @@
 
         - name: Install azure module required packages
           pip:
-            requirements: https://raw.githubusercontent.com/ansible-collections/azure/dev/requirements-azure.txt
+            requirements: /home/fedora/.ansible/collections/ansible_collections/azure/azcollection/requirements-azure.txt
           become_user: fedora
       when: "'fedora' in os"

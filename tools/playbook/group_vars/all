@@ -3,8 +3,11 @@ arch: "{{ lookup('env', 'ARCH') | default('x86_64', true) }}"
 
 repos:
   centos-stream-8:
-    baseos: https://composes.centos.org/latest-CentOS-Stream-8/compose/BaseOS/x86_64/os/
-    appstream: https://composes.centos.org/latest-CentOS-Stream-8/compose/AppStream/x86_64/os/
+    baseos: http://msync.centos.org/centos/8-stream/BaseOS/x86_64/os
+    appstream: http://msync.centos.org/centos/8-stream/AppStream/x86_64/os
+  centos-stream-9:
+    baseos: https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/os/
+    appstream: https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/AppStream/x86_64/os/
   rhel-8-4:
     baseos: http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/
     appstream: http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.4.0/compose/AppStream/x86_64/os/
@@ -20,6 +23,7 @@ repos:
 
 images:
   centos-stream-8: edge-centos-stream-8
+  centos-stream-9: edge-centos-stream-9
   rhel-8-4: RHEL-8.4.0-x86_64-nightly-latest
   rhel-8-5: RHEL-8.5.0-x86_64-nightly-latest
   rhel-8-6: RHEL-8.6.0-x86_64-nightly-latest
