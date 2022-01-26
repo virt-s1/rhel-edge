@@ -75,9 +75,10 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_FILENAME=container.tar
         INSTALLER_TYPE=edge-simplified-installer
         INSTALLER_FILENAME=simplified-installer.iso
-        # Install epel repo for ansible
-        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-        sudo dnf install -y ansible
+        # Install ansible
+        sudo dnf install -y --nogpgcheck ansible-core python3-jmespath
+        # To support stdout_callback = yaml
+        sudo ansible-galaxy collection install community.general
         sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -87,7 +88,7 @@ case "${ID}-${VERSION_ID}" in
         INSTALLER_TYPE=edge-simplified-installer
         INSTALLER_FILENAME=simplified-installer.iso
         # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core python-jmespath
+        sudo dnf install -y --nogpgcheck ansible-core python3-jmespath
         # To support stdout_callback = yaml
         sudo ansible-galaxy collection install community.general
         sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
