@@ -11,7 +11,7 @@ pipeline {
                 beforeAgent true
                 environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
             }
-            agent { label 'container-fedora-33-prod' }
+            agent { label 'container-fedora-35-prod' }
             steps {
                 script {
                     env.COMPOSE_ID = sh(returnStdout: true, script: 'echo $CI_MESSAGE | /usr/bin/jq -r ".compose_id"').trim()
@@ -141,7 +141,7 @@ pipeline {
                             }
                         }
                     }
-                    agent { label 'container-fedora-33-prod' }
+                    agent { label 'container-fedora-35-prod' }
                     environment {
                         TEST_OS = "rhel-8-4"
                         ARCH = 'x86_64'
@@ -302,7 +302,7 @@ pipeline {
                             }
                         }
                     }
-                    agent { label 'container-fedora-33-prod' }
+                    agent { label 'container-fedora-35-prod' }
                     environment {
                         TEST_OS = "rhel-8-5"
                         ARCH = 'x86_64'
@@ -458,7 +458,7 @@ pipeline {
                             }
                         }
                     }
-                    agent { label 'container-fedora-33-prod' }
+                    agent { label 'container-fedora-35-prod' }
                     environment {
                         TEST_OS = "rhel-8-6"
                         ARCH = 'x86_64'
@@ -614,7 +614,7 @@ pipeline {
                             }
                         }
                     }
-                    agent { label 'container-fedora-33-prod' }
+                    agent { label 'container-fedora-35-prod' }
                     environment {
                         TEST_OS = "rhel-9-0"
                         ARCH = 'x86_64'

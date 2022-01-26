@@ -79,10 +79,12 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         USER_IN_COMMIT="true"
-        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-        sudo dnf install -y ansible
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
+        # Install ansible
+        sudo dnf install -y --nogpgcheck ansible-core python3-jmespath
+        # To support stdout_callback = yaml
+        sudo ansible-galaxy collection install community.general
         sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
     "rhel-9.0")
         IMAGE_TYPE=edge-commit
@@ -92,7 +94,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core python-jmespath
+        sudo dnf install -y --nogpgcheck ansible-core python3-jmespath
         # To support stdout_callback = yaml
         sudo ansible-galaxy collection install community.general
         sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;

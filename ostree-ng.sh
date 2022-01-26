@@ -139,11 +139,12 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_INSTALLER_BP="false"
         ANSIBLE_USER_FOR_BIOS="admin"
         # ANSIBLE_USER_FOR_BIOS="installeruser"
-        # Install epel repo for ansible
-        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-        sudo dnf install -y ansible
         # Install openshift client
         curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
+        # Install ansible
+        sudo dnf install -y --nogpgcheck ansible-core python3-jmespath
+        # To support stdout_callback = yaml
+        sudo ansible-galaxy collection install community.general
         sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
     "rhel-9.0")
         CONTAINER_IMAGE_TYPE=edge-container
@@ -164,7 +165,7 @@ case "${ID}-${VERSION_ID}" in
         # Install openshift client
         curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
         # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core python-jmespath
+        sudo dnf install -y --nogpgcheck ansible-core python3-jmespath
         # To support stdout_callback = yaml
         sudo ansible-galaxy collection install community.general
         sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
