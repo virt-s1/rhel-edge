@@ -65,6 +65,26 @@
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
 
+    # case: check ostree ref
+    - name: check ostree ref
+      shell: rpm-ostree status --json | jq -r '.deployments[0].origin'
+      register: result_ref
+
+    - name: check ostree ref deployed
+      block:
+        - assert:
+            that:
+              - result_ref.stdout == ostree_ref
+            fail_msg: "deployed ostree ref failed"
+            success_msg: "ostree ref successful building and deployment"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
     # case from bug: https://bugzilla.redhat.com/show_bug.cgi?id=1848453
     - name: check ostree-remount status
       command: systemctl is-active ostree-remount.service
