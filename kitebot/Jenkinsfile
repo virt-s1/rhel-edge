@@ -4,8 +4,83 @@ pipeline {
         GCN_URL = credentials('google-chat-rhel-edge-url')
         TRIGGERED_BY = get_triggered_by()
     }
+    triggers {
+        cron("@daily")
+    }
 
     stages {
+        stage('Building') {
+            when {
+                beforeAgent true
+                environment name: 'TRIGGERED_BY', value: 'Started by timer'
+            }
+            parallel {
+                stage('RHEL-9.0-normal') {
+                    agent { label 'vm-rhel-9-0-0' }
+                    steps {
+                        script {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                                sh "./build-image.sh normal"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            send_result('RHEL-9.0-normal')
+                        }
+                    }
+                }
+                stage('RHEL-9.0-rt') {
+                    agent { label 'vm-rhel-9-0-0' }
+                    steps {
+                        script {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                                sh "./build-image.sh rt"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            send_result('RHEL-9.0-rt')
+                        }
+                    }
+                }
+                stage('RHEL-8.6-normal') {
+                    agent { label 'vm-rhel-8-6-0' }
+                    steps {
+                        script {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                                sh "./build-image.sh normal"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            send_result('RHEL-8.6-normal')
+                        }
+                    }
+                }
+                stage('RHEL-8.6-rt') {
+                    agent { label 'vm-rhel-8-6-0' }
+                    steps {
+                        script {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                                sh "./build-image.sh rt"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            send_result('RHEL-8.6-rt')
+                        }
+                    }
+                }
+            }
+        }
         stage('Preparing') {
             when {
                 beforeAgent true
@@ -698,6 +773,14 @@ void send_result(test_type) {
     script {
         if (env.TRIGGERED_BY == 'Triggered by CI message.') {
             googlechatnotification message: "${currentBuild.currentResult}\nCompose: ${env.COMPOSE_ID}\nPackages: ${env.PACKAGE_INFO}\nTest Env: ${test_type}\nConsole Log: ${env.BUILD_URL}display/redirect",
+                                   notifyAborted: true,
+                                   notifyFailure: true,
+                                   notifyNotBuilt: true,
+                                   notifySuccess: true,
+                                   url: "${env.GCN_URL}"
+        }
+        if (env.TRIGGERED_BY == 'Started by timer') {
+            googlechatnotification message: "${currentBuild.currentResult}\nImage: ${test_type}\nConsole Log: ${env.BUILD_URL}display/redirect",
                                    notifyAborted: true,
                                    notifyFailure: true,
                                    notifyNotBuilt: true,
