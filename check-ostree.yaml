@@ -41,18 +41,14 @@
 
     # case: check ostree commit correctly updated
     - name: get deployed ostree commit
-      command: rpm-ostree status --json
+      shell: rpm-ostree status --json | jq -r 'deployments[0].checksum'
       register: result_commit
-
-    - name: make a json result
-      set_fact:
-        deploy_commit: "{{ result_commit.stdout | from_json | json_query('deployments[0].checksum') }}"
 
     - name: check commit deployed and built
       block:
         - assert:
             that:
-              - deploy_commit == ostree_commit
+              - result_commit.stdout == ostree_commit
             fail_msg: "deployed ostree commit is not commit built by osbuild-composer"
             success_msg: "successful building and deployment"
       always:
@@ -533,17 +529,13 @@
     - name: check ostree commit after rollback
       block:
         - name: check ostree commit after rollback
-          command: rpm-ostree status --json
+          shell: rpm-ostree status --json | jq -r '.deployments[0].checksum'
           register: result_commit
-
-        - name: make a json result
-          set_fact:
-            deploy_commit: "{{ result_commit.stdout | from_json | json_query('deployments[0].checksum') }}"
 
         - assert:
             that:
-              - deploy_commit == ostree_commit
-            fail_msg: "Not rollback to last commit"
+              - result_commit.stdout == ostree_commit
+            fail_msg: "Not rollbackto last commit"
             success_msg: "Rollback success"
       always:
         - set_fact:
