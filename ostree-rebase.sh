@@ -60,7 +60,16 @@ case "${ID}-${VERSION_ID}" in
         PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
-        sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
+        sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json
+        ;;
+    "centos-8")
+        CONTAINER_IMAGE_TYPE=edge-container
+        CONTAINER_FILENAME=container.tar
+        OSTREE_REF="centos/8/${ARCH}/edge"
+        PARENT_REF="centos/8/${ARCH}/edge"
+        OS_VARIANT="centos8"
+        BOOT_LOCATION="http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/"
+        ;;
     "rhel-9.0")
         CONTAINER_IMAGE_TYPE=edge-container
         CONTAINER_FILENAME=container.tar
@@ -68,7 +77,8 @@ case "${ID}-${VERSION_ID}" in
         PARENT_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
-        sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
+        sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
