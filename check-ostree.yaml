@@ -41,7 +41,7 @@
 
     # case: check ostree commit correctly updated
     - name: get deployed ostree commit
-      shell: rpm-ostree status --json | jq -r 'deployments[0].checksum'
+      shell: rpm-ostree status --json | jq -r '.deployments[0].checksum'
       register: result_commit
 
     - name: check commit deployed and built
