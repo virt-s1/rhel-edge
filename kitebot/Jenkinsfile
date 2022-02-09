@@ -12,7 +12,13 @@ pipeline {
         stage('Building') {
             when {
                 beforeAgent true
-                environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                anyOf {
+                    environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                    allOf {
+                        environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                        environment name: 'BUILDING_TRIGGER', value: 'true'
+                    }
+                }
             }
             parallel {
                 stage('RHEL-9.0-normal') {
@@ -118,6 +124,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '8.3.1'
                                 }
                             }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL83_VIRT', value: 'true'
+                            }
                         }
                     }
                     agent { label 'vm-rhel-8-3-1' }
@@ -149,6 +159,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '8.4.0'
                                     environment name: 'RELEASE_VERSION', value: '8.4.1'
                                 }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL84_VIRT', value: 'true'
                             }
                         }
                     }
@@ -182,6 +196,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '8.4.1'
                                 }
                             }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL84_NG_VIRT', value: 'true'
+                            }
                         }
                     }
                     agent { label 'vm-rhel-8-4-0' }
@@ -213,6 +231,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '8.4.0'
                                     environment name: 'RELEASE_VERSION', value: '8.4.1'
                                 }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL84_BARE', value: 'true'
                             }
                         }
                     }
@@ -247,6 +269,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '8.5.1'
                                 }
                             }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL85_VIRT', value: 'true'
+                            }
                         }
                     }
                     agent { label 'vm-rhel-8-5-0' }
@@ -278,6 +304,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '8.5.0'
                                     environment name: 'RELEASE_VERSION', value: '8.5.1'
                                 }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL85_NG_VIRT', value: 'true'
                             }
                         }
                     }
@@ -311,6 +341,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '8.5.1'
                                 }
                             }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL85_RAW', value: 'true'
+                            }
                         }
                     }
                     agent { label 'vm-rhel-8-5-0' }
@@ -343,6 +377,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '8.5.1'
                                 }
                             }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL85_SIMPLIFIED', value: 'true'
+                            }
                         }
                     }
                     agent { label 'vm-rhel-8-5-0' }
@@ -374,6 +412,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '8.5.0'
                                     environment name: 'RELEASE_VERSION', value: '8.5.1'
                                 }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL85_BARE', value: 'true'
                             }
                         }
                     }
@@ -408,6 +450,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '8.6.0'
                                 }
                             }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL86_VIRT', value: 'true'
+                            }
                         }
                     }
                     agent { label 'vm-rhel-8-6-0' }
@@ -439,6 +485,10 @@ pipeline {
                                 anyOf {
                                     environment name: 'RELEASE_VERSION', value: '8.6.0'
                                 }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL86_NG_VIRT', value: 'true'
                             }
                         }
                     }
@@ -472,6 +522,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '8.6.0'
                                 }
                             }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL86_RAW', value: 'true'
+                            }
                         }
                     }
                     agent { label 'vm-rhel-8-6-0' }
@@ -504,6 +558,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '8.6.0'
                                 }
                             }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL86_SIMPLIFIED', value: 'true'
+                            }
                         }
                     }
                     agent { label 'vm-rhel-8-6-0' }
@@ -535,6 +593,10 @@ pipeline {
                                 anyOf {
                                     environment name: 'RELEASE_VERSION', value: '8.6.0'
                                 }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL86_BARE', value: 'true'
                             }
                         }
                     }
@@ -569,6 +631,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '9.0.0'
                                 }
                             }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL90_VIRT', value: 'true'
+                            }
                         }
                     }
                     agent { label 'vm-rhel-9-0-0' }
@@ -600,6 +666,10 @@ pipeline {
                                 anyOf {
                                     environment name: 'RELEASE_VERSION', value: '9.0.0'
                                 }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL90_NG_VIRT', value: 'true'
                             }
                         }
                     }
@@ -633,6 +703,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '9.0.0'
                                 }
                             }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL90_RAW', value: 'true'
+                            }
                         }
                     }
                     agent { label 'vm-rhel-9-0-0' }
@@ -665,6 +739,10 @@ pipeline {
                                     environment name: 'RELEASE_VERSION', value: '9.0.0'
                                 }
                             }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL90_SIMPLIFIED', value: 'true'
+                            }
                         }
                     }
                     agent { label 'vm-rhel-9-0-0' }
@@ -696,6 +774,10 @@ pipeline {
                                 anyOf {
                                     environment name: 'RELEASE_VERSION', value: '9.0.0'
                                 }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL90_BARE', value: 'true'
                             }
                         }
                     }
