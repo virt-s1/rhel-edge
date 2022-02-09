@@ -44,11 +44,15 @@
       shell: rpm-ostree status --json | jq -r '.deployments[0].checksum'
       register: result_commit
 
+    - name: make a json result
+      set_fact:
+        deploy_commit: "{{ result_commit.stdout }}"
+
     - name: check commit deployed and built
       block:
         - assert:
             that:
-              - result_commit.stdout == ostree_commit
+              - deploy_commit == ostree_commit
             fail_msg: "deployed ostree commit is not commit built by osbuild-composer"
             success_msg: "successful building and deployment"
       always:
@@ -555,7 +559,7 @@
 
         - assert:
             that:
-              - result_commit.stdout == ostree_commit
+              - deploy_commit == ostree_commit
             fail_msg: "Not rollbackto last commit"
             success_msg: "Rollback success"
       always:
