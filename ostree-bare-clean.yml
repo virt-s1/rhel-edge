@@ -5,7 +5,7 @@
   tasks:
     - name: "remove openstack instance {{ instance_name }}"
       os_server:
-        cloud: psi-openstack
+        cloud: rhos-01
         name: "{{ instance_name }}"
         state: absent
       ignore_errors: yes

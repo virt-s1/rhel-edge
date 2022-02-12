@@ -4,36 +4,23 @@
     path: "{{ playbook_dir }}/log"
     state: directory
 
-- name: create openstack configuration folder
-  file:
-    path: ~/.config/openstack
-    state: directory
-
-- name: set vault password file
-  copy:
-    content: "{{ lookup('env', 'VAULT_PASSWORD') }}"
-    dest: "~/.config/ansible-vault"
-
-- name: save clouds.yaml to ~/.config/openstack
-  command: ansible-vault decrypt -v --vault-password-file ~/.config/ansible-vault {{ playbook_dir }}/files/clouds-yaml --output ~/.config/openstack/clouds.yaml
-
 - name: create a new openstack keypair
-  os_keypair:
-    cloud: psi-openstack
+  openstack.cloud.keypair:
+    cloud: rhos-01
     state: present
-    name: "rhel-edge-key"
+    name: "rhel-edge"
     public_key_file: key/ostree_key.pub
 
 - name: create security group
-  os_security_group:
-    cloud: psi-openstack
+  openstack.cloud.security_group:
+    cloud: rhos-01
     name: "rhel-edge"
     state: present
     description: security group for ostree image build server
 
 - name: set ssh rule for security group
-  os_security_group_rule:
-    cloud: psi-openstack
+  openstack.cloud.security_group_rule:
+    cloud: rhos-01
     security_group: "rhel-edge"
     protocol: tcp
     port_range_min: 22
@@ -41,34 +28,25 @@
     remote_ip_prefix: 0.0.0.0/0
 
 - name: set http rule for security group
-  os_security_group_rule:
-    cloud: psi-openstack
+  openstack.cloud.security_group_rule:
+    cloud: rhos-01
     security_group: "rhel-edge"
     protocol: tcp
     port_range_min: 80
     port_range_max: 80
     remote_ip_prefix: 0.0.0.0/0
 
-- name: set cockpit rule for security group
-  os_security_group_rule:
-    cloud: psi-openstack
-    security_group: "rhel-edge"
-    protocol: tcp
-    port_range_min: 9090
-    port_range_max: 9090
-    remote_ip_prefix: 0.0.0.0/0
-
 - set_fact:
     vm_name: "rhel-edge-image-builder-{{ os }}-{{ random_number }}"
 
 - name: deploy instance
-  os_server:
-    cloud: psi-openstack
+  openstack.cloud.server:
+    cloud: rhos-01
     name: "{{ vm_name }}"
     image: "{{ os_images[os] }}"
     flavor: "{{ os_flavor }}"
     network: "{{ os_network }}"
-    key_name: "rhel-edge-key"
+    key_name: "rhel-edge"
     security_groups: "rhel-edge"
     auto_ip: yes
     wait: yes
@@ -131,21 +109,6 @@
         appstream:
           name: rhel8-appstream
           baseurl: "https://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-{{ distros[os] }}/compose/AppStream/x86_64/os/"
-          enabled: true
-          gpgcheck: false
-          sslverify: false
-      {% endif %}
-      {% if "8-3" in os %}
-      yum_repos:
-        baseos:
-          name: rhel8-baseos
-          baseurl: "http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-{{ distros[os] }}/compose/BaseOS/x86_64/os/"
-          enabled: true
-          gpgcheck: false
-          sslverify: false
-        appstream:
-          name: rhel8-appstream
-          baseurl: "http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-{{ distros[os] }}/compose/AppStream/x86_64/os/"
           enabled: true
           gpgcheck: false
           sslverify: false
