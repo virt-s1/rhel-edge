@@ -23,6 +23,28 @@
     - name: failed count + 1
       set_fact:
         failed_counter: "{{ failed_counter | int + 1 }}"
+  when: ansible_facts['distribution_version'] is version('8.5', '<=')
+
+- name: greenboot should be installed
+  block:
+    - name: greenboot should be installed
+      shell: rpm -qa | grep greenboot
+      register: result_greenboot_packages
+
+    - assert:
+        that:
+          - "'greenboot-0' in result_greenboot_packages.stdout"
+          - "'greenboot-default-health-checks' in result_greenboot_packages.stdout"
+        fail_msg: "greenboot is not installed"
+        success_msg: "greenboot is installed"
+  always:
+    - set_fact:
+        total_counter: "{{ total_counter | int + 1 }}"
+  rescue:
+    - name: failed count + 1
+      set_fact:
+        failed_counter: "{{ failed_counter | int + 1 }}"
+  when: ansible_facts['distribution_version'] is version('8.6', '>=')
 
 # case: check greenboot* services
 - name: a list of greenboot* service should be enabled

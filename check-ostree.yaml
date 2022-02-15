@@ -418,7 +418,7 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: ansible_facts['distribution_version'] == '8.5' or ansible_facts['distribution_version'] == '8.4' or ansible_facts['distribution_version'] == '8.3'
+      when: ansible_facts['distribution_version'] is version('8.5', '<=')
 
     - name: greenboot should be installed
       block:
@@ -438,7 +438,7 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: ansible_facts['distribution_version'] != '8.5' and ansible_facts['distribution_version'] != '8.4' and ansible_facts['distribution_version'] != '8.3'
+      when: ansible_facts['distribution_version'] is version('8.6', '>=')
 
     # case: check greenboot* services
     - name: a list of greenboot* service should be enabled
