@@ -43,7 +43,6 @@
     - name: failed count + 1
       set_fact:
         failed_counter: "{{ failed_counter | int + 1 }}"
-  when: os == "rhel-8-4"
 
 # case from bug: https://bugzilla.redhat.com/show_bug.cgi?id=1848453
 - name: check ostree-remount status
@@ -310,7 +309,8 @@
     - name: failed count + 1
       set_fact:
         failed_counter: "{{ failed_counter | int + 1 }}"
-  when: ansible_facts ['distribution_version'] != '9.0'
+  when: (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.0', '<')) or
+        (ansible_facts['distribution'] == 'CentOS' and ansible_facts ['distribution_version'] is version('9', '<'))
 
 - assert:
     that:

@@ -76,7 +76,7 @@ case "${ID}-${VERSION_ID}" in
         INSTALLER_TYPE=edge-simplified-installer
         INSTALLER_FILENAME=simplified-installer.iso
         # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core python3-jmespath
+        sudo dnf install -y --nogpgcheck ansible-core
         # To support stdout_callback = yaml
         sudo ansible-galaxy collection install community.general
         sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
@@ -88,10 +88,34 @@ case "${ID}-${VERSION_ID}" in
         INSTALLER_TYPE=edge-simplified-installer
         INSTALLER_FILENAME=simplified-installer.iso
         # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core python3-jmespath
+        sudo dnf install -y --nogpgcheck ansible-core
         # To support stdout_callback = yaml
         sudo ansible-galaxy collection install community.general
         sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
+    "centos-8")
+        OSTREE_REF="centos/8/${ARCH}/edge"
+        OS_VARIANT="centos8"
+        CONTAINER_TYPE=edge-container
+        CONTAINER_FILENAME=container.tar
+        INSTALLER_TYPE=edge-simplified-installer
+        INSTALLER_FILENAME=simplified-installer.iso
+        # Install ansible
+        sudo dnf install -y --nogpgcheck ansible-core
+        # To support stdout_callback = yaml
+        sudo ansible-galaxy collection install community.general
+        sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json;;
+    "centos-9")
+        OSTREE_REF="centos/9/${ARCH}/edge"
+        OS_VARIANT="centos9"
+        CONTAINER_TYPE=edge-container
+        CONTAINER_FILENAME=container.tar
+        INSTALLER_TYPE=edge-simplified-installer
+        INSTALLER_FILENAME=simplified-installer.iso
+        # Install ansible
+        sudo dnf install -y --nogpgcheck ansible-core
+        # To support stdout_callback = yaml
+        sudo ansible-galaxy collection install community.general
+        sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;

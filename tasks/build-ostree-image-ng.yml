@@ -38,7 +38,7 @@
     # enablerepo: updates-testing
     state: latest
   become: yes
-  when: os == "rhel-8-6" or os == "rhel-9-0"
+  when: os == "rhel-8-6" or os == "rhel-9-0" or os == "centos-stream-8" or os == "centos-stream-9"
 
 - name: update all packages to latest
   dnf:
@@ -66,7 +66,7 @@
     - osbuild-ostree
     - python3-osbuild
     - weldr-client
-  when: os == "rhel-8-6" or os == "rhel-9-0"
+  when: os == "rhel-8-6" or os == "rhel-9-0" or os == "centos-stream-8" or os == "centos-stream-9"
 
 - name: create osbuild-composer blueprint file
   template:
@@ -129,6 +129,20 @@
     dest: /etc/osbuild-composer/repositories/rhel-90.json
   become: yes
   when: os == "rhel-9-0"
+
+- name: copy centos-stream-8.json to /etc/osbuild-composer/repositories
+  copy:
+    src: "{{ playbook_dir }}/files/centos-stream-8.json"
+    dest: /etc/osbuild-composer/repositories/centos-8.json
+  become: yes
+  when: os == "centos-stream-8"
+
+- name: copy centos-stream-9.json to /etc/osbuild-composer/repositories
+  copy:
+    src: "{{ playbook_dir }}/files/centos-stream-9.json"
+    dest: /etc/osbuild-composer/repositories/centos-9.json
+  become: yes
+  when: os == "centos-stream-9"
 
 - name: start osbuild-composer.socket
   systemd:
@@ -252,7 +266,7 @@
     ostree --repo=/var/www/html/repo init --mode=archive
     ostree --repo=/var/www/html/repo remote add --no-gpg-verify edge-stage http://192.168.200.1:8080/repo/
   become: yes
-  when: os == "rhel-8-5" or os == "rhel-8-6" or os == "rhel-9-0"
+  when: os == "rhel-8-5" or os == "rhel-8-6" or os == "rhel-9-0" or os == "centos-stream-8" or os == "centos-stream-9"
 
 # Cannot find how to remove all containers/images in ansible, use shell instead
 - name: remove all containers and images
@@ -270,7 +284,7 @@
 - name: pull image from rhel for edge container tar file
   shell: podman pull "oci-archive:{{ compose_uuid }}-container.tar"
   become: yes
-  when: os == "rhel-8-5" or os == "rhel-8-6" or os == "rhel-9-0"
+  when: os == "rhel-8-5" or os == "rhel-8-6" or os == "rhel-9-0" or os == "centos-stream-8" or os == "centos-stream-9"
 
 - name: Create podman network
   containers.podman.podman_network:
