@@ -797,6 +797,157 @@ pipeline {
                         }
                     }
                 }
+                stage('CS8 Virt') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'CS8_VIRT', value: 'true'
+                            }
+                        }
+                    }
+                    agent { label 'vm-cs8' }
+                    environment {
+                        TEST_OS = "centos-stream-8"
+                    }
+                    steps {
+                        run_virt_test('ostree-legacy')
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            get_package_info()
+                            send_result('Virt-KVM')
+                        }
+                    }
+                }
+                stage('CS8 ng Virt') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'CS8_NG_VIRT', value: 'true'
+                            }
+                        }
+                    }
+                    agent { label 'vm-cs8' }
+                    environment {
+                        TEST_OS = "centos-stream-8"
+                    }
+                    steps {
+                        run_virt_test('ostree-ng')
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            get_package_info()
+                            send_result('Virt-NG-KVM')
+                        }
+                    }
+                }
+                stage('CS8 raw image') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'CS8_RAW', value: 'true'
+                            }
+                        }
+                    }
+                    agent { label 'vm-cs8' }
+                    environment {
+                        TEST_OS = "centos-stream-8"
+                    }
+                    steps {
+                        run_virt_test('raw-image')
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            get_package_info()
+                            send_result('Virt-RAW-KVM')
+                        }
+                    }
+                }
+                stage('CS8 simplified installer') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'CS8_SIMPLIFIED', value: 'true'
+                            }
+                        }
+                    }
+                    agent { label 'vm-cs8' }
+                    environment {
+                        TEST_OS = "centos-stream-8"
+                    }
+                    steps {
+                        run_virt_test('simplified-installer')
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            get_package_info()
+                            send_result('Virt-SIMPLE-KVM')
+                        }
+                    }
+                }
+                stage('CS8 ng Bare') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'CS8_BARE', value: 'true'
+                            }
+                        }
+                    }
+                    agent { label 'container-fedora-35-prod' }
+                    environment {
+                        TEST_OS = "centos-stream-8"
+                        ARCH = 'x86_64'
+                    }
+                    steps {
+                        run_bare_test()
+                    }
+                    post {
+                        always {
+                            preserve_bare_logs()
+                            send_result('Bare-metal-beaker')
+                            bare_clean()
+                        }
+                    }
+                }
             }
         }
     }

@@ -118,7 +118,7 @@ In this scenario, environment setup and test running are based on Ansible playbo
 
 ### Scenario 2
 
-    $ ARCH=x86_64 TEST_OS=rhel-8-6 VAULT_PASSWORD=xxxxxxx ansible-playbook -v -i inventory ostree-bare-ng.yml
+    $ ARCH=x86_64 TEST_OS=rhel-9-0 VAULT_PASSWORD=xxxxxxx ansible-playbook -v -i inventory ostree-bare-ng.yml
 
 ## Configuration
 
@@ -130,6 +130,8 @@ You can set these environment variables to run test
                            "rhel-8-5"
                            "rhel-8-6"
                            "rhel-9-0"
+                           "centos-stream-8"
+                           "centos-stream-9"
     ARCH               The arch to build image and run test on.  Currently supported values:
                            "x86_64"
     VAULT_PASSWORD     Decrypt "files/clouds-yaml"
