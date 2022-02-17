@@ -24,7 +24,7 @@ pipeline {
                 stage('RHEL-9.0-normal') {
                     agent { label 'vm-rhel-9-0-0' }
                     steps {
-                        script {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
                                 sh "./build-image.sh normal"
                             }
@@ -40,7 +40,7 @@ pipeline {
                 stage('RHEL-9.0-rt') {
                     agent { label 'vm-rhel-9-0-0' }
                     steps {
-                        script {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
                                 sh "./build-image.sh rt"
                             }
@@ -56,7 +56,7 @@ pipeline {
                 stage('RHEL-8.6-normal') {
                     agent { label 'vm-rhel-8-6-0' }
                     steps {
-                        script {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
                                 sh "./build-image.sh normal"
                             }
@@ -72,7 +72,7 @@ pipeline {
                 stage('RHEL-8.6-rt') {
                     agent { label 'vm-rhel-8-6-0' }
                     steps {
-                        script {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                             withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
                                 sh "./build-image.sh rt"
                             }
