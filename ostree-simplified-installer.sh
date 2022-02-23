@@ -682,10 +682,12 @@ until [ "$(sudo podman inspect -f '{{.State.Running}}' rhel-edge)" == "true" ]; 
     sleep 1;
 done;
 
+if [[ "${ID}-${VERSION_ID}" == "rhel-8.5" ]] || [[ "${ID}-${VERSION_ID}" == "centos-8" ]]; then
 # Workaround to https://github.com/osbuild/osbuild-composer/issues/1693
 greenprint "🗳 Add external prod edge repo"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${UEFI_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S ostree remote add --no-gpg-verify --no-sign-verify rhel-edge ${PROD_REPO_URL}"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${UEFI_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S ostree admin switch rhel-edge:${OSTREE_REF}"
+fi
 
 # Pull upgrade to prod mirror
 greenprint "⛓ Pull upgrade to prod mirror"
