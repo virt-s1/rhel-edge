@@ -292,7 +292,7 @@
       delegate_to: localhost
 
     - name: check dmesg error and fail log
-      shell: dmesg --notime | grep -i "error\|fail" || true
+      shell: dmesg --notime | grep -i "error\|fail" | grep -v "skipped"|| true
       register: result_dmesg_error
 
     - name: no more error or failed log
