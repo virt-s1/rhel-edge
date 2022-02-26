@@ -1,67 +1,16 @@
 #!/bin/bash
 set -euox pipefail
 
-# work with mock osbuild-composer repo
-if [[ $# -eq 1 || $# -eq 2 ]]; then
-    osbuild_composer_commit_sha=$1
-    sudo tee "/etc/yum.repos.d/osbuild-composer.repo" > /dev/null << EOF
-[osbuild-composer]
-name=osbuild-composer ${osbuild_composer_commit_sha}
-baseurl=http://osbuild-composer-repos.s3-website.us-east-2.amazonaws.com/osbuild-composer/rhel-8.4/x86_64/${osbuild_composer_commit_sha}
-enabled=1
-gpgcheck=0
-priority=5
-EOF
-fi
-
-if [[ $# -eq 2 ]]; then
-    osbuild_commit_sha=$2
-    sudo tee "/etc/yum.repos.d/osbuild.repo" > /dev/null << EOF
-[osbuild]
-name=osbuild ${osbuild_commit_sha}
-baseurl=http://osbuild-composer-repos.s3-website.us-east-2.amazonaws.com/osbuild/rhel-8.4/x86_64/${osbuild_commit_sha}
-enabled=1
-gpgcheck=0
-priority=10
-EOF
-fi
-
-# Dumps details about the instance running the CI job.
-
-CPUS=$(nproc)
-MEM=$(free -m | grep -oP '\d+' | head -n 1)
-DISK=$(df --output=size -h / | sed '1d;s/[^0-9]//g')
-HOSTNAME=$(uname -n)
-USER=$(whoami)
-ARCH=$(uname -m)
-KERNEL=$(uname -r)
-
-echo -e "\033[0;36m"
-cat << EOF
-------------------------------------------------------------------------------
-CI MACHINE SPECS
-------------------------------------------------------------------------------
-     Hostname: ${HOSTNAME}
-         User: ${USER}
-         CPUs: ${CPUS}
-          RAM: ${MEM} MB
-         DISK: ${DISK} GB
-         ARCH: ${ARCH}
-       KERNEL: ${KERNEL}
-------------------------------------------------------------------------------
-EOF
-echo -e "\033[0m"
+# Provision the software under test.
+./setup.sh
 
 # Get OS data.
 source /etc/os-release
 
-# Customize repository
-sudo mkdir -p /etc/osbuild-composer/repositories
-
 # Set up variables.
 ARCH=$(uname -m)
 TEST_UUID=$(uuidgen)
-IMAGE_KEY="rhel-edge-test-${TEST_UUID}"
+IMAGE_KEY="ostree-ng-${TEST_UUID}"
 QUAY_REPO_URL="docker://quay.io/rhel-edge/edge-containers"
 QUAY_REPO_TAG=$(tr -dc a-z0-9 < /dev/urandom | head -c 4 ; echo '')
 BIOS_GUEST_ADDRESS=192.168.100.50
@@ -97,11 +46,7 @@ case "${ID}-${VERSION_ID}" in
         STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}/repo/"
         USER_IN_INSTALLER_BP="false"
         ANSIBLE_USER_FOR_BIOS="admin"
-        # Install epel repo for ansible
-        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-        sudo dnf install -y ansible
-        sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
-        sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
+        ;;
     "rhel-8.5")
         CONTAINER_IMAGE_TYPE=edge-container
         INSTALLER_IMAGE_TYPE=edge-installer
@@ -117,12 +62,7 @@ case "${ID}-${VERSION_ID}" in
         STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
         USER_IN_INSTALLER_BP="false"
         ANSIBLE_USER_FOR_BIOS="admin"
-        # Install epel repo for ansible
-        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-        sudo dnf install -y ansible
-        # Install openshift client
-        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
-        sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-85.json;;
+        ;;
     "rhel-8.6")
         CONTAINER_IMAGE_TYPE=edge-container
         INSTALLER_IMAGE_TYPE=edge-installer
@@ -139,13 +79,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_INSTALLER_BP="false"
         ANSIBLE_USER_FOR_BIOS="admin"
         # ANSIBLE_USER_FOR_BIOS="installeruser"
-        # Install openshift client
-        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
-        sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
+        ;;
     "rhel-9.0")
         CONTAINER_IMAGE_TYPE=edge-container
         INSTALLER_IMAGE_TYPE=edge-installer
@@ -162,13 +96,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_INSTALLER_BP="false"
         ANSIBLE_USER_FOR_BIOS="admin"
         # ANSIBLE_USER_FOR_BIOS="installeruser"
-        # Install openshift client
-        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
-        sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
+        ;;
     "centos-8")
         CONTAINER_IMAGE_TYPE=edge-container
         INSTALLER_IMAGE_TYPE=edge-installer
@@ -185,13 +113,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_INSTALLER_BP="false"
         ANSIBLE_USER_FOR_BIOS="admin"
         # ANSIBLE_USER_FOR_BIOS="installeruser"
-        # Install openshift client
-        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
-        sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json;;
+        ;;
     "centos-9")
         CONTAINER_IMAGE_TYPE=edge-container
         INSTALLER_IMAGE_TYPE=edge-installer
@@ -208,13 +130,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_INSTALLER_BP="false"
         ANSIBLE_USER_FOR_BIOS="admin"
         # ANSIBLE_USER_FOR_BIOS="installeruser"
-        # Install openshift client
-        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
-        sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
@@ -224,69 +140,6 @@ esac
 function greenprint {
     echo -e "\033[1;32m${1}\033[0m"
 }
-
-# Install required packages
-greenprint "Install required packages"
-sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli podman skopeo wget firewalld lorax xorriso
-
-# Start httpd server as prod ostree repo
-greenprint "Start httpd service"
-sudo systemctl enable --now httpd.service
-
-# Start osbuild-composer.socket
-greenprint "Start osbuild-composer.socket"
-sudo systemctl enable --now osbuild-composer.socket
-
-# Start firewalld
-greenprint "Start firewalld"
-sudo systemctl enable --now firewalld
-
-# Start libvirtd and test it.
-greenprint "🚀 Starting libvirt daemon"
-sudo systemctl start libvirtd
-sudo virsh list --all > /dev/null
-
-# Set a customized dnsmasq configuration for libvirt so we always get the
-# same address on bootup.
-greenprint "💡 Setup libvirt network"
-sudo tee /tmp/integration.xml > /dev/null << EOF
-<network>
-  <name>integration</name>
-  <uuid>1c8fe98c-b53a-4ca4-bbdb-deb0f26b3579</uuid>
-  <forward mode='nat'>
-    <nat>
-      <port start='1024' end='65535'/>
-    </nat>
-  </forward>
-  <bridge name='integration' zone='trusted' stp='on' delay='0'/>
-  <mac address='52:54:00:36:46:ef'/>
-  <ip address='192.168.100.1' netmask='255.255.255.0'>
-    <dhcp>
-      <range start='192.168.100.2' end='192.168.100.254'/>
-      <host mac='34:49:22:B0:83:30' name='vm-bios' ip='192.168.100.50'/>
-      <host mac='34:49:22:B0:83:31' name='vm-uefi' ip='192.168.100.51'/>
-    </dhcp>
-  </ip>
-</network>
-EOF
-if sudo virsh net-info integration > /dev/null 2>&1; then
-    sudo virsh net-destroy integration
-    sudo virsh net-undefine integration
-fi
-
-sudo virsh net-define /tmp/integration.xml
-sudo virsh net-start integration
-
-# Allow anyone in the wheel group to talk to libvirt.
-greenprint "🚪 Allowing users in wheel group to talk to libvirt"
-sudo tee /etc/polkit-1/rules.d/50-libvirt.rules > /dev/null << EOF
-polkit.addRule(function(action, subject) {
-    if (action.id == "org.libvirt.unix.manage" &&
-        subject.isInGroup("adm")) {
-            return polkit.Result.YES;
-    }
-});
-EOF
 
 # modify existing kickstart by prepending and appending commands
 function modksiso {
@@ -447,7 +300,7 @@ clean_up () {
         sudo virsh destroy "${IMAGE_KEY}-uefi"
     fi
     sudo virsh undefine "${IMAGE_KEY}-uefi" --nvram
-    sudo sudo virsh vol-delete --pool images "${IMAGE_KEY}-uefi.qcow2"
+    sudo virsh vol-delete --pool images "${IMAGE_KEY}-uefi.qcow2"
 
     # Remove all the containers and images if exist
     sudo podman system reset --force

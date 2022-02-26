@@ -1,0 +1,183 @@
+#!/bin/bash
+set -euox pipefail
+
+# Dumps details about the instance running the CI job.
+CPUS=$(nproc)
+MEM=$(free -m | grep -oP '\d+' | head -n 1)
+DISK=$(df --output=size -h / | sed '1d;s/[^0-9]//g')
+HOSTNAME=$(uname -n)
+USER=$(whoami)
+ARCH=$(uname -m)
+KERNEL=$(uname -r)
+
+echo -e "\033[0;36m"
+cat << EOF
+------------------------------------------------------------------------------
+CI MACHINE SPECS
+------------------------------------------------------------------------------
+     Hostname: ${HOSTNAME}
+         User: ${USER}
+         CPUs: ${CPUS}
+          RAM: ${MEM} MB
+         DISK: ${DISK} GB
+         ARCH: ${ARCH}
+       KERNEL: ${KERNEL}
+------------------------------------------------------------------------------
+EOF
+echo "CPU info"
+lscpu
+echo -e "\033[0m"
+
+# Get OS data.
+source /etc/os-release
+
+# set locale to en_US.UTF-8
+sudo dnf install -y glibc-langpack-en
+localectl set-locale LANG=en_US.UTF-8
+
+# Customize repository
+sudo mkdir -p /etc/osbuild-composer/repositories
+
+case "${ID}-${VERSION_ID}" in
+    "rhel-8.3")
+        # Install epel repo for ansible
+        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        sudo dnf install -y ansible
+        sudo cp files/rhel-8-3-1.json /etc/osbuild-composer/repositories/rhel-8.json;;
+    "rhel-8.4")
+        # Install epel repo for ansible
+        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        sudo dnf install -y ansible
+        sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
+        sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
+    "rhel-8.5")
+        # Install epel repo for ansible
+        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        sudo dnf install -y ansible
+        # Install openshift client
+        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
+        sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-85.json;;
+    "rhel-8.6")
+        # Install openshift client
+        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
+        # Install ansible
+        sudo dnf install -y --nogpgcheck ansible-core
+        # To support stdout_callback = yaml
+        sudo ansible-galaxy collection install community.general
+        sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
+    "rhel-9.0")
+        # Install openshift client
+        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
+        # Install ansible
+        sudo dnf install -y --nogpgcheck ansible-core
+        # To support stdout_callback = yaml
+        sudo ansible-galaxy collection install community.general
+        sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
+    "centos-8")
+        # Install openshift client
+        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
+        # Install ansible
+        sudo dnf install -y --nogpgcheck ansible-core
+        # To support stdout_callback = yaml
+        sudo ansible-galaxy collection install community.general
+        sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json;;
+    "centos-9")
+        # Install openshift client
+        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
+        # Install ansible
+        sudo dnf install -y --nogpgcheck ansible-core
+        # To support stdout_callback = yaml
+        sudo ansible-galaxy collection install community.general
+        sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
+    *)
+        echo "unsupported distro: ${ID}-${VERSION_ID}"
+        exit 1;;
+esac
+
+# Colorful output.
+function greenprint {
+    echo -e "\033[1;32m${1}\033[0m"
+}
+
+# Install required packages
+greenprint "Install required packages"
+sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli podman skopeo wget firewalld lorax xorriso curl jq expect qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm virt-install
+sudo rpm -qa | grep -i osbuild
+
+# Start httpd server as prod ostree repo
+greenprint "Start httpd service"
+sudo systemctl enable --now httpd.service
+
+# Start osbuild-composer.socket
+greenprint "Start osbuild-composer.socket"
+sudo systemctl enable --now osbuild-composer.socket
+
+# Start firewalld
+greenprint "Start firewalld"
+sudo systemctl enable --now firewalld
+
+# workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2057769
+if [[ "$VERSION_ID" == "9.0" || "$VERSION_ID" == "9" ]]; then
+    if [[ -f "/usr/share/qemu/firmware/50-edk2-ovmf-amdsev.json" ]]; then
+        jq '.mapping += {"nvram-template": {"filename": "/usr/share/edk2/ovmf/OVMF_VARS.fd","format": "raw"}}' /usr/share/qemu/firmware/50-edk2-ovmf-amdsev.json | sudo tee /tmp/50-edk2-ovmf-amdsev.json
+        sudo mv /tmp/50-edk2-ovmf-amdsev.json /usr/share/qemu/firmware/50-edk2-ovmf-amdsev.json
+    fi
+fi
+
+# Start libvirtd and test it.
+greenprint "🚀 Starting libvirt daemon"
+sudo systemctl start libvirtd
+sudo virsh list --all > /dev/null
+
+# Set a customized dnsmasq configuration for libvirt so we always get the
+# same address on bootup.
+greenprint "💡 Setup libvirt network"
+sudo tee /tmp/integration.xml > /dev/null << EOF
+<network xmlns:dnsmasq='http://libvirt.org/schemas/network/dnsmasq/1.0'>
+  <name>integration</name>
+  <uuid>1c8fe98c-b53a-4ca4-bbdb-deb0f26b3579</uuid>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='integration' zone='trusted' stp='on' delay='0'/>
+  <mac address='52:54:00:36:46:ef'/>
+  <ip address='192.168.100.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.100.2' end='192.168.100.254'/>
+      <host mac='34:49:22:B0:83:30' name='vm-1' ip='192.168.100.50'/>
+      <host mac='34:49:22:B0:83:31' name='vm-2' ip='192.168.100.51'/>
+    </dhcp>
+  </ip>
+  <dnsmasq:options>
+    <dnsmasq:option value='dhcp-vendorclass=set:efi-http,HTTPClient:Arch:00016'/>
+    <dnsmasq:option value='dhcp-option-force=tag:efi-http,60,HTTPClient'/>
+    <dnsmasq:option value='dhcp-boot=tag:efi-http,&quot;http://192.168.100.1/httpboot/EFI/BOOT/BOOTX64.EFI&quot;'/>
+  </dnsmasq:options>
+</network>
+EOF
+if ! sudo virsh net-info integration > /dev/null 2>&1; then
+    sudo virsh net-define /tmp/integration.xml
+fi
+if [[ $(sudo virsh net-info integration | grep 'Active' | awk '{print $2}') == 'no' ]]; then
+    sudo virsh net-start integration
+fi
+
+# Allow anyone in the wheel group to talk to libvirt.
+greenprint "🚪 Allowing users in wheel group to talk to libvirt"
+sudo tee /etc/polkit-1/rules.d/50-libvirt.rules > /dev/null << EOF
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.libvirt.unix.manage" &&
+        subject.isInGroup("adm")) {
+            return polkit.Result.YES;
+    }
+});
+EOF
+
+# Basic verification
+sudo composer-cli status show
+sudo composer-cli sources list
+for SOURCE in $(sudo composer-cli sources list); do
+    sudo composer-cli sources info "$SOURCE"
+done
