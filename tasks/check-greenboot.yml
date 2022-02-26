@@ -128,6 +128,10 @@
         reboot_timeout: 1800
       become: yes
 
+    - name: wait for connection to become reachable/usable
+      wait_for_connection:
+        delay: 30
+
     - name: waits until instance is reachable
       wait_for:
         host: "{{ ostree_hostname }}"
