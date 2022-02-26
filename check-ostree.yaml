@@ -430,12 +430,8 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-<<<<<<< HEAD
       when: (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.0', '<')) or
             (ansible_facts['distribution'] == 'CentOS' and ansible_facts ['distribution_version'] is version('9', '<'))
-=======
-      when: ansible_facts ['distribution_version'] is version('9.0', '!=')
->>>>>>> f76aab4 (Use version() function for RHEL version checking in playbook)
 
     # case: check installed greenboot packages
     # https://github.com/osbuild/osbuild-composer/blob/master/internal/distro/rhel8/distro.go#L634
@@ -461,13 +457,8 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-<<<<<<< HEAD
       when: (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '<')) or
             (ansible_facts['distribution'] == 'Fedora')
-=======
-      when:
-        - ansible_facts ['distribution_version'] is version('8.5', '<=')
->>>>>>> f76aab4 (Use version() function for RHEL version checking in playbook)
 
     - name: greenboot should be installed
       block:
@@ -489,13 +480,8 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-<<<<<<< HEAD
       when: (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>=')) or
             (ansible_facts['distribution'] == 'CentOS' and ansible_facts ['distribution_version'] is version('8', '>='))
-=======
-      when:
-        - ansible_facts ['distribution_version'] is version('8.6', '>=')
->>>>>>> f76aab4 (Use version() function for RHEL version checking in playbook)
 
     # case: check greenboot* services
     - name: a list of greenboot* service should be enabled
