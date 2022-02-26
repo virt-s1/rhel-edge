@@ -1,41 +1,16 @@
 #!/bin/bash
 set -euox pipefail
 
-# Dumps details about the instance running the CI job.
-CPUS=$(nproc)
-MEM=$(free -m | grep -oP '\d+' | head -n 1)
-DISK=$(df --output=size -h / | sed '1d;s/[^0-9]//g')
-HOSTNAME=$(uname -n)
-USER=$(whoami)
-ARCH=$(uname -m)
-KERNEL=$(uname -r)
-
-echo -e "\033[0;36m"
-cat << EOF
-------------------------------------------------------------------------------
-CI MACHINE SPECS
-------------------------------------------------------------------------------
-     Hostname: ${HOSTNAME}
-         User: ${USER}
-         CPUs: ${CPUS}
-          RAM: ${MEM} MB
-         DISK: ${DISK} GB
-         ARCH: ${ARCH}
-       KERNEL: ${KERNEL}
-------------------------------------------------------------------------------
-EOF
-echo -e "\033[0m"
+# Provision the software under test.
+./setup.sh
 
 # Get OS data.
 source /etc/os-release
 
-# Customize repository
-sudo mkdir -p /etc/osbuild-composer/repositories
-
 # Set up variables.
 ARCH=$(uname -m)
 TEST_UUID=$(uuidgen)
-IMAGE_KEY="rhel-edge-test-${TEST_UUID}"
+IMAGE_KEY="ostree-rebase-${TEST_UUID}"
 BIOS_GUEST_ADDRESS=192.168.100.50
 UEFI_GUEST_ADDRESS=192.168.100.51
 PROD_REPO_ADDRESS=192.168.200.1
@@ -60,7 +35,6 @@ case "${ID}-${VERSION_ID}" in
         PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
-        sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json
         ;;
     "centos-8")
         CONTAINER_IMAGE_TYPE=edge-container
@@ -77,7 +51,6 @@ case "${ID}-${VERSION_ID}" in
         PARENT_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
-        sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -89,70 +62,10 @@ function greenprint {
     echo -e "\033[1;32m${1}\033[0m"
 }
 
-# Install required packages
-greenprint "Install required packages"
-sudo dnf install -y --nogpgcheck osbuild osbuild-composer composer-cli ansible-core python-jmespath podman firewalld
-sudo ansible-galaxy collection install community.general
-
-# Start osbuild-composer.socket
-greenprint "Start osbuild-composer.socket"
-sudo systemctl enable --now osbuild-composer.socket
-
-# Start firewalld
-greenprint "Start firewalld"
-sudo systemctl enable --now firewalld
-
-# Start libvirtd and test it.
-greenprint "🚀 Starting libvirt daemon"
-sudo systemctl start libvirtd
-sudo virsh list --all > /dev/null
-
-# Set a customized dnsmasq configuration for libvirt so we always get the
-# same address on bootup.
-greenprint "💡 Setup libvirt network"
-sudo tee /tmp/integration.xml > /dev/null << EOF
-<network>
-  <name>integration</name>
-  <uuid>1c8fe98c-b53a-4ca4-bbdb-deb0f26b3579</uuid>
-  <forward mode='nat'>
-    <nat>
-      <port start='1024' end='65535'/>
-    </nat>
-  </forward>
-  <bridge name='integration' zone='trusted' stp='on' delay='0'/>
-  <mac address='52:54:00:36:46:ef'/>
-  <ip address='192.168.100.1' netmask='255.255.255.0'>
-    <dhcp>
-      <range start='192.168.100.2' end='192.168.100.254'/>
-      <host mac='34:49:22:B0:83:30' name='vm-bios' ip='192.168.100.50'/>
-      <host mac='34:49:22:B0:83:31' name='vm-uefi' ip='192.168.100.51'/>
-    </dhcp>
-  </ip>
-</network>
-EOF
-if sudo virsh net-info integration > /dev/null 2>&1; then
-    sudo virsh net-destroy integration
-    sudo virsh net-undefine integration
-fi
-
-sudo virsh net-define /tmp/integration.xml
-sudo virsh net-start integration
-
-# Allow anyone in the wheel group to talk to libvirt.
-greenprint "🚪 Allowing users in wheel group to talk to libvirt"
-sudo tee /etc/polkit-1/rules.d/50-libvirt.rules > /dev/null << EOF
-polkit.addRule(function(action, subject) {
-    if (action.id == "org.libvirt.unix.manage" &&
-        subject.isInGroup("adm")) {
-            return polkit.Result.YES;
-    }
-});
-EOF
-
 # Get the compose log.
 get_compose_log () {
     COMPOSE_ID=$1
-    LOG_FILE=osbuild-${ID}-${VERSION_ID}-ng-${COMPOSE_ID}.log
+    LOG_FILE=osbuild-${ID}-${VERSION_ID}-rebase-${COMPOSE_ID}.log
 
     # Download the logs.
     sudo composer-cli compose log "$COMPOSE_ID" | tee "$LOG_FILE" > /dev/null
@@ -161,7 +74,7 @@ get_compose_log () {
 # Get the compose metadata.
 get_compose_metadata () {
     COMPOSE_ID=$1
-    METADATA_FILE=osbuild-${ID}-${VERSION_ID}-ng-${COMPOSE_ID}.json
+    METADATA_FILE=osbuild-${ID}-${VERSION_ID}-rebase-${COMPOSE_ID}.json
 
     # Download the metadata.
     sudo composer-cli compose metadata "$COMPOSE_ID" > /dev/null
