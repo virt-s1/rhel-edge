@@ -1,79 +1,43 @@
 #!/bin/bash
 set -exuo pipefail
 
-# Dumps details about the instance running the CI job.
-
-CPUS=$(nproc)
-MEM=$(free -m | grep -oP '\d+' | head -n 1)
-DISK=$(df --output=size -h / | sed '1d;s/[^0-9]//g')
-HOSTNAME=$(uname -n)
-USER=$(whoami)
-ARCH=$(uname -m)
-KERNEL=$(uname -r)
-
-echo -e "\033[0;36m"
-cat << EOF
-------------------------------------------------------------------------------
-CI MACHINE SPECS
-------------------------------------------------------------------------------
-     Hostname: ${HOSTNAME}
-         User: ${USER}
-         CPUs: ${CPUS}
-          RAM: ${MEM} MB
-         DISK: ${DISK} GB
-         ARCH: ${ARCH}
-       KERNEL: ${KERNEL}
-------------------------------------------------------------------------------
-EOF
-echo -e "\033[0m"
+# Provision the software under test.
+./setup.sh
 
 # Get OS data.
 source /etc/os-release
+ARCH=$(uname -m)
 
-# Prepare osbuild-composer repository file
-sudo mkdir -p /etc/osbuild-composer/repositories
+# set locale to en_US.UTF-8
+sudo dnf install -y glibc-langpack-en
+localectl set-locale LANG=en_US.UTF-8
 
 # Set os-variant and boot location used by virt-install.
 case "${ID}-${VERSION_ID}" in
-    "fedora-33")
-        IMAGE_TYPE=fedora-iot-commit
-        OSTREE_REF="fedora/33/${ARCH}/iot"
-        OS_VARIANT="fedora33"
-        USER_IN_COMMIT="false"
-        BOOT_LOCATION="https://mirrors.rit.edu/fedora/fedora/linux/releases/33/Everything/x86_64/os/"
-        CUT_DIRS=8
-        sudo cp files/fedora-33.json /etc/osbuild-composer/repositories/fedora-33.json;;
     "rhel-8.3")
         IMAGE_TYPE=rhel-edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         USER_IN_COMMIT="false"
-        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-        sudo dnf install -y ansible
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.3.1/compose/BaseOS/x86_64/os/"
         CUT_DIRS=9
-        sudo cp files/rhel-8-3-1.json /etc/osbuild-composer/repositories/rhel-8.json;;
+        ;;
     "rhel-8.4")
         IMAGE_TYPE=rhel-edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         USER_IN_COMMIT="false"
-        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-        sudo dnf install -y ansible
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
-        sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
-        sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
+        ;;
     "rhel-8.5")
         IMAGE_TYPE=edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         USER_IN_COMMIT="true"
-        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-        sudo dnf install -y ansible
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.5.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
-        sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-85.json;;
+        ;;
     "rhel-8.6")
         IMAGE_TYPE=edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
@@ -81,11 +45,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_COMMIT="true"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
-        sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
+        ;;
     "rhel-9.0")
         IMAGE_TYPE=edge-commit
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -93,11 +53,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_COMMIT="true"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
-        sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
+        ;;
     "centos-8")
         IMAGE_TYPE=edge-commit
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -105,11 +61,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_COMMIT="true"
         BOOT_LOCATION="http://msync.centos.org/centos/8-stream/BaseOS/x86_64/os/"
         CUT_DIRS=5
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
-        sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json;;
+        ;;
     "centos-9")
         IMAGE_TYPE=edge-commit
         OSTREE_REF="centos/9/${ARCH}/edge"
@@ -117,95 +69,20 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_COMMIT="true"
         BOOT_LOCATION="https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/os/"
         CUT_DIRS=6
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
-        sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
 esac
-
-# Install packages
-sudo dnf install -y --nogpgcheck osbuild-composer composer-cli podman httpd wget firewalld
-sudo rpm -qa | grep -i osbuild
-
-# Start image builder service
-sudo systemctl enable --now osbuild-composer.socket
-
-# Start firewalld
-sudo systemctl enable --now firewalld
-
-# Basic verification
-sudo composer-cli status show
-sudo composer-cli sources list
-for SOURCE in $(sudo composer-cli sources list); do
-    sudo composer-cli sources info "$SOURCE"
-done
 
 # Colorful output.
 function greenprint {
     echo -e "\033[1;32m${1}\033[0m"
 }
 
-# Start libvirtd and test it.
-greenprint "🚀 Starting libvirt daemon"
-sudo systemctl start libvirtd
-sudo virsh list --all > /dev/null
-
-# Set a customized dnsmasq configuration for libvirt so we always get the
-# same address on bootup.
-sudo tee /tmp/integration.xml > /dev/null << EOF
-<network xmlns:dnsmasq='http://libvirt.org/schemas/network/dnsmasq/1.0'>
-  <name>integration</name>
-  <uuid>1c8fe98c-b53a-4ca4-bbdb-deb0f26b3579</uuid>
-  <forward mode='nat'>
-    <nat>
-      <port start='1024' end='65535'/>
-    </nat>
-  </forward>
-  <bridge name='integration' zone='trusted' stp='on' delay='0'/>
-  <mac address='52:54:00:36:46:ef'/>
-  <ip address='192.168.100.1' netmask='255.255.255.0'>
-    <dhcp>
-      <range start='192.168.100.2' end='192.168.100.254'/>
-      <host mac='34:49:22:B0:83:30' name='vm' ip='192.168.100.50'/>
-    </dhcp>
-  </ip>
-  <dnsmasq:options>
-    <dnsmasq:option value='dhcp-vendorclass=set:efi-http,HTTPClient:Arch:00016'/>
-    <dnsmasq:option value='dhcp-option-force=tag:efi-http,60,HTTPClient'/>
-    <dnsmasq:option value='dhcp-boot=tag:efi-http,&quot;http://192.168.100.1/httpboot/EFI/BOOT/BOOTX64.EFI&quot;'/>
-  </dnsmasq:options>
-</network>
-EOF
-if sudo virsh net-info integration > /dev/null 2>&1; then
-    sudo virsh net-destroy integration
-    sudo virsh net-undefine integration
-fi
-
-sudo virsh net-define /tmp/integration.xml
-sudo virsh net-start integration
-
-# Allow anyone in the wheel group to talk to libvirt.
-greenprint "🚪 Allowing users in wheel group to talk to libvirt"
-WHEEL_GROUP=wheel
-if [[ $ID == rhel ]]; then
-    WHEEL_GROUP=adm
-fi
-sudo tee /etc/polkit-1/rules.d/50-libvirt.rules > /dev/null << EOF
-polkit.addRule(function(action, subject) {
-    if (action.id == "org.libvirt.unix.manage" &&
-        subject.isInGroup("${WHEEL_GROUP}")) {
-            return polkit.Result.YES;
-    }
-});
-EOF
-
 # Set up variables.
 TEST_UUID=$(uuidgen)
-IMAGE_KEY="osbuild-composer-ostree-test-${TEST_UUID}"
+IMAGE_KEY="ostree-${TEST_UUID}"
 GUEST_ADDRESS=192.168.100.50
 SSH_USER="admin"
 
@@ -238,10 +115,6 @@ menuentry 'Install Red Hat Enterprise Linux for Edge 8.4' --class fedora --class
 EOF
 sudo sed -i 's/default="1"/default="3"/' "${GRUB_CFG}"
 sudo sed -i 's/timeout=60/timeout=10/' "${GRUB_CFG}"
-
-# Start httpd to serve ostree repo and HTTP boot server
-greenprint "🚀 Starting httpd daemon"
-sudo systemctl start httpd
 
 # SSH setup.
 SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5)
@@ -356,7 +229,7 @@ clean_up () {
     sudo virsh destroy "${IMAGE_KEY}"
     sudo virsh undefine "${IMAGE_KEY}" --nvram
     # Remove qcow2 file.
-    sudo sudo virsh vol-delete --pool images "${IMAGE_KEY}.qcow2"
+    sudo virsh vol-delete --pool images "${IMAGE_KEY}.qcow2"
     # Remove extracted upgrade image-tar.
     sudo rm -rf "$UPGRADE_PATH"
     # Remove "remote" repo.

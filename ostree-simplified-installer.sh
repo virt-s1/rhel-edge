@@ -1,31 +1,8 @@
 #!/bin/bash
 set -euox pipefail
 
-# Dumps details about the instance running the CI job.
-
-CPUS=$(nproc)
-MEM=$(free -m | grep -oP '\d+' | head -n 1)
-DISK=$(df --output=size -h / | sed '1d;s/[^0-9]//g')
-HOSTNAME=$(uname -n)
-USER=$(whoami)
-ARCH=$(uname -m)
-KERNEL=$(uname -r)
-
-echo -e "\033[0;36m"
-cat << EOF
-------------------------------------------------------------------------------
-CI MACHINE SPECS
-------------------------------------------------------------------------------
-     Hostname: ${HOSTNAME}
-         User: ${USER}
-         CPUs: ${CPUS}
-          RAM: ${MEM} MB
-         DISK: ${DISK} GB
-         ARCH: ${ARCH}
-       KERNEL: ${KERNEL}
-------------------------------------------------------------------------------
-EOF
-echo -e "\033[0m"
+# Provision the software under test.
+./setup.sh
 
 # Get OS data.
 source /etc/os-release
@@ -33,7 +10,7 @@ ARCH=$(uname -m)
 
 # Set up variables.
 TEST_UUID=$(uuidgen)
-IMAGE_KEY="edge-${TEST_UUID}"
+IMAGE_KEY="ostree-installer-${TEST_UUID}"
 HTTP_GUEST_ADDRESS=192.168.100.50
 UEFI_GUEST_ADDRESS=192.168.100.51
 PROD_REPO_URL=http://192.168.100.1/repo
@@ -64,10 +41,7 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_FILENAME=container.tar
         INSTALLER_TYPE=edge-simplified-installer
         INSTALLER_FILENAME=simplified-installer.iso
-        # Install epel repo for ansible
-        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-        sudo dnf install -y ansible
-        sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-85.json;;
+        ;;
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
@@ -75,11 +49,7 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_FILENAME=container.tar
         INSTALLER_TYPE=edge-simplified-installer
         INSTALLER_FILENAME=simplified-installer.iso
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
-        sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
+        ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
@@ -87,11 +57,7 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_FILENAME=container.tar
         INSTALLER_TYPE=edge-simplified-installer
         INSTALLER_FILENAME=simplified-installer.iso
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
-        sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
+        ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos8"
@@ -99,11 +65,7 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_FILENAME=container.tar
         INSTALLER_TYPE=edge-simplified-installer
         INSTALLER_FILENAME=simplified-installer.iso
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
-        sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json;;
+        ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos9"
@@ -111,11 +73,7 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_FILENAME=container.tar
         INSTALLER_TYPE=edge-simplified-installer
         INSTALLER_FILENAME=simplified-installer.iso
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
-        sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
@@ -126,76 +84,10 @@ function greenprint {
     echo -e "\033[1;32m${1}\033[0m"
 }
 
-# Install required packages
-greenprint "Install required packages"
-sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli podman wget firewalld curl jq expect qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm virt-install
-
-# Start osbuild-composer.socket
-greenprint "Start osbuild-composer.socket"
-sudo systemctl enable --now osbuild-composer.socket
-
-# Start httpd
-greenprint "Start httpd"
-sudo systemctl enable --now httpd
-
-# Start firewalld
-greenprint "Start firewalld"
-sudo systemctl enable --now firewalld
-
-# Start libvirtd and test it.
-greenprint "🚀 Starting libvirt daemon"
-sudo systemctl start libvirtd
-sudo virsh list --all > /dev/null
-
-# Set a customized dnsmasq configuration for libvirt so we always get the
-# same address on bootup.
-sudo tee /tmp/integration.xml > /dev/null << EOF
-<network xmlns:dnsmasq='http://libvirt.org/schemas/network/dnsmasq/1.0'>
-  <name>integration</name>
-  <uuid>1c8fe98c-b53a-4ca4-bbdb-deb0f26b3579</uuid>
-  <forward mode='nat'>
-    <nat>
-      <port start='1024' end='65535'/>
-    </nat>
-  </forward>
-  <bridge name='integration' zone='trusted' stp='on' delay='0'/>
-  <mac address='52:54:00:36:46:ef'/>
-  <ip address='192.168.100.1' netmask='255.255.255.0'>
-    <dhcp>
-      <range start='192.168.100.2' end='192.168.100.254'/>
-      <host mac='34:49:22:B0:83:30' name='vm-httpboot' ip='192.168.100.50'/>
-      <host mac='34:49:22:B0:83:31' name='vm-uefi' ip='192.168.100.51'/>
-    </dhcp>
-  </ip>
-  <dnsmasq:options>
-    <dnsmasq:option value='dhcp-vendorclass=set:efi-http,HTTPClient:Arch:00016'/>
-    <dnsmasq:option value='dhcp-option-force=tag:efi-http,60,HTTPClient'/>
-    <dnsmasq:option value='dhcp-boot=tag:efi-http,&quot;http://192.168.100.1/httpboot/EFI/BOOT/BOOTX64.EFI&quot;'/>
-  </dnsmasq:options>
-</network>
-EOF
-if ! sudo virsh net-info integration > /dev/null 2>&1; then
-    sudo virsh net-define /tmp/integration.xml
-fi
-if [[ $(sudo virsh net-info integration | grep 'Active' | awk '{print $2}') == 'no' ]]; then
-    sudo virsh net-start integration
-fi
-
-# Allow anyone in the wheel group to talk to libvirt.
-greenprint "🚪 Allowing users in wheel group to talk to libvirt"
-sudo tee /etc/polkit-1/rules.d/50-libvirt.rules > /dev/null << EOF
-polkit.addRule(function(action, subject) {
-    if (action.id == "org.libvirt.unix.manage" &&
-        subject.isInGroup("adm")) {
-            return polkit.Result.YES;
-    }
-});
-EOF
-
 # Get the compose log.
 get_compose_log () {
     COMPOSE_ID=$1
-    LOG_FILE=osbuild-${ID}-${VERSION_ID}-${COMPOSE_ID}.log
+    LOG_FILE=osbuild-${ID}-${VERSION_ID}-installer-${COMPOSE_ID}.log
 
     # Download the logs.
     sudo composer-cli compose log "$COMPOSE_ID" | tee "$LOG_FILE" > /dev/null
@@ -204,7 +96,7 @@ get_compose_log () {
 # Get the compose metadata.
 get_compose_metadata () {
     COMPOSE_ID=$1
-    METADATA_FILE=osbuild-${ID}-${VERSION_ID}-${COMPOSE_ID}.json
+    METADATA_FILE=osbuild-${ID}-${VERSION_ID}-installer-${COMPOSE_ID}.json
 
     # Download the metadata.
     sudo composer-cli compose metadata "$COMPOSE_ID" > /dev/null
@@ -302,7 +194,7 @@ clean_up () {
     fi
     sudo virsh undefine "${IMAGE_KEY}-uefi" --nvram
     # Remove qcow2 file.
-    sudo rm -f "$LIBVIRT_IMAGE_PATH"
+    sudo virsh vol-delete --pool images "${IMAGE_KEY}-uefi.qcow2"
 
     # Remove any status containers if exist
     sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f
@@ -509,7 +401,7 @@ sudo virt-install --name="${IMAGE_KEY}-http"\
                   --vcpus 2 \
                   --network network=integration,mac=34:49:22:B0:83:30 \
                   --os-type linux \
-                  --os-variant rhel8-unknown \
+                  --os-variant "$OS_VARIANT" \
                   --pxe \
                   --boot uefi,loader_ro=yes,loader_type=pflash,nvram_template=/usr/share/edk2/ovmf/OVMF_VARS.fd,loader_secure=no \
                   --nographics \
@@ -541,7 +433,7 @@ if [[ $(sudo virsh domstate "${IMAGE_KEY}-http") == "running" ]]; then
     sudo virsh destroy "${IMAGE_KEY}-http"
 fi
 sudo virsh undefine "${IMAGE_KEY}-http" --nvram
-sudo rm -f "$LIBVIRT_IMAGE_PATH"
+sudo virsh vol-delete --pool images "${IMAGE_KEY}.qcow2"
 
 ##################################################################
 ##
@@ -683,10 +575,10 @@ until [ "$(sudo podman inspect -f '{{.State.Running}}' rhel-edge)" == "true" ]; 
 done;
 
 if [[ "${ID}-${VERSION_ID}" == "rhel-8.5" ]]; then
-# Workaround to https://github.com/osbuild/osbuild-composer/issues/1693
-greenprint "🗳 Add external prod edge repo"
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${UEFI_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S ostree remote add --no-gpg-verify --no-sign-verify rhel-edge ${PROD_REPO_URL}"
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${UEFI_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S ostree admin switch rhel-edge:${OSTREE_REF}"
+    # Workaround to https://github.com/osbuild/osbuild-composer/issues/1693
+    greenprint "🗳 Add external prod edge repo"
+    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${UEFI_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S ostree remote add --no-gpg-verify --no-sign-verify rhel-edge ${PROD_REPO_URL}"
+    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${UEFI_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S ostree admin switch rhel-edge:${OSTREE_REF}"
 fi
 
 # Pull upgrade to prod mirror
