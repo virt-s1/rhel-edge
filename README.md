@@ -118,7 +118,7 @@ In this scenario, environment setup and test running are based on Ansible playbo
 
 ### Scenario 2
 
-    $ ARCH=x86_64 TEST_OS=rhel-9-0 VAULT_PASSWORD=xxxxxxx ansible-playbook -v -i inventory ostree-bare-ng.yml
+    $ ARCH=x86_64 TEST_OS=rhel-9-0 ansible-playbook -v -i inventory ostree-bare-ng.yml
 
 ## Configuration
 
@@ -134,7 +134,6 @@ You can set these environment variables to run test
                            "centos-stream-9"
     ARCH               The arch to build image and run test on.  Currently supported values:
                            "x86_64"
-    VAULT_PASSWORD     Decrypt "files/clouds-yaml"
     QUAY_USERNAME      quay.io username
                            Used to test pushing Edge OCI-archive image to quay.io
     QUAY_PASSWORD      quay.io password
