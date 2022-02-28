@@ -439,7 +439,6 @@ pipeline {
                     when {
                         beforeAgent true
                         anyOf {
-                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -475,7 +474,6 @@ pipeline {
                     when {
                         beforeAgent true
                         anyOf {
-                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -511,7 +509,6 @@ pipeline {
                     when {
                         beforeAgent true
                         anyOf {
-                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -547,7 +544,6 @@ pipeline {
                     when {
                         beforeAgent true
                         anyOf {
-                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -583,7 +579,6 @@ pipeline {
                     when {
                         beforeAgent true
                         anyOf {
-                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -620,7 +615,6 @@ pipeline {
                     when {
                         beforeAgent true
                         anyOf {
-                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -656,7 +650,6 @@ pipeline {
                     when {
                         beforeAgent true
                         anyOf {
-                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -692,7 +685,6 @@ pipeline {
                     when {
                         beforeAgent true
                         anyOf {
-                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -728,7 +720,6 @@ pipeline {
                     when {
                         beforeAgent true
                         anyOf {
-                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -764,7 +755,6 @@ pipeline {
                     when {
                         beforeAgent true
                         anyOf {
-                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
