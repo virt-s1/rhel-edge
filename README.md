@@ -125,8 +125,6 @@ In this scenario, environment setup and test running are based on Ansible playbo
 You can set these environment variables to run test
 
     TEST_OS            The OS to run the tests in.  Currently supported values:
-                           "rhel-8-3"
-                           "rhel-8-4"
                            "rhel-8-5"
                            "rhel-8-6"
                            "rhel-9-0"
