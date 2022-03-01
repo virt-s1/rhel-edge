@@ -1,0 +1,117 @@
+pipeline {
+    agent none
+    environment {
+        GCN_URL = credentials('google-chat-rhel-edge-url')
+        TRIGGERED_BY = get_triggered_by()
+    }
+    triggers {
+        cron("@daily")
+    }
+
+    stages {
+        stage('Building') {
+            when {
+                beforeAgent true
+                anyOf {
+                    environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                    allOf {
+                        environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                        environment name: 'BUILDING_TRIGGER', value: 'true'
+                    }
+                }
+            }
+            parallel {
+                stage('RHEL-9.0-normal') {
+                    agent { label 'vm-rhel-9-0-0' }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                                sh "./build-image.sh normal"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            send_result('RHEL-9.0-normal')
+                        }
+                    }
+                }
+                stage('RHEL-9.0-rt') {
+                    agent { label 'vm-rhel-9-0-0' }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                                sh "./build-image.sh rt"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            send_result('RHEL-9.0-rt')
+                        }
+                    }
+                }
+                stage('RHEL-8.6-normal') {
+                    agent { label 'vm-rhel-8-6-0' }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                                sh "./build-image.sh normal"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            send_result('RHEL-8.6-normal')
+                        }
+                    }
+                }
+                stage('RHEL-8.6-rt') {
+                    agent { label 'vm-rhel-8-6-0' }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                                sh "./build-image.sh rt"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            send_result('RHEL-8.6-rt')
+                        }
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            script {
+                print(currentBuild.getBuildCauses()[0])
+            }
+        }
+    }
+    options {
+        timestamps()
+        timeout(time: 2, unit: 'HOURS')
+    }
+}
+
+void get_triggered_by() {
+    return currentBuild.getBuildCauses()[0].shortDescription
+}
+
+void send_result(test_type) {
+    script {
+        googlechatnotification message: "${currentBuild.currentResult}\nImage: ${test_type}\nConsole Log: ${env.BUILD_URL}display/redirect",
+                                notifyAborted: true,
+                                notifyFailure: true,
+                                notifyNotBuilt: true,
+                                notifySuccess: true,
+                                url: "${env.GCN_URL}"
+    }
+}
