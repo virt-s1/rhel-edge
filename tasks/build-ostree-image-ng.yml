@@ -266,7 +266,7 @@
     ostree --repo=/var/www/html/repo init --mode=archive
     ostree --repo=/var/www/html/repo remote add --no-gpg-verify edge-stage http://192.168.200.1:8080/repo/
   become: yes
-  when: os == "rhel-8-5" or os == "rhel-8-6" or os == "rhel-9-0" or os == "centos-stream-8" or os == "centos-stream-9"
+  when: os != "rhel-8-4"
 
 # Cannot find how to remove all containers/images in ansible, use shell instead
 - name: remove all containers and images
@@ -284,7 +284,7 @@
 - name: pull image from rhel for edge container tar file
   shell: podman pull "oci-archive:{{ compose_uuid }}-container.tar"
   become: yes
-  when: os == "rhel-8-5" or os == "rhel-8-6" or os == "rhel-9-0" or os == "centos-stream-8" or os == "centos-stream-9"
+  when: os != "rhel-8-4"
 
 - name: Create podman network
   containers.podman.podman_network:
