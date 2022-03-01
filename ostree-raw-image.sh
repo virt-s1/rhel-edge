@@ -36,7 +36,7 @@ sudo mkdir -p /etc/osbuild-composer/repositories
 case "${ID}-${VERSION_ID}" in
     "rhel-8.5")
         OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
+        OS_VARIANT="rhel8.5"
         CONTAINER_TYPE=edge-container
         CONTAINER_FILENAME=container.tar
         RAW_TYPE=edge-raw-image
@@ -52,7 +52,7 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9-unknown"
+        OS_VARIANT="rhel9.0"
         CONTAINER_TYPE=edge-container
         CONTAINER_FILENAME=container.tar
         RAW_TYPE=edge-raw-image
@@ -60,7 +60,7 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
-        OS_VARIANT="centos8"
+        OS_VARIANT="centos-stream8"
         CONTAINER_TYPE=edge-container
         CONTAINER_FILENAME=container.tar
         RAW_TYPE=edge-raw-image
@@ -68,7 +68,7 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
-        OS_VARIANT="centos9"
+        OS_VARIANT="centos-stream9"
         CONTAINER_TYPE=edge-container
         CONTAINER_FILENAME=container.tar
         RAW_TYPE=edge-raw-image

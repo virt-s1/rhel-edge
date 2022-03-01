@@ -14,26 +14,10 @@ localectl set-locale LANG=en_US.UTF-8
 
 # Set os-variant and boot location used by virt-install.
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.3")
-        IMAGE_TYPE=rhel-edge-commit
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
-        USER_IN_COMMIT="false"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.3.1/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=9
-        ;;
-    "rhel-8.4")
-        IMAGE_TYPE=rhel-edge-commit
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
-        USER_IN_COMMIT="false"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=9
-        ;;
     "rhel-8.5")
         IMAGE_TYPE=edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
+        OS_VARIANT="rhel8.5"
         USER_IN_COMMIT="true"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.5.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=9
@@ -57,7 +41,7 @@ case "${ID}-${VERSION_ID}" in
     "centos-8")
         IMAGE_TYPE=edge-commit
         OSTREE_REF="centos/8/${ARCH}/edge"
-        OS_VARIANT="centos8"
+        OS_VARIANT="centos-stream8"
         USER_IN_COMMIT="true"
         BOOT_LOCATION="http://msync.centos.org/centos/8-stream/BaseOS/x86_64/os/"
         CUT_DIRS=5
@@ -65,7 +49,7 @@ case "${ID}-${VERSION_ID}" in
     "centos-9")
         IMAGE_TYPE=edge-commit
         OSTREE_REF="centos/9/${ARCH}/edge"
-        OS_VARIANT="centos9"
+        OS_VARIANT="centos-stream9"
         USER_IN_COMMIT="true"
         BOOT_LOCATION="https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/os/"
         CUT_DIRS=6
@@ -108,7 +92,7 @@ done
 # Update grub.cfg to work with HTTP boot
 greenprint "📝 Update grub.cfg to work with HTTP boot"
 sudo tee -a "${GRUB_CFG}" > /dev/null << EOF
-menuentry 'Install Red Hat Enterprise Linux for Edge 8.4' --class fedora --class gnu-linux --class gnu --class os {
+menuentry 'Install Red Hat Enterprise Linux for Edge' --class fedora --class gnu-linux --class gnu --class os {
         linuxefi /httpboot/images/pxeboot/vmlinuz inst.stage2=http://192.168.100.1/httpboot inst.ks=http://192.168.100.1/ks.cfg inst.text console=ttyS0,115200
         initrdefi /httpboot/images/pxeboot/initrd.img
 }
