@@ -27,16 +27,16 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         USER_IN_COMMIT="false"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=8
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.4.0/compose/BaseOS/x86_64/os/"
+        CUT_DIRS=9
         ;;
     "rhel-8.5")
         IMAGE_TYPE=edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         USER_IN_COMMIT="true"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/RHEL-8/latest-RHEL-8.5.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=8
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.5.0/compose/BaseOS/x86_64/os/"
+        CUT_DIRS=9
         ;;
     "rhel-8.6")
         IMAGE_TYPE=edge-commit
