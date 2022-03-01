@@ -31,29 +31,13 @@ SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o Conn
 SSH_KEY=key/ostree_key
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.4")
-        CONTAINER_IMAGE_TYPE=rhel-edge-container
-        INSTALLER_IMAGE_TYPE=rhel-edge-installer
-        CONTAINER_FILENAME=rhel84-container.tar
-        INSTALLER_FILENAME=rhel84-boot.iso
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
-        PROD_REPO_URL=http://192.168.100.1/repo/
-        PROD_REPO_URL_2=$PROD_REPO_URL
-        USER_IN_UPGRADE_BP="true"
-        RT_TO_RT="true"
-        SUPPORT_OCP="false"
-        STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}/repo/"
-        USER_IN_INSTALLER_BP="false"
-        ANSIBLE_USER_FOR_BIOS="admin"
-        ;;
     "rhel-8.5")
         CONTAINER_IMAGE_TYPE=edge-container
         INSTALLER_IMAGE_TYPE=edge-installer
         CONTAINER_FILENAME=container.tar
         INSTALLER_FILENAME=installer.iso
         OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
+        OS_VARIANT="rhel8.5"
         PROD_REPO_URL=http://192.168.100.1/repo
         PROD_REPO_URL_2="${PROD_REPO_URL}/"
         USER_IN_UPGRADE_BP="false"
@@ -86,7 +70,7 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_FILENAME=container.tar
         INSTALLER_FILENAME=installer.iso
         OSTREE_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9-unknown"
+        OS_VARIANT="rhel9.0"
         PROD_REPO_URL=http://192.168.100.1/repo
         PROD_REPO_URL_2="${PROD_REPO_URL}/"
         USER_IN_UPGRADE_BP="false"
@@ -103,7 +87,7 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_FILENAME=container.tar
         INSTALLER_FILENAME=installer.iso
         OSTREE_REF="centos/8/${ARCH}/edge"
-        OS_VARIANT="centos8"
+        OS_VARIANT="centos-stream8"
         PROD_REPO_URL=http://192.168.100.1/repo
         PROD_REPO_URL_2="${PROD_REPO_URL}/"
         USER_IN_UPGRADE_BP="false"
@@ -120,7 +104,7 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_FILENAME=container.tar
         INSTALLER_FILENAME=installer.iso
         OSTREE_REF="centos/9/${ARCH}/edge"
-        OS_VARIANT="centos9"
+        OS_VARIANT="centos-stream9"
         PROD_REPO_URL=http://192.168.100.1/repo
         PROD_REPO_URL_2="${PROD_REPO_URL}/"
         USER_IN_UPGRADE_BP="false"
@@ -501,32 +485,7 @@ build_image installer "${INSTALLER_IMAGE_TYPE}" "${PROD_REPO_URL_2}"
 greenprint "📥 Downloading the image"
 sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
 ISO_FILENAME="${COMPOSE_ID}-${INSTALLER_FILENAME}"
-if [[ "${ID}-${VERSION_ID}" == "rhel-8.4" ]]; then
-    # Write kickstart file for ostree image installation.
-    greenprint "Generate kickstart file"
-    tee "${TEMPDIR}/ks.cfg" > /dev/null << STOPHERE
-text
-network --bootproto=dhcp --device=link --activate --onboot=on
-zerombr
-clearpart --all --initlabel --disklabel=msdos
-autopart --nohome --noswap --type=plain
-ostreesetup --nogpg --osname=rhel --remote=rhel --url=file:///ostree/repo --ref=${OSTREE_REF}
-poweroff
-%post --log=/var/log/anaconda/post-install.log --erroronfail
-# no sudo password for user admin
-echo -e 'admin\tALL=(ALL)\tNOPASSWD: ALL' >> /etc/sudoers
-# delete local repo and add external repo
-ostree remote delete rhel
-ostree remote add --no-gpg-verify --no-sign-verify rhel ${PROD_REPO_URL}
-%end
-STOPHERE
-
-    wget -cN https://raw.githubusercontent.com/weldr/lorax/master/src/sbin/mkksiso -O "${TEMPDIR}/mkksiso"
-    chmod +x "${TEMPDIR}/mkksiso"
-    sudo "${TEMPDIR}/mkksiso" -c "console=ttyS0,115200" "${TEMPDIR}/ks.cfg" "$ISO_FILENAME" "/var/lib/libvirt/images/${ISO_FILENAME}"
-else
-    modksiso "${ISO_FILENAME}" "/var/lib/libvirt/images/${ISO_FILENAME}"
-fi
+modksiso "${ISO_FILENAME}" "/var/lib/libvirt/images/${ISO_FILENAME}"
 sudo rm -f "${ISO_FILENAME}"
 
 # Clean compose and blueprints.
