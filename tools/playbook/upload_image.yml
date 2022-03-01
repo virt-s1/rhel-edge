@@ -1,0 +1,153 @@
+---
+- hosts: openstack
+  gather_facts: no
+  become: no
+  vars:
+    cs8_image_url: "{{ image_url[os] }}"
+
+  tasks:
+    - name: get latest CentOS Stream images
+      shell: curl -s {{ image_url[os] }}/ | grep -ioE ">CentOS-Stream-GenericCloud-9-.*.qcow2<" | tr -d '><'
+      register: result_file
+      when: os == "centos-stream-9"
+
+    - set_fact:
+        image_name: "{{ result_file.stdout }}"
+      when: os == "centos-stream-9"
+
+    - name: download image
+      get_url:
+        url: "{{ image_url[os] }}/{{ image_name }}"
+        dest: /tmp/
+      when: os == "centos-stream-9"
+
+    - set_fact:
+        image_name: "CentOS-Stream-GenericCloud-8.x86_64.qcow2"
+      when: os == "centos-stream-8"
+
+    - name: download image
+      get_url:
+        url: "{{ cs8_image_url }}"
+        dest: "/tmp/{{ image_name }}"
+      when: os == "centos-stream-8"
+
+    - name: upload tmp image to psi openstack
+      openstack.cloud.image:
+        cloud: rhos-01
+        name: "tmp-edge-{{ os }}"
+        filename: "/tmp/{{ image_name }}"
+        # https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
+        properties:
+          architecture: x86_64
+          os_distro: centos
+          hw_rng_model: virtio
+
+    # image test
+    - block:
+        - name: deploy image test instance
+          openstack.cloud.server:
+            cloud: rhos-01
+            name: "edge-image-test-{{ os }}"
+            image: "tmp-edge-{{ os }}"
+            flavor: "ci.standard.large"
+            network: "shared_net_9"
+            key_name: rhel-edge
+            security_groups: ssh_only
+            auto_ip: yes
+            config_drive: yes
+            wait: yes
+            timeout: 600
+            userdata: |
+              #cloud-config
+              packages:
+                - python3
+                - python3-dnf
+              users:
+                - default
+                - name: admin
+                  gecos: Administrator
+                  groups: users,wheel
+                  sudo: ALL=(ALL) NOPASSWD:ALL
+                  ssh_authorized_keys:
+                    - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test
+          register: instance_result
+
+        - name: waits until instance is reachable
+          wait_for:
+            host: "{{ instance_result.openstack.public_v4 }}"
+            port: 22
+            search_regex: OpenSSH
+            delay: 10
+
+        - name: add os instance ip into host group builder
+          add_host:
+            name: "{{ instance_result.openstack.public_v4 }}"
+            groups: guest
+
+        - name: keep private key permission to 600
+          file:
+            path: "{{ playbook_dir }}/key/ostree_key"
+            mode: "0600"
+
+        - name: ensure cloud-init has finished
+          raw: test -f /var/lib/cloud/instance/boot-finished
+          retries: 60
+          register: cloud_init_check
+          changed_when: false
+          until: cloud_init_check is success
+          delegate_to: "{{ instance_result.openstack.public_v4 }}"
+
+        # https://cloudinit.readthedocs.io/en/latest/topics/modules.html#growpart
+        # 10G image will be resized to 40G (disk size)
+        - name: disk growpart feature checking
+          command: df -h
+          become: yes
+          register: result_growpart
+          delegate_to: "{{ instance_result.openstack.public_v4 }}"
+
+        - name: disk growpart not support
+          fail:
+            msg: "can't find disk growpart support, edge image {{ os }} {{ arch }} fail"
+          when: "'60G' not in result_growpart.stdout"
+
+      rescue:
+        - name: remove tmp image
+          openstack.cloud.image:
+            cloud: rhos-01
+            name: "tmp-edge-{{ os }}"
+            state: absent
+
+        - name: "building {{ os }} openstack image fail"
+          fail:
+            msg: "building {{ os }} openstack image fail"
+
+      always:
+        - name: remove image test instance
+          openstack.cloud.server:
+            cloud: rhos-01
+            name: "edge-image-test-{{ os }}"
+            state: absent
+
+        - name: delete tested tmp image
+          openstack.cloud.image:
+            cloud: rhos-01
+            name: "tmp-edge-{{ os }}"
+            state: absent
+
+    - name: "delete last {{ os }} openstack image"
+      openstack.cloud.image:
+        cloud: rhos-01
+        name: edge-{{ os }}
+        state: absent
+
+    - name: "upload new {{ os }} openstack image to psi"
+      openstack.cloud.image:
+        cloud: rhos-01
+        name: "edge-{{ os }}"
+        filename: "/tmp/{{ image_name }}"
+        # https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
+        properties:
+          architecture: x86_64
+          os_distro: centos
+          hw_rng_model: virtio
+      register: result_image
