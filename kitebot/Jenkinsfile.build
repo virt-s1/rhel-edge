@@ -135,6 +135,11 @@ void get_triggered_by() {
     return currentBuild.getBuildCauses()[0].shortDescription
 }
 
+void preserve_logs() {
+    archiveArtifacts allowEmptyArchive: true, artifacts: 'osbuild-*.log'
+    archiveArtifacts allowEmptyArchive: true, artifacts: 'osbuild-*.json'
+}
+
 void send_result(test_type) {
     script {
         googlechatnotification message: "${currentBuild.currentResult}\nImage: ${test_type}\nConsole Log: ${env.BUILD_URL}display/redirect",
