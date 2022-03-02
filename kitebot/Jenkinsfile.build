@@ -10,18 +10,18 @@ pipeline {
 
     stages {
         stage('Building') {
-            when {
-                beforeAgent true
-                anyOf {
-                    environment name: 'TRIGGERED_BY', value: 'Started by timer'
-                    allOf {
-                        environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                        environment name: 'BUILDING_TRIGGER', value: 'true'
-                    }
-                }
-            }
             parallel {
                 stage('RHEL-9.0-normal') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL90', value: 'true'
+                            }
+                        }
+                    }
                     agent { label 'vm-rhel-9-0-0' }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
@@ -38,6 +38,16 @@ pipeline {
                     }
                 }
                 stage('RHEL-9.0-rt') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL90-RT', value: 'true'
+                            }
+                        }
+                    }
                     agent { label 'vm-rhel-9-0-0' }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
@@ -54,6 +64,16 @@ pipeline {
                     }
                 }
                 stage('RHEL-8.6-normal') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL86', value: 'true'
+                            }
+                        }
+                    }
                     agent { label 'vm-rhel-8-6-0' }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
@@ -70,6 +90,16 @@ pipeline {
                     }
                 }
                 stage('RHEL-8.6-rt') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL86-RT', value: 'true'
+                            }
+                        }
+                    }
                     agent { label 'vm-rhel-8-6-0' }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
