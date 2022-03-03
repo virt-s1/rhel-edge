@@ -115,6 +115,110 @@ pipeline {
                         }
                     }
                 }
+                stage('CS8-normal') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'CS8', value: 'true'
+                            }
+                        }
+                    }
+                    agent { label 'vm-cs8' }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                                sh "./build-image.sh normal"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            send_result('CS8-normal')
+                        }
+                    }
+                }
+                stage('CS8-rt') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'CS8-RT', value: 'true'
+                            }
+                        }
+                    }
+                    agent { label 'vm-cs8' }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                                sh "./build-image.sh rt"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            send_result('CS8-rt')
+                        }
+                    }
+                }
+                stage('CS9-normal') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'CS9', value: 'true'
+                            }
+                        }
+                    }
+                    agent { label 'vm-cs9' }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                                sh "./build-image.sh normal"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            send_result('CS9-normal')
+                        }
+                    }
+                }
+                stage('CS9-rt') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'CS9-RT', value: 'true'
+                            }
+                        }
+                    }
+                    agent { label 'vm-cs9' }
+                    steps {
+                        catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                                sh "./build-image.sh rt"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            send_result('CS9-rt')
+                        }
+                    }
+                }
             }
         }
     }

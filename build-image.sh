@@ -7,42 +7,19 @@ if [[ $1 == "rt" ]]; then
     IMAGE_KERNEL="rt"
 fi
 
-# Dumps details about the instance running the CI job.
-CPUS=$(nproc)
-MEM=$(free -m | grep -oP '\d+' | head -n 1)
-DISK=$(df --output=size -h / | sed '1d;s/[^0-9]//g')
-HOSTNAME=$(uname -n)
-USER=$(whoami)
-ARCH=$(uname -m)
-KERNEL=$(uname -r)
-
-echo -e "\033[0;36m"
-cat << EOF
-------------------------------------------------------------------------------
-CI MACHINE SPECS
-------------------------------------------------------------------------------
-     Hostname: ${HOSTNAME}
-         User: ${USER}
-         CPUs: ${CPUS}
-          RAM: ${MEM} MB
-         DISK: ${DISK} GB
-         ARCH: ${ARCH}
-       KERNEL: ${KERNEL}
-------------------------------------------------------------------------------
-EOF
-echo -e "\033[0m"
+# Provision the software under test.
+./setup.sh
 
 # Get OS data.
 source /etc/os-release
-
-# Customize repository
-sudo mkdir -p /etc/osbuild-composer/repositories
 
 # Set up variables.
 ARCH=$(uname -m)
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="rhel-edge-test-${TEST_UUID}"
 QUAY_REPO_URL="docker://quay.io/rhel-edge/edge-containers"
+CONTAINER_IMAGE_TYPE=edge-container
+CONTAINER_FILENAME=container.tar
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -53,17 +30,21 @@ COMPOSE_INFO=${TEMPDIR}/compose-info-${IMAGE_KEY}.json
 
 case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
-        CONTAINER_IMAGE_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
         OSTREE_REF="rhel/8/${ARCH}/edge"
         TAG=rhel-8-6
-        sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
+        ;;
     "rhel-9.0")
-        CONTAINER_IMAGE_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
         OSTREE_REF="rhel/9/${ARCH}/edge"
         TAG=rhel-9-0
-        sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
+        ;;
+    "centos-8")
+        OSTREE_REF="centos/8/${ARCH}/edge"
+        TAG=cs8
+        ;;
+    "centos-9")
+        OSTREE_REF="centos/9/${ARCH}/edge"
+        TAG=cs9
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
@@ -71,26 +52,15 @@ esac
 
 OCP4_REPO_URL="http://edge-${TAG}-${IMAGE_KERNEL}-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/repo/"
 
-# Install openshift client
-curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
-
 # Colorful output.
 function greenprint {
     echo -e "\033[1;32m${1}\033[0m"
 }
 
-# Install required packages
-greenprint "Install required packages"
-sudo dnf install -y --nogpgcheck osbuild osbuild-composer weldr-client skopeo
-
-# Start osbuild-composer.socket
-greenprint "Start osbuild-composer.socket"
-sudo systemctl enable --now osbuild-composer.socket
-
 # Get the compose log.
 get_compose_log () {
     COMPOSE_ID=$1
-    LOG_FILE=osbuild-${ID}-${VERSION_ID}-${COMPOSE_ID}.log
+    LOG_FILE=osbuild-${ID}-${VERSION_ID}-build-${COMPOSE_ID}.log
 
     # Download the logs.
     sudo composer-cli compose log "$COMPOSE_ID" | tee "$LOG_FILE" > /dev/null
@@ -99,7 +69,7 @@ get_compose_log () {
 # Get the compose metadata.
 get_compose_metadata () {
     COMPOSE_ID=$1
-    METADATA_FILE=osbuild-${ID}-${VERSION_ID}-${COMPOSE_ID}.json
+    METADATA_FILE=osbuild-${ID}-${VERSION_ID}-build-${COMPOSE_ID}.json
 
     # Download the metadata.
     sudo composer-cli compose metadata "$COMPOSE_ID" > /dev/null
