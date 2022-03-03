@@ -4,9 +4,6 @@ pipeline {
         GCN_URL = credentials('google-chat-rhel-edge-url')
         TRIGGERED_BY = get_triggered_by()
     }
-    triggers {
-        cron("@daily")
-    }
 
     stages {
         stage('Preparing') {
@@ -569,6 +566,12 @@ pipeline {
                         beforeAgent true
                         anyOf {
                             environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '8.6.0'
+                                }
+                            }
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -599,6 +602,12 @@ pipeline {
                         beforeAgent true
                         anyOf {
                             environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '8.6.0'
+                                }
+                            }
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -629,6 +638,12 @@ pipeline {
                         beforeAgent true
                         anyOf {
                             environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '8.6.0'
+                                }
+                            }
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -659,6 +674,12 @@ pipeline {
                         beforeAgent true
                         anyOf {
                             environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '8.6.0'
+                                }
+                            }
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -689,6 +710,12 @@ pipeline {
                         beforeAgent true
                         anyOf {
                             environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '8.6.0'
+                                }
+                            }
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -720,6 +747,12 @@ pipeline {
                         beforeAgent true
                         anyOf {
                             environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                }
+                            }
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -750,6 +783,12 @@ pipeline {
                         beforeAgent true
                         anyOf {
                             environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                }
+                            }
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -780,6 +819,12 @@ pipeline {
                         beforeAgent true
                         anyOf {
                             environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                }
+                            }
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -810,6 +855,12 @@ pipeline {
                         beforeAgent true
                         anyOf {
                             environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                }
+                            }
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
@@ -840,6 +891,12 @@ pipeline {
                         beforeAgent true
                         anyOf {
                             environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                }
+                            }
                             anyOf {
                                 environment name: 'TRIGGERED_BY', value: 'Branch indexing'
                                 expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
