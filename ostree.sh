@@ -8,10 +8,6 @@ set -exuo pipefail
 source /etc/os-release
 ARCH=$(uname -m)
 
-# set locale to en_US.UTF-8
-sudo dnf install -y glibc-langpack-en
-localectl set-locale LANG=en_US.UTF-8
-
 # Set os-variant and boot location used by virt-install.
 case "${ID}-${VERSION_ID}" in
     "rhel-8.5")
