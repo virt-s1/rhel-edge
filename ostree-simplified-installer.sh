@@ -17,6 +17,10 @@ PROD_REPO_URL=http://192.168.100.1/repo
 PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
+CONTAINER_TYPE=edge-container
+CONTAINER_FILENAME=container.tar
+INSTALLER_TYPE=edge-simplified-installer
+INSTALLER_FILENAME=simplified-installer.iso
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -37,42 +41,26 @@ case "${ID}-${VERSION_ID}" in
     "rhel-8.5")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8.5"
-        CONTAINER_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
-        INSTALLER_TYPE=edge-simplified-installer
-        INSTALLER_FILENAME=simplified-installer.iso
         ;;
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
-        CONTAINER_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
-        INSTALLER_TYPE=edge-simplified-installer
-        INSTALLER_FILENAME=simplified-installer.iso
+        FDO_SERVER=192.168.200.2
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
-        CONTAINER_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
-        INSTALLER_TYPE=edge-simplified-installer
-        INSTALLER_FILENAME=simplified-installer.iso
+        FDO_SERVER=192.168.200.2
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos-stream8"
-        CONTAINER_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
-        INSTALLER_TYPE=edge-simplified-installer
-        INSTALLER_FILENAME=simplified-installer.iso
+        FDO_SERVER=192.168.200.2
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
-        CONTAINER_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
-        INSTALLER_TYPE=edge-simplified-installer
-        INSTALLER_FILENAME=simplified-installer.iso
+        FDO_SERVER=192.168.200.2
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -242,6 +230,35 @@ sudo ostree --repo="$PROD_REPO" remote add --no-gpg-verify edge-stage "$STAGE_RE
 greenprint "🔧 Prepare stage repo network"
 sudo podman network inspect edge >/dev/null 2>&1 || sudo podman network create --driver=bridge --subnet=192.168.200.0/24 --gateway=192.168.200.254 edge
 
+# Clear container running env
+greenprint "🧹 Clearing container running env"
+# Remove any status containers if exist
+sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f
+# Remove all images
+sudo podman rmi -f -a
+
+if [[ $VERSION_ID != "8.5" ]]; then
+    greenprint "🔧 Prepare fdo manufacturing server"
+    sudo git clone https://github.com/runcom/fdo-containers
+    pushd fdo-containers
+    sudo git checkout c2bab2c3cda954087fe66b683d31bffeac0c7189
+    sudo CONTAINER_IMAGE=quay.io/fido-fdo/fdo-admin-cli:0.4.0 ./create-keys.sh
+    sudo podman run -d \
+    -v "$PWD"/ownership_vouchers:/etc/fdo/ownership_vouchers:z \
+    -v "$PWD"/config/manufacturing-server.yml:/etc/fdo/manufacturing-server.conf.d/00-default.yml:z \
+    -v "$PWD"/keys:/etc/fdo/keys:z \
+    --ip "$FDO_SERVER" \
+    --name fdo-manufacturing-server \
+    --network edge \
+    quay.io/fido-fdo/fdo-manufacturing-server:0.4.0
+    popd
+
+    # Wait for fdo server to be running
+    until [ "$(curl -X POST http://${FDO_SERVER}:8080/ping)" == "pong" ]; do
+        sleep 1;
+    done;
+fi
+
 ##########################################################
 ##
 ## Build edge-container image and start it in podman
@@ -287,13 +304,6 @@ build_image container "${CONTAINER_TYPE}"
 greenprint "📥 Downloading the container image"
 sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
 
-# Clear stage repo running env
-greenprint "🧹 Clearing stage repo running env"
-# Remove any status containers if exist
-sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f
-# Remove all images
-sudo podman rmi -f -a
-
 # Deal with stage repo image
 greenprint "🗜 Starting container"
 IMAGE_FILENAME="${COMPOSE_ID}-${CONTAINER_FILENAME}"
@@ -338,6 +348,14 @@ groups = []
 [customizations]
 installation_device = "/dev/vda"
 EOF
+
+if [[ $VERSION_ID != "8.5" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[customizations.fdo]
+manufacturing_server_url="http://${FDO_SERVER}:8080"
+diun_pub_key_insecure="true"
+EOF
+fi
 
 greenprint "📄 installer blueprint"
 cat "$BLUEPRINT_FILE"
@@ -395,7 +413,7 @@ LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
 
 greenprint "📋 Install edge vm via http boot"
-sudo virt-install --name="${IMAGE_KEY}-http"\
+sudo virt-install --name="${IMAGE_KEY}-httpboot"\
                   --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
                   --ram 3072 \
                   --vcpus 2 \
@@ -411,7 +429,7 @@ sudo virt-install --name="${IMAGE_KEY}-http"\
 
 # Start VM.
 greenprint "💻 Start HTTP BOOT VM"
-sudo virsh start "${IMAGE_KEY}-http"
+sudo virsh start "${IMAGE_KEY}-httpboot"
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
@@ -429,10 +447,10 @@ check_result
 
 # Clean up BIOS VM
 greenprint "🧹 Clean up BIOS VM"
-if [[ $(sudo virsh domstate "${IMAGE_KEY}-http") == "running" ]]; then
-    sudo virsh destroy "${IMAGE_KEY}-http"
+if [[ $(sudo virsh domstate "${IMAGE_KEY}-httpboot") == "running" ]]; then
+    sudo virsh destroy "${IMAGE_KEY}-httpboot"
 fi
-sudo virsh undefine "${IMAGE_KEY}-http" --nvram
+sudo virsh undefine "${IMAGE_KEY}-httpboot" --nvram
 sudo virsh vol-delete --pool images "${IMAGE_KEY}.qcow2"
 
 ##################################################################
@@ -549,12 +567,12 @@ build_image upgrade  "${CONTAINER_TYPE}" "$PROD_REPO_URL"
 greenprint "📥 Downloading the upgrade image"
 sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
 
-# Clear stage repo running env
-greenprint "🧹 Clearing stage repo running env"
-# Remove any status containers if exist
-sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f
-# Remove all images
-sudo podman rmi -f -a
+# Delete installation rhel-edge container and its image
+greenprint "🧹 Delete installation rhel-edge container and its image"
+# Remove rhel-edge container if exists
+sudo podman ps -q --filter name=rhel-edge --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f
+# Remove container image if exists
+sudo podman images --filter "dangling=true" --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rmi -f
 
 # Deal with stage repo container
 greenprint "🗜 Extracting image"
