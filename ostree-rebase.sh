@@ -15,6 +15,8 @@ BIOS_GUEST_ADDRESS=192.168.100.50
 UEFI_GUEST_ADDRESS=192.168.100.51
 PROD_REPO_ADDRESS=192.168.200.1
 PROD_REPO_URL="http://${PROD_REPO_ADDRESS}:8080/repo/"
+CONTAINER_IMAGE_TYPE=edge-container
+CONTAINER_FILENAME=container.tar
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -29,28 +31,28 @@ SSH_KEY=key/ostree_key
 
 case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
-        CONTAINER_IMAGE_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
         OSTREE_REF="rhel/8/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
         ;;
     "centos-8")
-        CONTAINER_IMAGE_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
         OSTREE_REF="centos/8/${ARCH}/edge"
         PARENT_REF="centos/8/${ARCH}/edge"
-        OS_VARIANT="centos8"
+        OS_VARIANT="centos-stream8"
         BOOT_LOCATION="http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/"
         ;;
     "rhel-9.0")
-        CONTAINER_IMAGE_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9-unknown"
+        OS_VARIANT="rhel9.0"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
+        ;;
+    "centos-9")
+        OSTREE_REF="centos/9/${ARCH}/edge"
+        PARENT_REF="centos/9/${ARCH}/edge"
+        OS_VARIANT="centos-stream9"
+        BOOT_LOCATION="https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/os/"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
