@@ -561,7 +561,7 @@ EOF
 
 # Test IoT/Edge OS
 greenprint "📼 Run Edge tests on BIOS VM"
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e image_type=rhel -e ostree_commit="${INSTALL_HASH}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=rhel -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="rhel:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Clean BIOS VM
@@ -730,7 +730,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e image_type=rhel -e ostree_commit="${UPGRADE_HASH}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=rhel -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up

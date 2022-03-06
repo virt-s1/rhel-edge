@@ -65,6 +65,7 @@ TEST_UUID=$(uuidgen)
 IMAGE_KEY="ostree-${TEST_UUID}"
 GUEST_ADDRESS=192.168.100.50
 SSH_USER="admin"
+OS_NAME="rhel-edge"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -303,7 +304,7 @@ network --bootproto=dhcp --device=link --activate --onboot=on
 zerombr
 clearpart --all --initlabel --disklabel=msdos
 autopart --nohome --noswap --type=plain
-ostreesetup --nogpg --osname=${IMAGE_TYPE} --remote=${IMAGE_TYPE} --url=http://192.168.100.1/repo/ --ref=${OSTREE_REF}
+ostreesetup --nogpg --osname=${OS_NAME} --remote=${OS_NAME} --url=http://192.168.100.1/repo/ --ref=${OSTREE_REF}
 poweroff
 %post --log=/var/log/anaconda/post-install.log --erroronfail
 # no sudo password for SSH user
@@ -471,7 +472,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo ansible-playbook -v -i "${TEMPDIR}"/inventory -e image_type=${IMAGE_TYPE} -e ostree_commit="${UPGRADE_HASH}" check-ostree.yaml || RESULTS=0
+sudo ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up

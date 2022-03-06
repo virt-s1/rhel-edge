@@ -189,13 +189,13 @@
       command: findmnt -r -o SOURCE -n /var
       register: result_var_mount_point
 
-    - name: "/var should be mounted on {{ device_name }}[/ostree/deploy/{{ image_type }}/var]"
+    - name: "/var should be mounted on {{ device_name }}[/ostree/deploy/{{ os_name }}/var]"
       block:
         - assert:
             that:
-              - result_var_mount_point.stdout == "{{ device_name }}[/ostree/deploy/{{ image_type }}/var]"
-            fail_msg: "/var does not mount on {{ device_name }}[/ostree/deploy/{{ image_type }}/var]"
-            success_msg: "/var mounts on {{ device_name }}[/ostree/deploy/{{ image_type }}/var]"
+              - result_var_mount_point.stdout == "{{ device_name }}[/ostree/deploy/{{ os_name }}/var]"
+            fail_msg: "/var does not mount on {{ device_name }}[/ostree/deploy/{{ os_name }}/var]"
+            success_msg: "/var mounts on {{ device_name }}[/ostree/deploy/{{ os_name }}/var]"
       always:
         - set_fact:
             total_counter: "{{ total_counter | int + 1 }}"
@@ -229,13 +229,13 @@
       command: findmnt -r -o SOURCE -n /usr
       register: result_usr_mount_point
 
-    - name: "/usr should be mounted on {{ device_name }}[/ostree/deploy/{{ image_type }}/deploy/{{ deploy_commit }}.0/usr]"
+    - name: "/usr should be mounted on {{ device_name }}[/ostree/deploy/{{ os_name }}/deploy/{{ deploy_commit }}.0/usr]"
       block:
         - assert:
             that:
-              - result_usr_mount_point.stdout == "{{ device_name }}[/ostree/deploy/{{ image_type }}/deploy/{{ deploy_commit }}.0/usr]"
-            fail_msg: "/usr does not mount on {{ device_name }}[/ostree/deploy/{{ image_type }}/deploy/{{ deploy_commit }}.0/usr]"
-            success_msg: "/usr mounts on {{ device_name }}[/ostree/deploy/{{ image_type }}/deploy/{{ deploy_commit }}.0/usr]"
+              - result_usr_mount_point.stdout == "{{ device_name }}[/ostree/deploy/{{ os_name }}/deploy/{{ deploy_commit }}.0/usr]"
+            fail_msg: "/usr does not mount on {{ device_name }}[/ostree/deploy/{{ os_name }}/deploy/{{ deploy_commit }}.0/usr]"
+            success_msg: "/usr mounts on {{ device_name }}[/ostree/deploy/{{ os_name }}/deploy/{{ deploy_commit }}.0/usr]"
       always:
         - set_fact:
             total_counter: "{{ total_counter | int + 1 }}"
