@@ -18,7 +18,6 @@ PROD_REPO_ADDRESS=192.168.100.1
 PROD_REPO_URL="http://${PROD_REPO_ADDRESS}/repo/"
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
-RHEL8_REPO_URL="http://edge-rhel-8-6-normal-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/repo/"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -33,9 +32,26 @@ SSH_KEY=key/ostree_key
 
 CONTAINER_IMAGE_TYPE=edge-container
 CONTAINER_FILENAME=container.tar
-OSTREE_REF="rhel/8/${ARCH}/edge"
-OS_VARIANT="rhel8-unknown"
-BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
+
+case "${ID}-${VERSION_ID}" in
+    "rhel-9.0")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8-unknown"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
+        PARENT_REPO_URL_8="http://edge-rhel-8-6-rt-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/repo/"
+        ;;
+    "centos-9")
+        OSTREE_REF="centos/9/${ARCH}/edge"
+        PARENT_REF="centos/8/${ARCH}/edge"
+        OS_VARIANT="centos-stream8"
+        BOOT_LOCATION="http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/"
+        PARENT_REPO_URL_8="http://edge-cs8-normal-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/repo/"
+        ;;
+    *)
+        echo "unsupported distro: ${ID}-${VERSION_ID}"
+        exit 1;;
+esac
 
 # Colorful output.
 function greenprint {
@@ -80,7 +96,7 @@ build_image() {
 
     # Start the compose.
     greenprint "🚀 Starting compose"
-    sudo composer-cli --json compose start-ostree --parent "rhel/8/${ARCH}/edge" --url "$PROD_REPO_URL" --ref "$OSTREE_REF" "$blueprint_name" "$image_type" | tee "$COMPOSE_START"
+    sudo composer-cli --json compose start-ostree --parent "$PARENT_REF" --url "$PROD_REPO_URL" --ref "$OSTREE_REF" "$blueprint_name" "$image_type" | tee "$COMPOSE_START"
     COMPOSE_ID=$(jq -r '.body.build_id' "$COMPOSE_START")
 
     # Wait for the compose to finish.
@@ -171,12 +187,12 @@ greenprint "Prepare ostree prod repo and configure stage repo"
 sudo rm -rf "$PROD_REPO"
 sudo mkdir -p "$PROD_REPO"
 sudo ostree --repo="$PROD_REPO" init --mode=archive
-sudo ostree --repo="$PROD_REPO" remote add --no-gpg-verify edge-stage-rhel8 "$RHEL8_REPO_URL"
+sudo ostree --repo="$PROD_REPO" remote add --no-gpg-verify edge-stage-8 "$PARENT_REPO_URL_8"
 sudo ostree --repo="$PROD_REPO" remote add --no-gpg-verify edge-stage "$STAGE_REPO_URL"
 
 # Sync installer ostree content
 greenprint "Sync rhel8 ostree repo"
-sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage-rhel8 "$OSTREE_REF"
+sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage-8 "$PARENT_REF"
 
 # Write kickstart file for ostree image installation.
 greenprint "📑 Generate kickstart file"
@@ -187,7 +203,7 @@ zerombr
 clearpart --all --initlabel --disklabel=msdos
 autopart --nohome --noswap --type=plain
 rootpw --lock --iscrypted locked
-ostreesetup --nogpg --osname=rhel-edge --remote=rhel-edge --url=${PROD_REPO_URL} --ref=${OSTREE_REF}
+ostreesetup --nogpg --osname=rhel-edge --remote=rhel-edge --url=${PROD_REPO_URL} --ref=${PARENT_REF}
 poweroff
 %post --log=/var/log/anaconda/post-install.log --erroronfail
 # no sudo password for user admin
@@ -206,14 +222,12 @@ greenprint "👿 Running restorecon on image directory"
 sudo restorecon -Rv /var/lib/libvirt/images/
 
 # Create qcow2 file for virt install.
-greenprint "💾 Create qcow2 files for virt install"
+greenprint "💾 Create bios vm qcow2 files for virt install"
 LIBVIRT_BIOS_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-bios.qcow2
-LIBVIRT_UEFI_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-uefi.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_BIOS_IMAGE_PATH}" 20G
-sudo qemu-img create -f qcow2 "${LIBVIRT_UEFI_IMAGE_PATH}" 20G
 
 # Install ostree image via anaconda on BIOS vm
-greenprint "Install ostree image via anaconda on BIOS VM"
+greenprint "Install RHEL8/CS8 Edge via anaconda on BIOS VM"
 sudo virt-install  --initrd-inject="${KS_FILE}" \
                    --extra-args="inst.ks=file:/ks.cfg console=ttyS0,115200" \
                    --name="${IMAGE_KEY}-bios"\
@@ -247,8 +261,13 @@ done
 # Check image installation result
 check_result
 
+# Create qcow2 file for virt install.
+greenprint "💾 Create uefi vm qcow2 files for virt install"
+LIBVIRT_UEFI_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-uefi.qcow2
+sudo qemu-img create -f qcow2 "${LIBVIRT_UEFI_IMAGE_PATH}" 20G
+
 # Install ostree image via anaconda on UEFI vm
-greenprint "💿 Install ostree image via installer(ISO) on UEFI vm"
+greenprint "💿 Install RHEL8/CS8 Edge via anaconda on UEFI vm"
 sudo virt-install  --initrd-inject="${KS_FILE}" \
                    --extra-args="inst.ks=file:/ks.cfg console=ttyS0,115200" \
                    --name="${IMAGE_KEY}-uefi" \
@@ -325,7 +344,6 @@ sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve upgrade
 
 # Build installer image.
-OSTREE_REF="rhel/9/${ARCH}/edge"
 build_image upgrade "${CONTAINER_IMAGE_TYPE}"
 
 # Download the image
@@ -338,6 +356,10 @@ greenprint "🧹 Clearing container running env"
 sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f
 # Remove all images
 sudo podman rmi -f -a
+
+# Prepare rhel-edge container network
+greenprint "Prepare container network"
+sudo podman network inspect edge >/dev/null 2>&1 || sudo podman network create --driver=bridge --subnet=192.168.200.0/24 --gateway=192.168.200.254 edge
 
 # Deal with stage repo image
 greenprint "🗜 Starting container"
@@ -362,7 +384,7 @@ sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete upgrade > /dev/null
 
 # Sync upgrade ostree content
-greenprint "Sync rhel9 ostree repo"
+greenprint "Sync rhel9/cs9 ostree repo"
 sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage "$OSTREE_REF"
 
 # Get ostree commit value.
@@ -404,7 +426,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e image_type=rhel-edge -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel-edge:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=rhel-edge -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel-edge:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
 check_result
 
 greenprint "Rebase ostree commit on UEFI vm"
@@ -441,7 +463,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e image_type=rhel-edge -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel-edge:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=rhel-edge -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel-edge:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
