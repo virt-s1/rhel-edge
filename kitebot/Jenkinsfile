@@ -378,6 +378,41 @@ pipeline {
                         }
                     }
                 }
+                stage('EL9.0 8to9') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'RHEL90_8TO9', value: 'true'
+                            }
+                        }
+                    }
+                    agent { label 'vm-rhel-9-0-0' }
+                    environment {
+                        TEST_OS = "rhel-9-0"
+                    }
+                    steps {
+                        run_virt_test('ostree-8-to-9')
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            get_package_info()
+                            send_result('Virt-8-TO-9')
+                        }
+                    }
+                }
                 stage('CS8 Virt') {
                     when {
                         beforeAgent true
@@ -666,6 +701,42 @@ pipeline {
                         }
                     }
                 }
+                stage('CS9 8to9') {
+                    when {
+                        beforeAgent true
+                        anyOf {
+                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
+                                anyOf {
+                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                }
+                            }
+                            anyOf {
+                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
+                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
+                            }
+                            allOf {
+                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
+                                environment name: 'CS9_8TO9', value: 'true'
+                            }
+                        }
+                    }
+                    agent { label 'vm-cs9' }
+                    environment {
+                        TEST_OS = "centos-stream-9"
+                    }
+                    steps {
+                        run_virt_test('ostree-8-to-9')
+                    }
+                    post {
+                        always {
+                            preserve_logs()
+                            get_package_info()
+                            send_result('Virt-8-TO-9')
+                        }
+                    }
+                }
             }
         }
     }
@@ -710,6 +781,9 @@ void run_virt_test(test_type) {
     }
     if (test_type == 'ostree-rebase') {
         sh "./ostree-rebase.sh"
+    }
+    if (test_type == 'ostree-8-to-9') {
+        sh "./ostree-8-to-9.sh"
     }
 }
 
