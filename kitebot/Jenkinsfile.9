@@ -572,6 +572,9 @@ void run_virt_test(test_type) {
     if (test_type == 'ostree-rebase') {
         sh "./ostree-rebase.sh"
     }
+    if (test_type == 'ostree-8-to-9') {
+        sh "./ostree-8-to-9.sh"
+    }
 }
 
 void run_bare_test() {
