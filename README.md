@@ -13,9 +13,9 @@ RHEL for Edge test from QE is more like an integration test. The test flow align
 
 2. RHEL for Edge image installation and upgrade
 
-    - `rhel-edge-commit`/`edge-commit`: Setup HTTP server to serve as ostree repo, and install with kickstart
-    - `rhel-edge-container`/`edge-container`: Setup prod ostree repo, `rhel-edge-container`/`edge-container` as stage repo, and install with kickstart from prod ostree repo
-    - `rhel-edge-installer`/`edge-installer`: Install from `rhel-edge-installer`/`edge-installer` ISO
+    - `edge-commit`: Setup HTTP server to serve as ostree repo, and install with kickstart
+    - `edge-container`: Setup prod ostree repo, `edge-container` as stage repo, and install with kickstart from prod ostree repo
+    - `edge-installer`: Install from `edge-installer` ISO
     - `edge-raw-image`: Boot from raw image with KVM
     - `edge-simplified-installer`: Install from `edge-simplified-installer` ISO
 
@@ -25,6 +25,16 @@ RHEL for Edge test from QE is more like an integration test. The test flow align
     - Check mount point
     - Check [`greenboot`](https://github.com/fedora-iot/greenboot.git) services
     - Check auto rollback with [`greenboot`](https://github.com/fedora-iot/greenboot.git) when failure is detected
+
+4. RHEL for Edge rebase
+
+    - Build upgrade ostree commit with different ostree ref
+    - Rebase on new ostree ref
+
+5. RHEL for Edge system upgrade test
+
+    - From RHEL 8 to RHEL 9
+    - From CentOS Stream 8 to CentOS Stream 9
 
 ## RHEL-Edge CI
 
@@ -62,10 +72,12 @@ Test of this CI includes:
 
 Two test suites in scenario 1:
 
-1. [`ostree.sh`](ostree.sh): rhel-edge-commit/edge-commit(tar) image type test on both RHEL 8.3 and RHEL 8.4
-2. [`ostree-ng.sh`](ostree-ng.sh): rhel-edge-container/edge-container(tar) and rhel-edge-installer/edge-installer(ISO) image types test on RHEL 8.4 and later
-3. [`ostree-raw-image.sh`](ostree-raw-image.sh): edge-raw-image image types test on RHEL 8.5 and later
-4. [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh): edge-simplified-installer image types test on RHEL 8.5 and later
+1. [`ostree.sh`](ostree.sh): rhel-edge-commit/edge-commit(tar) image type test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
+2. [`ostree-ng.sh`](ostree-ng.sh): rhel-edge-container/edge-container(tar) and rhel-edge-installer/edge-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
+3. [`ostree-raw-image.sh`](ostree-raw-image.sh): edge-raw-image image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
+4. [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh): edge-simplified-installer image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
+5. [`ostree-rebase.sh`](ostree-rebase.sh): Different ostree ref rebase test
+6. [`ostree-8-to-9.sh`](ostree-8-to-9.sh): RHEL 8/CentOS Stream 8 Edge system upgrade to RHEL 9/CentOS Stream 9 Edge system test
 
 #### Test environment prpare
 
