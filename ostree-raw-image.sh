@@ -36,6 +36,7 @@ sudo mkdir -p /etc/osbuild-composer/repositories
 case "${ID}-${VERSION_ID}" in
     "rhel-8.5")
         OSTREE_REF="rhel/8/${ARCH}/edge"
+        REF_PREFIX="rhel"
         OS_VARIANT="rhel8.5"
         CONTAINER_TYPE=edge-container
         CONTAINER_FILENAME=container.tar
@@ -44,6 +45,7 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
+        REF_PREFIX="rhel-edge"
         OS_VARIANT="rhel8-unknown"
         CONTAINER_TYPE=edge-container
         CONTAINER_FILENAME=container.tar
@@ -52,6 +54,7 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
+        REF_PREFIX="rhel-edge"
         OS_VARIANT="rhel9.0"
         CONTAINER_TYPE=edge-container
         CONTAINER_FILENAME=container.tar
@@ -60,6 +63,7 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
+        REF_PREFIX="rhel-edge"
         OS_VARIANT="centos-stream8"
         CONTAINER_TYPE=edge-container
         CONTAINER_FILENAME=container.tar
@@ -68,6 +72,7 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
+        REF_PREFIX="rhel-edge"
         OS_VARIANT="centos-stream9"
         CONTAINER_TYPE=edge-container
         CONTAINER_FILENAME=container.tar
@@ -428,7 +433,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="rhel-edge:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Clean up BIOS VM
@@ -501,7 +506,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="rhel-edge:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
 check_result
 
 ##################################################################
@@ -639,7 +644,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel-edge:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
