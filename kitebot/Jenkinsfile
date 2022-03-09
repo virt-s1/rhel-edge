@@ -810,7 +810,7 @@ void preserve_bare_logs() {
 void send_result(test_type) {
     script {
         if (env.TRIGGERED_BY == 'Triggered by CI message.') {
-            googlechatnotification message: "${currentBuild.currentResult}\nCompose: ${env.COMPOSE_ID}\nPackages: ${env.PACKAGE_INFO}\nTest Env: ${test_type}\nConsole Log: ${env.BUILD_URL}display/redirect",
+            googlechatnotification message: "${currentBuild.currentResult}\nDistro: ${env.TEST_OS}\nCompose: ${env.COMPOSE_ID}\nPackages: ${env.PACKAGE_INFO}\nTest Env: ${test_type}\nConsole Log: ${env.BUILD_URL}display/redirect",
                                    notifyAborted: true,
                                    notifyFailure: true,
                                    notifyNotBuilt: true,
@@ -818,7 +818,7 @@ void send_result(test_type) {
                                    url: "${env.GCN_URL}"
         }
         if (env.TRIGGERED_BY == 'Started by timer') {
-            googlechatnotification message: "${currentBuild.currentResult}\nTest Env: ${test_type}\nConsole Log: ${env.BUILD_URL}display/redirect",
+            googlechatnotification message: "${currentBuild.currentResult}\nDistro: ${env.TEST_OS}\nTest Env: ${test_type}\nConsole Log: ${env.BUILD_URL}display/redirect",
                                    notifyAborted: true,
                                    notifyFailure: true,
                                    notifyNotBuilt: true,
