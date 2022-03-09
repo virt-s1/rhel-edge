@@ -122,26 +122,26 @@
     - name: check if it is simplified-installer or raw-image
       command: findmnt -r -o SOURCE -n /sysroot
       register: result_encrypted
-      when: ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>=')
+      when: (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>=')) or
+            ansible_facts['distribution'] == 'CentOS'
 
     - set_fact:
         device_name: "{{ result_encrypted.stdout }}"
       when:
-        - ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>=')
+        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>=')) or
+          ansible_facts['distribution'] == 'CentOS'
         - "'/dev/mapper/luks-' in result_encrypted.stdout"
 
     # for RHEL 8.5, CS8, CS9, edge-simplified-installer and edge-raw-image does not support encryption
     - name: check if it is simplified-installer or raw-image
       command: df -h
       register: result_df
-      when: (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.5', '<=')) or
-            (ansible_facts['distribution'] == 'CentOS')
+      when: ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.5', '<=')
 
     - set_fact:
         device_name: /dev/vda4
       when:
-        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.5', '<=')) or
-            (ansible_facts['distribution'] == 'CentOS')
+        - ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.5', '<=')
         - "'/dev/vda4' in result_df.stdout"
 
     # case: check /sysroot moutn point
