@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euox pipefail
+set -uo pipefail
 
 # Provision the software under test.
 ./setup.sh
@@ -336,6 +336,112 @@ greenprint "🧽 Clean up container blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete container > /dev/null
 
+#################################################################
+##
+## FDO negative test cases, only available in RHEL version >= 8.6
+##
+#################################################################
+
+if [[ $VERSION_ID != "8.5" ]]; then
+# FDO test case: compose will fail if no fdo defined in blueprint
+    greenprint "FDO negative test: checking error message when no fdo defined in blueprint."
+    greenprint "📋 Preparing installer blueprint with no fdo defined."
+    tee "$BLUEPRINT_FILE" > /dev/null << EOF
+name = "nofdo"
+description = "A rhel-edge simplified-installer image"
+version = "0.0.1"
+modules = []
+groups = []
+
+[customizations]
+installation_device = "/dev/vda"
+EOF
+
+    sudo composer-cli blueprints push "$BLUEPRINT_FILE"
+    sudo composer-cli blueprints depsolve nofdo
+
+    result=$(sudo composer-cli compose start-ostree nofdo "$INSTALLER_TYPE" --ref "$OSTREE_REF" --url "$PROD_REPO_URL" 2>&1)
+    expected='boot ISO image type "edge-simplified-installer" requires specifying FDO configuration to install to'
+
+    echo "Command output is: $result"
+
+    greenprint "🎏 Checking if command result contains expected error message."
+    if [[ "$result" == *"$expected"* ]]; then
+        greenprint "Success: osbuild-composer can report proper error messages when no fdo defined"
+    else
+        greenprint "Failed: expected error message not found."
+        clean_up
+        exit 1
+    fi
+
+# FDO test case: compose will fail if no manufacturing service url specified in blueprint
+    greenprint "FDO negative test: checking error message when no manufacturing service url specified"
+    greenprint "📋 Preparing installer blueprint without manufacturing service url specified"
+    tee "$BLUEPRINT_FILE" > /dev/null << EOF
+name = "noserviceurl"
+description = "A rhel-edge simplified-installer image"
+version = "0.0.1"
+modules = []
+groups = []
+
+[customizations]
+installation_device = "/dev/vda"
+[customizations.fdo]
+diun_pub_key_insecure="true"
+EOF
+
+    sudo composer-cli blueprints push "$BLUEPRINT_FILE"
+    sudo composer-cli blueprints depsolve noserviceurl
+
+    result=$(sudo composer-cli compose start-ostree noserviceurl "$INSTALLER_TYPE" --ref "$OSTREE_REF" --url "$PROD_REPO_URL" 2>&1)
+    expected='boot ISO image type "edge-simplified-installer" requires specifying FDO.ManufacturingServerURL configuration to install to'
+
+    echo "Command output is: $result"
+
+    greenprint "🎏 Checking if command result contains expected error message."
+    if [[ "$result" == *"$expected"* ]]; then
+        greenprint "Success: osbuild-composer can report proper error messages when no manufacturing service url specified"
+    else
+        greenprint "Failed: expected error message not found."
+        clean_up
+        exit 1
+    fi
+
+# FDO test case: compose will fail if no diun_pub_key specified in blueprint
+    greenprint "FDO negative test: checking error message when no diun_pub_key specified"
+    greenprint "📋 Preparing installer blueprint without diun_pub_key specified"
+    tee "$BLUEPRINT_FILE" > /dev/null << EOF
+name = "nodiumpubkey"
+description = "A rhel-edge simplified-installer image"
+version = "0.0.1"
+modules = []
+groups = []
+
+[customizations]
+installation_device = "/dev/vda"
+
+[customizations.fdo]
+manufacturing_server_url="http://${FDO_SERVER}:8080"
+EOF
+
+    sudo composer-cli blueprints push "$BLUEPRINT_FILE"
+    sudo composer-cli blueprints depsolve nodiumpubkey
+
+    result=$(sudo composer-cli compose start-ostree nodiumpubkey "$INSTALLER_TYPE" --ref "$OSTREE_REF" --url "$PROD_REPO_URL" 2>&1)
+    expected='boot ISO image type "edge-simplified-installer" requires specifying one of [FDO.DiunPubKeyHash,FDO.DiunPubKeyInsecure,FDO.DiunPubKeyRootCerts] configuration to install to'
+
+    echo "Command output is: $result"
+
+    greenprint "🎏 Checking if command result contains expected error message."
+    if [[ "$result" == *"$expected"* ]]; then
+        greenprint "Success: osbuild-composer can report proper error messages when no diun_pub_key specified"
+    else
+        greenprint "Failed: expected error message not found."
+        clean_up
+        exit 1
+    fi
+fi
+
 ############################################################
 ##
 ## Build edge-simplified-installer image
@@ -446,6 +552,19 @@ for LOOP_COUNTER in $(seq 0 30); do
     fi
     sleep 10
 done
+
+# FDO test case: check if /boot/device-credentials exist.
+if [[ $VERSION_ID != "8.5" ]]; then
+    greenprint "FDO test: Checking if /boot/device-credentials exist."
+    if_boot_credentials_exist=$(sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${HTTP_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |test -f /boot/device-credentials && echo true")
+    if [ "${if_boot_credentials_exist}" ];then
+        greenprint "💚 Success"
+    else
+        greenprint "❌ Failed"
+        clean_up
+        exit 1
+    fi
+fi
 
 # Check image installation result
 check_result
