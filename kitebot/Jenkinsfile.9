@@ -556,7 +556,7 @@ void run_virt_test(test_type) {
     """
 
     if (test_type == 'ostree-ng') {
-        withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+        withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp-c1-token', variable: 'OCP4_TOKEN')]) {
             sh "./ostree-ng.sh"
         }
     }

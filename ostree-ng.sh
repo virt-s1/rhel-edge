@@ -18,7 +18,7 @@ UEFI_GUEST_ADDRESS=192.168.100.51
 PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_OCP4_SERVER_NAME="edge-stage-server"
-STAGE_OCP4_REPO_URL="http://${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/repo/"
+STAGE_OCP4_REPO_URL="http://${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo/"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -396,7 +396,7 @@ sudo rm -f "$IMAGE_FILENAME"
 if [[ "${SUPPORT_OCP}" == "true" ]]; then
     # Run stage repo in OCP4
     greenprint "Running stage repo in OCP4"
-    oc login --token="${OCP4_TOKEN}" --server=https://api.ocp4.prod.psi.redhat.com:6443 -n virt-qe-3rd --insecure-skip-tls-verify
+    oc login --token="${OCP4_TOKEN}" --server=https://api.ocp-c1.prod.psi.redhat.com:6443 -n rhel-edge --insecure-skip-tls-verify
     oc process -f tools/edge-stage-server-template.yaml -p EDGE_STAGE_REPO_TAG="${QUAY_REPO_TAG}" -p EDGE_STAGE_SERVER_NAME="${STAGE_OCP4_SERVER_NAME}" | oc apply -f -
 
     for LOOP_COUNTER in $(seq 0 60); do
