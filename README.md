@@ -2,6 +2,17 @@
 
 RHEL-Edge help [documentation](HELP.md)
 
+# RHEL-Edge OSTree repository
+
+1. [RHEL 8.6.0](http://edge-rhel-8-6-normal-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
+2. [RHEL 8.6.0 RT Kernel](http://edge-rhel-8-6-rt-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
+3. [RHEL 9.0.0](http://edge-rhel-9-0-normal-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
+4. [RHEL 9.0.0 RT Kernel](http://edge-rhel-9-0-rt-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
+6. [CentOS Stream 8](http://edge-cs8-normal-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
+6. [CentOS Stream 8 RT Kernel](http://edge-cs8-rt-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
+7. [CentOS Stream 9](http://edge-cs9-normal-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
+8. [CentOS Stream 9 RT Kernel](http://edge-cs9-rt-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
+
 ## RHEL-Edge Test Scope
 
 RHEL for Edge test from QE is more like an integration test. The test flow aligns with the customer scenario. The whole test includes three parts:
@@ -61,6 +72,10 @@ Test of this CI includes:
 1. [Shellcheck](https://www.shellcheck.net/): running as Github Action
 2. [Yaml lint](https://yamllint.readthedocs.io/en/stable/): running as Github Action
 3. Virt and bare metal tests: running on Jenkins
+
+### Daily job to build and host OSTree Repository
+
+RHEL for Edge has a daily job to build container image and run it on PSI ocp-c1.
 
 ## RHEL-Edge Test Scenarios
 
