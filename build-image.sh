@@ -50,7 +50,7 @@ case "${ID}-${VERSION_ID}" in
         exit 1;;
 esac
 
-OCP4_REPO_URL="http://edge-${TAG}-${IMAGE_KERNEL}-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/repo/"
+OCP4_REPO_URL="http://edge-${TAG}-${IMAGE_KERNEL}-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo/"
 
 # Colorful output.
 function greenprint {
@@ -210,7 +210,7 @@ sudo rm -f "$IMAGE_FILENAME"
 
 # Run edge repo in OCP4
 greenprint "Running edge repo in OCP4"
-oc login --token="${OCP4_TOKEN}" --server=https://api.ocp4.prod.psi.redhat.com:6443 -n virt-qe-3rd --insecure-skip-tls-verify
+oc login --token="${OCP4_TOKEN}" --server=https://api.ocp-c1.prod.psi.redhat.com:6443 -n rhel-edge --insecure-skip-tls-verify
 # Delete old app
 oc delete pod,rc,service,route,dc -l app="edge-${TAG}-${IMAGE_KERNEL}"
 oc process -f tools/edge-stage-server-template.yaml -p EDGE_STAGE_REPO_TAG="${TAG}-${IMAGE_KERNEL}" -p EDGE_STAGE_SERVER_NAME="edge" | oc apply -f -

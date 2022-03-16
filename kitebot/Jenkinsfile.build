@@ -25,7 +25,7 @@ pipeline {
                     agent { label 'vm-rhel-9-0-0' }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp-c1-token', variable: 'OCP4_TOKEN')]) {
                                 sh "./build-image.sh normal"
                             }
                         }
@@ -51,7 +51,7 @@ pipeline {
                     agent { label 'vm-rhel-9-0-0' }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp-c1-token', variable: 'OCP4_TOKEN')]) {
                                 sh "./build-image.sh rt"
                             }
                         }
@@ -77,7 +77,7 @@ pipeline {
                     agent { label 'vm-rhel-8-6-0' }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp-c1-token', variable: 'OCP4_TOKEN')]) {
                                 sh "./build-image.sh normal"
                             }
                         }
@@ -103,7 +103,7 @@ pipeline {
                     agent { label 'vm-rhel-8-6-0' }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp-c1-token', variable: 'OCP4_TOKEN')]) {
                                 sh "./build-image.sh rt"
                             }
                         }
@@ -129,7 +129,7 @@ pipeline {
                     agent { label 'vm-cs8' }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp-c1-token', variable: 'OCP4_TOKEN')]) {
                                 sh "./build-image.sh normal"
                             }
                         }
@@ -155,7 +155,7 @@ pipeline {
                     agent { label 'vm-cs8' }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp-c1-token', variable: 'OCP4_TOKEN')]) {
                                 sh "./build-image.sh rt"
                             }
                         }
@@ -181,7 +181,7 @@ pipeline {
                     agent { label 'vm-cs9' }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp-c1-token', variable: 'OCP4_TOKEN')]) {
                                 sh "./build-image.sh normal"
                             }
                         }
@@ -207,7 +207,7 @@ pipeline {
                     agent { label 'vm-cs9' }
                     steps {
                         catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp4-token', variable: 'OCP4_TOKEN')]) {
+                            withCredentials([usernamePassword(credentialsId: 'quay-io-credential', passwordVariable: 'QUAY_PASSWORD', usernameVariable: 'QUAY_USERNAME'), string(credentialsId: 'ocp-c1-token', variable: 'OCP4_TOKEN')]) {
                                 sh "./build-image.sh rt"
                             }
                         }
