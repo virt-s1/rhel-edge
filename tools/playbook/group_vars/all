@@ -28,8 +28,9 @@ images:
   rhel-8-5: RHEL-8.5.0-x86_64-nightly-latest
   rhel-8-6: RHEL-8.6.0-x86_64-nightly-latest
   rhel-9-0: RHEL-9.0.0-x86_64-nightly-latest
-  fedora-33: Fedora-Cloud-Base-33
   fedora-34: Fedora-Cloud-Base-34
+  fedora-35: Fedora-Cloud-Base-35
+  remote-35: Fedora-Cloud-Base-35
 
 image_url:
   centos-stream-9: https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/images
