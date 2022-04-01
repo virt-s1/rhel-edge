@@ -3,6 +3,7 @@
   become: no
   vars:
     workspace: "{{ lookup('env', 'WORKSPACE') }}"
+    fdo_credential: "false"
     total_counter: "0"
     failed_counter: "0"
 
@@ -40,6 +41,29 @@
 
     - set_fact:
         checking_stage: "{{ result_stage.stdout }}"
+
+    # case: check /boot/device-credentials exists
+    # simplified installer installed Edge system ONLY
+    - name: check /boot/device-credentials exists
+      stat:
+        path: /boot/device-credentials
+      register: stat_result
+
+    - name: check commit deployed and built
+      block:
+        - assert:
+            that:
+              - stat_result.stat.exists
+            fail_msg: "/boot/device-credentials does not exist"
+            success_msg: "/boot/device-credentials exists"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: fdo_credential == "true"
 
     # case: check ostree commit correctly updated
     - name: get deployed ostree commit
@@ -392,6 +416,9 @@
       command: podman run ubi8-minimal:latest cat /etc/redhat-release
       register: podman_result
       become: yes
+      retries: 30  # due to https://github.com/osbuild/osbuild-composer/issues/2492
+      delay: 2
+      until: podman_result is success
       ignore_errors: yes
 
     - name: run container test
@@ -557,6 +584,10 @@
         - name: install sanely failing health check unit to test red boot status behavior
           command: rpm-ostree install --cache-only http://file-server-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/greenboot-failing-unit-1.0-1.el8.noarch.rpm
           become: yes
+          register: install_result
+          retries: 30  # due to https://github.com/osbuild/osbuild-composer/issues/2492
+          delay: 2
+          until: install_result is success
 
         - name: reboot to deploy new ostree commit
           reboot:

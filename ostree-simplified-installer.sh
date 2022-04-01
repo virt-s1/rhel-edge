@@ -203,6 +203,12 @@ clean_up () {
     # Remove mount dir
     sudo rm -rf /mnt/installer
 
+    # Remove simplified installer ISO file
+    sudo rm -f "$ISO_FILENAME"
+
+    # Remove fdo-container repo folder
+    sudo rm -rf fdo-containers
+
     # Stop prod repo http service
     sudo systemctl disable --now httpd
 }
@@ -523,7 +529,7 @@ EOF
 if [[ "${ID}-${VERSION_ID}" == "rhel-8.5" ]]; then
     sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${OSTREE_REF}" check-ostree.yaml || RESULTS=0
 else
-    sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+    sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
 fi
 check_result
 
@@ -663,7 +669,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
