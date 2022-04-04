@@ -102,6 +102,12 @@ function greenprint {
 # Install required packages
 greenprint "Install required packages"
 sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli podman skopeo wget firewalld lorax xorriso curl jq expect qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm virt-install
+if [[ $ID == "centos" && $VERSION_ID == "8" ]]; then
+    # Workaround for https://bugzilla.redhat.com/show_bug.cgi?id=2065292
+    # Remove when podman-4.0.2-2.el8 is in Centos 8 repositories
+    greenprint "Updating libseccomp on Centos 8"
+    sudo dnf upgrade -y libseccomp
+fi
 sudo rpm -qa | grep -i osbuild
 
 # Start httpd server as prod ostree repo
