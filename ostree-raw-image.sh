@@ -34,15 +34,6 @@ EDGE_USER_PASSWORD=foobar
 sudo mkdir -p /etc/osbuild-composer/repositories
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.5")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        REF_PREFIX="rhel-edge"
-        OS_VARIANT="rhel8.5"
-        CONTAINER_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
-        RAW_TYPE=edge-raw-image
-        RAW_FILENAME=image.raw.xz
-        ;;
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         REF_PREFIX="rhel-edge"
@@ -433,11 +424,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-if [[ "${ID}-${VERSION_ID}" == "rhel-8.5" ]]; then
-    sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${OSTREE_REF}" check-ostree.yaml || RESULTS=0
-else
-    sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
-fi
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Clean up BIOS VM
@@ -510,11 +497,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-if [[ "${ID}-${VERSION_ID}" == "rhel-8.5" ]]; then
-    sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${OSTREE_REF}" check-ostree.yaml || RESULTS=0
-else
-    sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
-fi
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
 check_result
 
 ##################################################################
@@ -590,13 +573,6 @@ sudo podman run -d --name rhel-edge --network edge --ip "$STAGE_REPO_ADDRESS" "$
 until [ "$(sudo podman inspect -f '{{.State.Running}}' rhel-edge)" == "true" ]; do
     sleep 1;
 done;
-
-if [[ "${ID}-${VERSION_ID}" == "rhel-8.5" ]]; then
-    # Workaround to https://github.com/osbuild/osbuild-composer/issues/1693
-    greenprint "🗳 Add external prod edge repo"
-    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${UEFI_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S ostree remote add --no-gpg-verify --no-sign-verify rhel-edge ${PROD_REPO_URL}"
-    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${UEFI_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S ostree admin switch rhel-edge:${OSTREE_REF}"
-fi
 
 # Pull upgrade to prod mirror
 greenprint "⛓ Pull upgrade to prod mirror"
