@@ -39,24 +39,6 @@ localectl set-locale LANG=en_US.UTF-8
 sudo mkdir -p /etc/osbuild-composer/repositories
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.3")
-        # Install epel repo for ansible
-        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-        sudo dnf install -y ansible
-        sudo cp files/rhel-8-3-1.json /etc/osbuild-composer/repositories/rhel-8.json;;
-    "rhel-8.4")
-        # Install epel repo for ansible
-        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-        sudo dnf install -y ansible
-        sudo cp files/rhel-8-4-0.json /etc/osbuild-composer/repositories/rhel-8-beta.json
-        sudo ln -sf /etc/osbuild-composer/repositories/rhel-8-beta.json /etc/osbuild-composer/repositories/rhel-8.json;;
-    "rhel-8.5")
-        # Install epel repo for ansible
-        sudo dnf install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-        sudo dnf install -y ansible
-        # Install openshift client
-        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
-        sudo cp files/rhel-8-5-0.json /etc/osbuild-composer/repositories/rhel-85.json;;
     "rhel-8.6")
         # Install openshift client
         curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
@@ -154,6 +136,7 @@ sudo tee /tmp/integration.xml > /dev/null << EOF
       <range start='192.168.100.2' end='192.168.100.254'/>
       <host mac='34:49:22:B0:83:30' name='vm-1' ip='192.168.100.50'/>
       <host mac='34:49:22:B0:83:31' name='vm-2' ip='192.168.100.51'/>
+      <host mac='34:49:22:B0:83:32' name='vm-3' ip='192.168.100.52'/>
     </dhcp>
   </ip>
   <dnsmasq:options>

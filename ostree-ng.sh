@@ -31,22 +31,6 @@ SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o Conn
 SSH_KEY=key/ostree_key
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.5")
-        CONTAINER_IMAGE_TYPE=edge-container
-        INSTALLER_IMAGE_TYPE=edge-installer
-        CONTAINER_FILENAME=container.tar
-        INSTALLER_FILENAME=installer.iso
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8.5"
-        PROD_REPO_URL=http://192.168.100.1/repo
-        PROD_REPO_URL_2="${PROD_REPO_URL}/"
-        USER_IN_UPGRADE_BP="false"
-        RT_TO_RT="false"
-        SUPPORT_OCP="true"
-        STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
-        USER_IN_INSTALLER_BP="false"
-        ANSIBLE_USER_FOR_BIOS="admin"
-        ;;
     "rhel-8.6")
         CONTAINER_IMAGE_TYPE=edge-container
         INSTALLER_IMAGE_TYPE=edge-installer
@@ -56,13 +40,10 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel8-unknown"
         PROD_REPO_URL=http://192.168.100.1/repo
         PROD_REPO_URL_2="${PROD_REPO_URL}/"
-        USER_IN_UPGRADE_BP="false"
         RT_TO_RT="false"
-        SUPPORT_OCP="true"
         STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
-        USER_IN_INSTALLER_BP="false"
-        ANSIBLE_USER_FOR_BIOS="admin"
-        # ANSIBLE_USER_FOR_BIOS="installeruser"
+        USER_IN_INSTALLER_BP="true"
+        ANSIBLE_USER_FOR_BIOS="installeruser"
         ;;
     "rhel-9.0")
         CONTAINER_IMAGE_TYPE=edge-container
@@ -73,13 +54,10 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel9.0"
         PROD_REPO_URL=http://192.168.100.1/repo
         PROD_REPO_URL_2="${PROD_REPO_URL}/"
-        USER_IN_UPGRADE_BP="false"
         RT_TO_RT="false"
-        SUPPORT_OCP="true"
         STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
-        USER_IN_INSTALLER_BP="false"
-        ANSIBLE_USER_FOR_BIOS="admin"
-        # ANSIBLE_USER_FOR_BIOS="installeruser"
+        USER_IN_INSTALLER_BP="true"
+        ANSIBLE_USER_FOR_BIOS="installeruser"
         ;;
     "centos-8")
         CONTAINER_IMAGE_TYPE=edge-container
@@ -90,9 +68,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="centos-stream8"
         PROD_REPO_URL=http://192.168.100.1/repo
         PROD_REPO_URL_2="${PROD_REPO_URL}/"
-        USER_IN_UPGRADE_BP="false"
         RT_TO_RT="false"
-        SUPPORT_OCP="true"
         STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
         USER_IN_INSTALLER_BP="false"
         ANSIBLE_USER_FOR_BIOS="admin"
@@ -107,9 +83,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="centos-stream9"
         PROD_REPO_URL=http://192.168.100.1/repo
         PROD_REPO_URL_2="${PROD_REPO_URL}/"
-        USER_IN_UPGRADE_BP="false"
         RT_TO_RT="false"
-        SUPPORT_OCP="true"
         STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
         USER_IN_INSTALLER_BP="false"
         ANSIBLE_USER_FOR_BIOS="admin"
@@ -266,6 +240,7 @@ build_image() {
 }
 
 # Wait for the ssh server up to be.
+# Test user admin added by edge-container bp
 wait_for_ssh_up () {
     SSH_STATUS=$(sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@"${1}" '/bin/bash -c "echo -n READY"')
     if [[ $SSH_STATUS == READY ]]; then
@@ -393,45 +368,27 @@ sudo skopeo copy --dest-creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "oci-archive:$
 # Clear image file
 sudo rm -f "$IMAGE_FILENAME"
 
-if [[ "${SUPPORT_OCP}" == "true" ]]; then
-    # Run stage repo in OCP4
-    greenprint "Running stage repo in OCP4"
-    oc login --token="${OCP4_TOKEN}" --server=https://api.ocp-c1.prod.psi.redhat.com:6443 -n rhel-edge --insecure-skip-tls-verify
-    oc process -f tools/edge-stage-server-template.yaml -p EDGE_STAGE_REPO_TAG="${QUAY_REPO_TAG}" -p EDGE_STAGE_SERVER_NAME="${STAGE_OCP4_SERVER_NAME}" | oc apply -f -
+# Run stage repo in OCP4
+greenprint "Running stage repo in OCP4"
+oc login --token="${OCP4_TOKEN}" --server=https://api.ocp-c1.prod.psi.redhat.com:6443 -n rhel-edge --insecure-skip-tls-verify
+oc process -f tools/edge-stage-server-template.yaml -p EDGE_STAGE_REPO_TAG="${QUAY_REPO_TAG}" -p EDGE_STAGE_SERVER_NAME="${STAGE_OCP4_SERVER_NAME}" | oc apply -f -
 
-    for LOOP_COUNTER in $(seq 0 60); do
-        RETURN_CODE=$(curl -o /dev/null -s -w "%{http_code}" "${STAGE_OCP4_REPO_URL}refs/heads/${OSTREE_REF}")
-        if [[ $RETURN_CODE == 200 ]]; then
-            echo "Stage repo is ready"
-            break
-        fi
-        sleep 10
-    done
+for LOOP_COUNTER in $(seq 0 60); do
+    RETURN_CODE=$(curl -o /dev/null -s -w "%{http_code}" "${STAGE_OCP4_REPO_URL}refs/heads/${OSTREE_REF}")
+    if [[ $RETURN_CODE == 200 ]]; then
+        echo "Stage repo is ready"
+        break
+    fi
+    sleep 10
+done
 
-    # Sync installer ostree content
-    greenprint "Sync ostree repo with stage repo"
-    sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage-ocp4 "$OSTREE_REF"
+# Sync installer ostree content
+greenprint "Sync ostree repo with stage repo"
+sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage-ocp4 "$OSTREE_REF"
 
-    # Clean up OCP4
-    greenprint "Clean up OCP4"
-    oc delete pod,rc,service,route,dc -l app="${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}"
-else
-    greenprint "Downloading image from quay.io"
-    sudo podman pull "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
-    sudo podman images
-
-    greenprint "🗜 Running the image"
-    sudo podman run -d --name rhel-edge --network edge --ip "$STAGE_REPO_ADDRESS" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
-    # Wait for container to be running
-    until [ "$(sudo podman inspect -f '{{.State.Running}}' rhel-edge)" == "true" ]; do
-        sleep 1;
-    done;
-
-    # Sync installer ostree content
-    greenprint "Sync ostree repo with stage repo"
-    sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage "$OSTREE_REF"
-fi
-
+# Clean up OCP4
+greenprint "Clean up OCP4"
+oc delete pod,rc,service,route,dc -l app="${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}"
 
 # Clean compose and blueprints.
 greenprint "🧹 Clean up compose"
@@ -549,6 +506,7 @@ INSTALL_HASH=$(curl "${PROD_REPO_URL_2}refs/heads/${OSTREE_REF}")
 
 # Run Edge test on BIOS VM
 # Add instance IP address into /etc/ansible/hosts
+# Run BIOS VM test with installeruser added by edge-installer bp as ansible user
 sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
 [ostree_guest]
 ${BIOS_GUEST_ADDRESS}
@@ -628,20 +586,7 @@ version = "*"
 
 [customizations.kernel]
 name = "kernel-rt"
-
-[[customizations.user]]
-name = "admin"
-description = "Administrator account"
-password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl."
-home = "/home/admin/"
-groups = ["wheel"]
 EOF
-
-if [[ "${USER_IN_UPGRADE_BP}" == "true" ]]; then
-    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
-key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"
-EOF
-fi
 
 greenprint "📄 Which blueprint are we using"
 cat "$BLUEPRINT_FILE"
@@ -696,6 +641,7 @@ sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete upgrade > /dev/null
 
 # Upgrade image/commit.
+# Test user admin added by edge-container bp
 greenprint "Upgrade ostree image/commit"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${UEFI_GUEST_ADDRESS}" 'sudo rpm-ostree upgrade'
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${UEFI_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
@@ -719,12 +665,14 @@ done
 check_result
 
 # Add instance IP address into /etc/ansible/hosts
+# Test user installeruser added by edge-installer bp
+# User installer still exists after upgrade but upgrade bp does not contain installeruer
 sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
 [ostree_guest]
 ${UEFI_GUEST_ADDRESS}
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=admin
+ansible_user=${ANSIBLE_USER_FOR_BIOS}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 EOF

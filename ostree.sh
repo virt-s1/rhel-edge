@@ -10,14 +10,6 @@ ARCH=$(uname -m)
 
 # Set os-variant and boot location used by virt-install.
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.5")
-        IMAGE_TYPE=edge-commit
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8.5"
-        USER_IN_COMMIT="true"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.5.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=9
-        ;;
     "rhel-8.6")
         IMAGE_TYPE=edge-commit
         OSTREE_REF="rhel/8/${ARCH}/edge"

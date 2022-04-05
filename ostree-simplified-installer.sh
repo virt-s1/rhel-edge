@@ -12,15 +12,24 @@ ARCH=$(uname -m)
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="ostree-installer-${TEST_UUID}"
 HTTP_GUEST_ADDRESS=192.168.100.50
-UEFI_GUEST_ADDRESS=192.168.100.51
+PUB_KEY_GUEST_ADDRESS=192.168.100.51
+ROOT_CERT_GUEST_ADDRESS=192.168.100.52
 PROD_REPO_URL=http://192.168.100.1/repo
 PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
+# FDO server repo commit to checkout
+FDO_SERVER_REPO_COMMIT=c2bab2c3cda954087fe66b683d31bffeac0c7189
+FDO_SERVER_ADDRESS=192.168.200.2
+# FDO admin CLI image version
+FDO_ADMIN_CLI_VERSION=0.4.0
+# FDO Manualfacture server image version
+FDO_MF_SERVER_VERSION=0.4.0
 CONTAINER_TYPE=edge-container
 CONTAINER_FILENAME=container.tar
 INSTALLER_TYPE=edge-simplified-installer
 INSTALLER_FILENAME=simplified-installer.iso
+REF_PREFIX="rhel-edge"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -38,34 +47,21 @@ EDGE_USER_PASSWORD=foobar
 sudo mkdir -p /etc/osbuild-composer/repositories
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.5")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        REF_PREFIX="rhel-edge"
-        OS_VARIANT="rhel8.5"
-        ;;
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
-        REF_PREFIX="rhel-edge"
         OS_VARIANT="rhel8-unknown"
-        FDO_SERVER=192.168.200.2
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
-        REF_PREFIX="rhel-edge"
         OS_VARIANT="rhel9.0"
-        FDO_SERVER=192.168.200.2
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
-        REF_PREFIX="rhel-edge"
         OS_VARIANT="centos-stream8"
-        FDO_SERVER=192.168.200.2
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
-        REF_PREFIX="rhel-edge"
         OS_VARIANT="centos-stream9"
-        FDO_SERVER=192.168.200.2
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -181,14 +177,6 @@ wait_for_ssh_up () {
 clean_up () {
     greenprint "🧼 Cleaning up"
 
-    # Clear vm
-    if [[ $(sudo virsh domstate "${IMAGE_KEY}-uefi") == "running" ]]; then
-        sudo virsh destroy "${IMAGE_KEY}-uefi"
-    fi
-    sudo virsh undefine "${IMAGE_KEY}-uefi" --nvram
-    # Remove qcow2 file.
-    sudo virsh vol-delete --pool images "${IMAGE_KEY}-uefi.qcow2"
-
     # Remove any status containers if exist
     sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f
     # Remove all images
@@ -199,12 +187,6 @@ clean_up () {
 
     # Remomve tmp dir.
     sudo rm -rf "$TEMPDIR"
-
-    # Remove mount dir
-    sudo rm -rf /mnt/installer
-
-    # Remove simplified installer ISO file
-    sudo rm -f "$ISO_FILENAME"
 
     # Remove fdo-container repo folder
     sudo rm -rf fdo-containers
@@ -248,27 +230,27 @@ sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm
 # Remove all images
 sudo podman rmi -f -a
 
-if [[ $VERSION_ID != "8.5" ]]; then
-    greenprint "🔧 Prepare fdo manufacturing server"
-    sudo git clone https://github.com/runcom/fdo-containers
-    pushd fdo-containers
-    sudo git checkout c2bab2c3cda954087fe66b683d31bffeac0c7189
-    sudo CONTAINER_IMAGE=quay.io/fido-fdo/fdo-admin-cli:0.4.0 ./create-keys.sh
-    sudo podman run -d \
-    -v "$PWD"/ownership_vouchers:/etc/fdo/ownership_vouchers:z \
-    -v "$PWD"/config/manufacturing-server.yml:/etc/fdo/manufacturing-server.conf.d/00-default.yml:z \
-    -v "$PWD"/keys:/etc/fdo/keys:z \
-    --ip "$FDO_SERVER" \
-    --name fdo-manufacturing-server \
-    --network edge \
-    quay.io/fido-fdo/fdo-manufacturing-server:0.4.0
-    popd
+greenprint "🔧 Prepare fdo manufacturing server"
+sudo git clone https://github.com/runcom/fdo-containers
+pushd fdo-containers
+sudo git checkout "$FDO_SERVER_REPO_COMMIT"
+sudo CONTAINER_IMAGE=quay.io/fido-fdo/fdo-admin-cli:"$FDO_ADMIN_CLI_VERSION" ./create-keys.sh
+DIUN_PUB_KEY_HASH=$(cat keys/diun_pub_key_hash)
+DIUN_PUB_KEY_ROOT_CERTS=$(cat keys/diun_cert.pem)
+sudo podman run -d \
+-v "$PWD"/ownership_vouchers:/etc/fdo/ownership_vouchers:z \
+-v "$PWD"/config/manufacturing-server.yml:/etc/fdo/manufacturing-server.conf.d/00-default.yml:z \
+-v "$PWD"/keys:/etc/fdo/keys:z \
+--ip "$FDO_SERVER_ADDRESS" \
+--name fdo-manufacturing-server \
+--network edge \
+"quay.io/fido-fdo/fdo-manufacturing-server:$FDO_MF_SERVER_VERSION"
+popd
 
-    # Wait for fdo server to be running
-    until [ "$(curl -X POST http://${FDO_SERVER}:8080/ping)" == "pong" ]; do
-        sleep 1;
-    done;
-fi
+# Wait for fdo server to be running
+until [ "$(curl -X POST http://${FDO_SERVER_ADDRESS}:8080/ping)" == "pong" ]; do
+    sleep 1;
+done;
 
 ##########################################################
 ##
@@ -342,11 +324,11 @@ greenprint "🧽 Clean up container blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete container > /dev/null
 
-############################################################
+######################################################################
 ##
-## Build edge-simplified-installer image
+## Build edge-simplified-installer with diun_pub_key_insecure enabled
 ##
-############################################################
+######################################################################
 
 # Write a blueprint for installer image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
@@ -358,15 +340,11 @@ groups = []
 
 [customizations]
 installation_device = "/dev/vda"
-EOF
 
-if [[ $VERSION_ID != "8.5" ]]; then
-    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [customizations.fdo]
-manufacturing_server_url="http://${FDO_SERVER}:8080"
+manufacturing_server_url="http://${FDO_SERVER_ADDRESS}:8080"
 diun_pub_key_insecure="true"
 EOF
-fi
 
 greenprint "📄 installer blueprint"
 cat "$BLUEPRINT_FILE"
@@ -384,7 +362,6 @@ build_image installer "${INSTALLER_TYPE}" "${PROD_REPO_URL}/"
 greenprint "📥 Downloading the installer image"
 sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
 ISO_FILENAME="${COMPOSE_ID}-${INSTALLER_FILENAME}"
-sudo cp "${ISO_FILENAME}" /var/lib/libvirt/images
 
 # Clean compose and blueprints.
 greenprint "🧹 Clean up installer blueprint and compose"
@@ -420,7 +397,7 @@ sudo sed -i 's/initrd \/images\/pxeboot\/initrd.img/initrdefi \/httpboot\/images
 sudo sed -i 's/coreos.inst.image_file=\/run\/media\/iso\/disk.img.xz/coreos.inst.image_url=http:\/\/192.168.100.1\/httpboot\/disk.img.xz/' "${GRUB_CFG}"
 
 greenprint "📋 Create libvirt image disk"
-LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}.qcow2
+LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-httpboot.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
 
 greenprint "📋 Install edge vm via http boot"
@@ -456,26 +433,89 @@ done
 # Check image installation result
 check_result
 
+greenprint "🕹 Get ostree install commit value"
+INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
+
+# Add instance IP address into /etc/ansible/hosts
+sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
+[ostree_guest]
+${HTTP_GUEST_ADDRESS}
+
+[ostree_guest:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_user=admin
+ansible_private_key_file=${SSH_KEY}
+ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+ansible_become=yes 
+ansible_become_method=sudo
+ansible_become_pass=${EDGE_USER_PASSWORD}
+EOF
+
+# Test IoT/Edge OS
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
+check_result
+
 # Clean up BIOS VM
 greenprint "🧹 Clean up BIOS VM"
 if [[ $(sudo virsh domstate "${IMAGE_KEY}-httpboot") == "running" ]]; then
     sudo virsh destroy "${IMAGE_KEY}-httpboot"
 fi
 sudo virsh undefine "${IMAGE_KEY}-httpboot" --nvram
-sudo virsh vol-delete --pool images "${IMAGE_KEY}.qcow2"
+sudo virsh vol-delete --pool images "${IMAGE_KEY}-httpboot.qcow2"
 
-##################################################################
+# Remove simplified installer ISO file
+sudo rm -rf "$ISO_FILENAME"
+# Remove mount dir
+sudo rm -rf /mnt/installer
+
+####################################################################
 ##
-## Install and test edge vm with edge-simplified-installer (UEFI)
+## Build edge-simplified-installer with diun_pub_key_hash enabled
 ##
-##################################################################
+####################################################################
+
+tee "$BLUEPRINT_FILE" > /dev/null << EOF
+name = "fdosshkey"
+description = "A rhel-edge simplified-installer image"
+version = "0.0.1"
+modules = []
+groups = []
+[customizations]
+installation_device = "/dev/vda"
+[customizations.fdo]
+manufacturing_server_url="http://${FDO_SERVER_ADDRESS}:8080"
+diun_pub_key_hash="${DIUN_PUB_KEY_HASH}"
+EOF
+
+greenprint "📄 fdosshkey blueprint"
+cat "$BLUEPRINT_FILE"
+
+# Prepare the blueprint for the compose.
+greenprint "📋 Preparing fdosshkey blueprint"
+sudo composer-cli blueprints push "$BLUEPRINT_FILE"
+sudo composer-cli blueprints depsolve fdosshkey
+
+# Build fdosshkey image.
+build_image fdosshkey "${INSTALLER_TYPE}" "${PROD_REPO_URL}"
+
+# Download the image
+greenprint "📥 Downloading the fdosshkey image"
+sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
+ISO_FILENAME="${COMPOSE_ID}-${INSTALLER_FILENAME}"
+sudo mv "${ISO_FILENAME}" /var/lib/libvirt/images
+
+# Clean compose and blueprints.
+greenprint "🧹 Clean up fdosshkey blueprint and compose"
+sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
+sudo composer-cli blueprints delete fdosshkey > /dev/null
+
 # Create qcow2 file for virt install.
 greenprint "🖥 Create qcow2 file for virt install"
-LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-uefi.qcow2
+LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-keyhash.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
 
 greenprint "💿 Install ostree image via installer(ISO) on UEFI VM"
-sudo virt-install  --name="${IMAGE_KEY}-uefi"\
+sudo virt-install  --name="${IMAGE_KEY}-fdosshkey"\
                    --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
                    --ram 3072 \
                    --vcpus 2 \
@@ -491,12 +531,12 @@ sudo virt-install  --name="${IMAGE_KEY}-uefi"\
 
 # Start VM.
 greenprint "💻 Start UEFI VM"
-sudo virsh start "${IMAGE_KEY}-uefi"
+sudo virsh start "${IMAGE_KEY}-fdosshkey"
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
 for LOOP_COUNTER in $(seq 0 30); do
-    RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
+    RESULTS="$(wait_for_ssh_up $PUB_KEY_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
         break
@@ -513,7 +553,7 @@ INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
 # Add instance IP address into /etc/ansible/hosts
 sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
 [ostree_guest]
-${UEFI_GUEST_ADDRESS}
+${PUB_KEY_GUEST_ADDRESS}
 
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
@@ -526,11 +566,119 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-if [[ "${ID}-${VERSION_ID}" == "rhel-8.5" ]]; then
-    sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${OSTREE_REF}" check-ostree.yaml || RESULTS=0
-else
-    sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
+check_result
+
+# Clean up VM
+greenprint "🧹 Clean up VM"
+if [[ $(sudo virsh domstate "${IMAGE_KEY}-fdosshkey") == "running" ]]; then
+    sudo virsh destroy "${IMAGE_KEY}-fdosshkey"
 fi
+sudo virsh undefine "${IMAGE_KEY}-fdosshkey" --nvram
+sudo virsh vol-delete --pool images "$IMAGE_KEY-keyhash.qcow2"
+
+# Remove simplified installer ISO file
+sudo rm -rf "/var/lib/libvirt/images/${ISO_FILENAME}"
+
+##################################################################
+##
+## Build edge-simplified-installer with diun_pub_key_root_certs
+##
+##################################################################
+
+tee "$BLUEPRINT_FILE" > /dev/null << EOF
+name = "fdorootcert"
+description = "A rhel-edge simplified-installer image"
+version = "0.0.1"
+modules = []
+groups = []
+[customizations]
+installation_device = "/dev/vda"
+[customizations.fdo]
+manufacturing_server_url="http://${FDO_SERVER_ADDRESS}:8080"
+diun_pub_key_root_certs="""
+${DIUN_PUB_KEY_ROOT_CERTS}"""
+EOF
+
+greenprint "📄 fdosshkey blueprint"
+cat "$BLUEPRINT_FILE"
+
+# Prepare the blueprint for the compose.
+greenprint "📋 Preparing installer blueprint"
+sudo composer-cli blueprints push "$BLUEPRINT_FILE"
+sudo composer-cli blueprints depsolve fdorootcert
+
+# Build fdorootcert image.
+build_image fdorootcert "${INSTALLER_TYPE}" "${PROD_REPO_URL}"
+
+# Download the image
+greenprint "📥 Downloading the fdorootcert image"
+sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
+ISO_FILENAME="${COMPOSE_ID}-${INSTALLER_FILENAME}"
+sudo mv "${ISO_FILENAME}" /var/lib/libvirt/images
+
+# Clean compose and blueprints.
+greenprint "🧹 Clean up fdorootcert blueprint and compose"
+sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
+sudo composer-cli blueprints delete fdorootcert > /dev/null
+
+# Create qcow2 file for virt install.
+greenprint "🖥 Create qcow2 file for virt install"
+LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-cert.qcow2
+sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
+
+greenprint "💿 Install ostree image via installer(ISO) on UEFI VM"
+sudo virt-install  --name="${IMAGE_KEY}-fdorootcert"\
+                   --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
+                   --ram 3072 \
+                   --vcpus 2 \
+                   --network network=integration,mac=34:49:22:B0:83:32 \
+                   --os-type linux \
+                   --os-variant ${OS_VARIANT} \
+                   --cdrom "/var/lib/libvirt/images/${ISO_FILENAME}" \
+                   --boot uefi,loader_ro=yes,loader_type=pflash,nvram_template=/usr/share/edk2/ovmf/OVMF_VARS.fd,loader_secure=no \
+                   --nographics \
+                   --noautoconsole \
+                   --wait=-1 \
+                   --noreboot
+
+# Start VM.
+greenprint "💻 Start UEFI VM"
+sudo virsh start "${IMAGE_KEY}-fdorootcert"
+
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for LOOP_COUNTER in $(seq 0 30); do
+    RESULTS="$(wait_for_ssh_up $ROOT_CERT_GUEST_ADDRESS)"
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+# Check image installation result
+check_result
+
+greenprint "🕹 Get ostree install commit value"
+INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
+
+# Add instance IP address into /etc/ansible/hosts
+sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
+[ostree_guest]
+${ROOT_CERT_GUEST_ADDRESS}
+[ostree_guest:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_user=admin
+ansible_private_key_file=${SSH_KEY}
+ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+ansible_become=yes
+ansible_become_method=sudo
+ansible_become_pass=${EDGE_USER_PASSWORD}
+EOF
+
+# Test IoT/Edge OS
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
 check_result
 
 ##################################################################
@@ -607,13 +755,6 @@ until [ "$(sudo podman inspect -f '{{.State.Running}}' rhel-edge)" == "true" ]; 
     sleep 1;
 done;
 
-if [[ "${ID}-${VERSION_ID}" == "rhel-8.5" ]]; then
-    # Workaround to https://github.com/osbuild/osbuild-composer/issues/1693
-    greenprint "🗳 Add external prod edge repo"
-    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${UEFI_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S ostree remote add --no-gpg-verify --no-sign-verify rhel-edge ${PROD_REPO_URL}"
-    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${UEFI_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S ostree admin switch rhel-edge:${OSTREE_REF}"
-fi
-
 # Pull upgrade to prod mirror
 greenprint "⛓ Pull upgrade to prod mirror"
 sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage "$OSTREE_REF"
@@ -630,10 +771,8 @@ sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete upgrade > /dev/null
 
 greenprint "🗳 Upgrade ostree image/commit"
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${UEFI_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${UEFI_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
-
-
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${ROOT_CERT_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${ROOT_CERT_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
 
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
@@ -642,7 +781,7 @@ sleep 10
 greenprint "🛃 Checking for SSH is ready to go"
 # shellcheck disable=SC2034  # Unused variables left for readability
 for LOOP_COUNTER in $(seq 0 30); do
-    RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
+    RESULTS="$(wait_for_ssh_up $ROOT_CERT_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
         break
@@ -656,7 +795,7 @@ check_result
 # Add instance IP address into /etc/ansible/hosts
 sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
 [ostree_guest]
-${UEFI_GUEST_ADDRESS}
+${ROOT_CERT_GUEST_ADDRESS}
 
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
@@ -671,6 +810,17 @@ EOF
 # Test IoT/Edge OS
 sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
 check_result
+
+# Clean up VM
+greenprint "🧹 Clean up VM"
+if [[ $(sudo virsh domstate "${IMAGE_KEY}-fdorootcert") == "running" ]]; then
+    sudo virsh destroy "${IMAGE_KEY}-fdorootcert"
+fi
+sudo virsh undefine "${IMAGE_KEY}-fdorootcert" --nvram
+sudo virsh vol-delete --pool images "$IMAGE_KEY-cert.qcow2"
+
+# Remove simplified installer ISO file
+sudo rm -rf "/var/lib/libvirt/images/${ISO_FILENAME}"
 
 # Final success clean up
 clean_up
