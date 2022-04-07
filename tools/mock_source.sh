@@ -6,7 +6,7 @@ TEMPDIR=$(mktemp -d)
 sudo mkdir -p /var/www/html/mock_source
 
 # Copy all rpm files in TEMPDIR into mock_source folder
-sudo cp "$TEMPDIR/*.rpm" /var/www/html/mock_source
+sudo cp "/tmp/rpms/*.rpm" /var/www/html/mock_source
 
 # Install createrepo_c and httpd
 sudo dnf install -y createrepo_c httpd
