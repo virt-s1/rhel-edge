@@ -35,41 +35,28 @@ source /etc/os-release
 sudo dnf install -y glibc-langpack-en
 localectl set-locale LANG=en_US.UTF-8
 
+# Install openshift client
+curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
+# Install ansible
+sudo dnf install -y --nogpgcheck ansible-core
+# To support stdout_callback = yaml
+sudo ansible-galaxy collection install community.general
+
 # Customize repository
 sudo mkdir -p /etc/osbuild-composer/repositories
 
 case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
-        # Install openshift client
-        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
         sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
+    "rhel-8.7")
+        sudo cp files/rhel-8-7-0.json /etc/osbuild-composer/repositories/rhel-87.json;;
     "rhel-9.0")
-        # Install openshift client
-        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
         sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
+    "rhel-9.1")
+        sudo cp files/rhel-9-1-0.json /etc/osbuild-composer/repositories/rhel-91.json;;
     "centos-8")
-        # Install openshift client
-        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
         sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json;;
     "centos-9")
-        # Install openshift client
-        curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
-        # Install ansible
-        sudo dnf install -y --nogpgcheck ansible-core
-        # To support stdout_callback = yaml
-        sudo ansible-galaxy collection install community.general
         sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -105,7 +92,7 @@ greenprint "Start firewalld"
 sudo systemctl enable --now firewalld
 
 # workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2057769
-if [[ "$VERSION_ID" == "9.0" || "$VERSION_ID" == "9" ]]; then
+if [[ "$VERSION_ID" == "9.0" || "$VERSION_ID" == "9.1" || "$VERSION_ID" == "9" ]]; then
     if [[ -f "/usr/share/qemu/firmware/50-edk2-ovmf-amdsev.json" ]]; then
         jq '.mapping += {"nvram-template": {"filename": "/usr/share/edk2/ovmf/OVMF_VARS.fd","format": "raw"}}' /usr/share/qemu/firmware/50-edk2-ovmf-amdsev.json | sudo tee /tmp/50-edk2-ovmf-amdsev.json
         sudo mv /tmp/50-edk2-ovmf-amdsev.json /usr/share/qemu/firmware/50-edk2-ovmf-amdsev.json

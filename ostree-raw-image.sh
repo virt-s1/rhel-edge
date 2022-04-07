@@ -17,6 +17,11 @@ PROD_REPO_URL=http://192.168.100.1/repo
 PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
+REF_PREFIX="rhel-edge"
+CONTAINER_TYPE=edge-container
+CONTAINER_FILENAME=container.tar
+RAW_TYPE=edge-raw-image
+RAW_FILENAME=image.raw.xz
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -36,39 +41,27 @@ sudo mkdir -p /etc/osbuild-composer/repositories
 case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
-        REF_PREFIX="rhel-edge"
         OS_VARIANT="rhel8-unknown"
-        CONTAINER_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
-        RAW_TYPE=edge-raw-image
-        RAW_FILENAME=image.raw.xz
+        ;;
+    "rhel-8.7")
+        OSTREE_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8-unknown"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
-        REF_PREFIX="rhel-edge"
         OS_VARIANT="rhel9.0"
-        CONTAINER_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
-        RAW_TYPE=edge-raw-image
-        RAW_FILENAME=image.raw.xz
+        ;;
+    "rhel-9.1")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9.0"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
-        REF_PREFIX="rhel-edge"
         OS_VARIANT="centos-stream8"
-        CONTAINER_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
-        RAW_TYPE=edge-raw-image
-        RAW_FILENAME=image.raw.xz
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
-        REF_PREFIX="rhel-edge"
         OS_VARIANT="centos-stream9"
-        CONTAINER_TYPE=edge-container
-        CONTAINER_FILENAME=container.tar
-        RAW_TYPE=edge-raw-image
-        RAW_FILENAME=image.raw.xz
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"

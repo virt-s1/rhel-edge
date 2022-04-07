@@ -41,6 +41,13 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
         PARENT_REPO_URL_8="http://edge-rhel-8-6-rt-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo/"
         ;;
+    "rhel-9.1")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8-unknown"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.7.0/compose/BaseOS/x86_64/os/"
+        PARENT_REPO_URL_8="http://edge-rhel-8-7-rt-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo/"
+        ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         PARENT_REF="centos/8/${ARCH}/edge"

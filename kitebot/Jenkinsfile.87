@@ -28,7 +28,7 @@ pipeline {
         }
         stage('Testing') {
             parallel {
-                stage('EL9.0 Virt') {
+                stage('EL8.7 Virt') {
                     when {
                         beforeAgent true
                         anyOf {
@@ -39,18 +39,18 @@ pipeline {
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
                                 anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.7.0'
                                 }
                             }
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'RHEL90_VIRT', value: 'true'
+                                environment name: 'RHEL87_VIRT', value: 'true'
                             }
                         }
                     }
-                    agent { label 'vm-rhel-9-0-0' }
+                    agent { label 'vm-rhel-8-7-0' }
                     environment {
-                        TEST_OS = "rhel-9-0"
+                        TEST_OS = "rhel-8-7"
                     }
                     steps {
                         run_virt_test('ostree-legacy')
@@ -63,7 +63,7 @@ pipeline {
                         }
                     }
                 }
-                stage('EL9.0 ng Virt') {
+                stage('EL8.7 ng Virt') {
                     when {
                         beforeAgent true
                         anyOf {
@@ -74,18 +74,18 @@ pipeline {
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
                                 anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.7.0'
                                 }
                             }
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'RHEL90_NG_VIRT', value: 'true'
+                                environment name: 'RHEL87_NG_VIRT', value: 'true'
                             }
                         }
                     }
-                    agent { label 'vm-rhel-9-0-0' }
+                    agent { label 'vm-rhel-8-7-0' }
                     environment {
-                        TEST_OS = "rhel-9-0"
+                        TEST_OS = "rhel-8-7"
                     }
                     steps {
                         run_virt_test('ostree-ng')
@@ -98,7 +98,7 @@ pipeline {
                         }
                     }
                 }
-                stage('EL9.0 raw image') {
+                stage('EL8.7 raw image') {
                     when {
                         beforeAgent true
                         anyOf {
@@ -109,18 +109,18 @@ pipeline {
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
                                 anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.7.0'
                                 }
                             }
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'RHEL90_RAW', value: 'true'
+                                environment name: 'RHEL87_RAW', value: 'true'
                             }
                         }
                     }
-                    agent { label 'vm-rhel-9-0-0' }
+                    agent { label 'vm-rhel-8-7-0' }
                     environment {
-                        TEST_OS = "rhel-9-0"
+                        TEST_OS = "rhel-8-7"
                     }
                     steps {
                         run_virt_test('raw-image')
@@ -133,7 +133,7 @@ pipeline {
                         }
                     }
                 }
-                stage('EL9.0 simplified installer') {
+                stage('EL8.7 simplified installer') {
                     when {
                         beforeAgent true
                         anyOf {
@@ -144,18 +144,18 @@ pipeline {
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
                                 anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.7.0'
                                 }
                             }
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'RHEL90_SIMPLIFIED', value: 'true'
+                                environment name: 'RHEL87_SIMPLIFIED', value: 'true'
                             }
                         }
                     }
-                    agent { label 'vm-rhel-9-0-0' }
+                    agent { label 'vm-rhel-8-7-0' }
                     environment {
-                        TEST_OS = "rhel-9-0"
+                        TEST_OS = "rhel-8-7"
                     }
                     steps {
                         run_virt_test('simplified-installer')
@@ -168,7 +168,7 @@ pipeline {
                         }
                     }
                 }
-                stage('EL9.0 rebase') {
+                stage('EL8.7 rebase') {
                     when {
                         beforeAgent true
                         anyOf {
@@ -179,18 +179,18 @@ pipeline {
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
                                 anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.7.0'
                                 }
                             }
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'RHEL90_REBASE', value: 'true'
+                                environment name: 'RHEL87_REBASE', value: 'true'
                             }
                         }
                     }
-                    agent { label 'vm-rhel-9-0-0' }
+                    agent { label 'vm-rhel-8-7-0' }
                     environment {
-                        TEST_OS = "rhel-9-0"
+                        TEST_OS = "rhel-8-7"
                     }
                     steps {
                         run_virt_test('ostree-rebase')
@@ -203,7 +203,7 @@ pipeline {
                         }
                     }
                 }
-                stage('EL9.0 8to9') {
+                stage('EL8.7 ng Bare') {
                     when {
                         beforeAgent true
                         anyOf {
@@ -214,53 +214,18 @@ pipeline {
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
                                 anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.7.0'
                                 }
                             }
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'RHEL90_8TO9', value: 'true'
-                            }
-                        }
-                    }
-                    agent { label 'vm-rhel-9-0-0' }
-                    environment {
-                        TEST_OS = "rhel-9-0"
-                    }
-                    steps {
-                        run_virt_test('ostree-8-to-9')
-                    }
-                    post {
-                        always {
-                            preserve_logs()
-                            get_package_info()
-                            send_result('Virt-8-TO-9')
-                        }
-                    }
-                }
-                stage('EL9.0 ng Bare') {
-                    when {
-                        beforeAgent true
-                        anyOf {
-                            anyOf {
-                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
-                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
-                            }
-                            allOf {
-                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
-                                anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
-                                }
-                            }
-                            allOf {
-                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'RHEL90_BARE', value: 'true'
+                                environment name: 'RHEL87_BARE', value: 'true'
                             }
                         }
                     }
                     agent { label 'container-fedora-35-prod' }
                     environment {
-                        TEST_OS = "rhel-9-0"
+                        TEST_OS = "rhel-8-7"
                         ARCH = 'x86_64'
                     }
                     steps {
@@ -274,7 +239,7 @@ pipeline {
                         }
                     }
                 }
-                stage('CS9 Virt') {
+                stage('CS8 Virt') {
                     when {
                         beforeAgent true
                         anyOf {
@@ -282,7 +247,7 @@ pipeline {
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
                                 anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.7.0'
                                 }
                             }
                             anyOf {
@@ -291,13 +256,13 @@ pipeline {
                             }
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'CS9_VIRT', value: 'true'
+                                environment name: 'CS8_VIRT', value: 'true'
                             }
                         }
                     }
-                    agent { label 'vm-cs9' }
+                    agent { label 'vm-cs8' }
                     environment {
-                        TEST_OS = "centos-stream-9"
+                        TEST_OS = "centos-stream-8"
                     }
                     steps {
                         run_virt_test('ostree-legacy')
@@ -310,7 +275,7 @@ pipeline {
                         }
                     }
                 }
-                stage('CS9 ng Virt') {
+                stage('CS8 ng Virt') {
                     when {
                         beforeAgent true
                         anyOf {
@@ -318,7 +283,7 @@ pipeline {
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
                                 anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.7.0'
                                 }
                             }
                             anyOf {
@@ -327,13 +292,13 @@ pipeline {
                             }
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'CS9_NG_VIRT', value: 'true'
+                                environment name: 'CS8_NG_VIRT', value: 'true'
                             }
                         }
                     }
-                    agent { label 'vm-cs9' }
+                    agent { label 'vm-cs8' }
                     environment {
-                        TEST_OS = "centos-stream-9"
+                        TEST_OS = "centos-stream-8"
                     }
                     steps {
                         run_virt_test('ostree-ng')
@@ -346,7 +311,7 @@ pipeline {
                         }
                     }
                 }
-                stage('CS9 raw image') {
+                stage('CS8 raw image') {
                     when {
                         beforeAgent true
                         anyOf {
@@ -354,7 +319,7 @@ pipeline {
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
                                 anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.7.0'
                                 }
                             }
                             anyOf {
@@ -363,13 +328,13 @@ pipeline {
                             }
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'CS9_RAW', value: 'true'
+                                environment name: 'CS8_RAW', value: 'true'
                             }
                         }
                     }
-                    agent { label 'vm-cs9' }
+                    agent { label 'vm-cs8' }
                     environment {
-                        TEST_OS = "centos-stream-9"
+                        TEST_OS = "centos-stream-8"
                     }
                     steps {
                         run_virt_test('raw-image')
@@ -382,7 +347,7 @@ pipeline {
                         }
                     }
                 }
-                stage('CS9 simplified installer') {
+                stage('CS8 simplified installer') {
                     when {
                         beforeAgent true
                         anyOf {
@@ -390,7 +355,7 @@ pipeline {
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
                                 anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.7.0'
                                 }
                             }
                             anyOf {
@@ -399,13 +364,13 @@ pipeline {
                             }
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'CS9_SIMPLIFIED', value: 'true'
+                                environment name: 'CS8_SIMPLIFIED', value: 'true'
                             }
                         }
                     }
-                    agent { label 'vm-cs9' }
+                    agent { label 'vm-cs8' }
                     environment {
-                        TEST_OS = "centos-stream-9"
+                        TEST_OS = "centos-stream-8"
                     }
                     steps {
                         run_virt_test('simplified-installer')
@@ -418,7 +383,7 @@ pipeline {
                         }
                     }
                 }
-                stage('CS9 rebase') {
+                stage('CS8 rebase') {
                     when {
                         beforeAgent true
                         anyOf {
@@ -426,7 +391,7 @@ pipeline {
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
                                 anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
+                                    environment name: 'RELEASE_VERSION', value: '8.7.0'
                                 }
                             }
                             anyOf {
@@ -435,13 +400,13 @@ pipeline {
                             }
                             allOf {
                                 environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'CS9_REBASE', value: 'true'
+                                environment name: 'CS8_REBASE', value: 'true'
                             }
                         }
                     }
-                    agent { label 'vm-cs9' }
+                    agent { label 'vm-cs8' }
                     environment {
-                        TEST_OS = "centos-stream-9"
+                        TEST_OS = "centos-stream-8"
                     }
                     steps {
                         run_virt_test('ostree-rebase')
@@ -451,79 +416,6 @@ pipeline {
                             preserve_logs()
                             get_package_info()
                             send_result('Virt-REBASE')
-                        }
-                    }
-                }
-                stage('CS9 8to9') {
-                    when {
-                        beforeAgent true
-                        anyOf {
-                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
-                            allOf {
-                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
-                                anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
-                                }
-                            }
-                            anyOf {
-                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
-                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
-                            }
-                            allOf {
-                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'CS9_8TO9', value: 'true'
-                            }
-                        }
-                    }
-                    agent { label 'vm-cs9' }
-                    environment {
-                        TEST_OS = "centos-stream-9"
-                    }
-                    steps {
-                        run_virt_test('ostree-8-to-9')
-                    }
-                    post {
-                        always {
-                            preserve_logs()
-                            get_package_info()
-                            send_result('Virt-8-TO-9')
-                        }
-                    }
-                }
-                stage('CS9 ng Bare') {
-                    when {
-                        beforeAgent true
-                        anyOf {
-                            environment name: 'TRIGGERED_BY', value: 'Started by timer'
-                            allOf {
-                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
-                                anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
-                                }
-                            }
-                            anyOf {
-                                environment name: 'TRIGGERED_BY', value: 'Branch indexing'
-                                expression { return env.TRIGGERED_BY.matches("Pull request(.*)") }
-                            }
-                            allOf {
-                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'CS9_BARE', value: 'true'
-                            }
-                        }
-                    }
-                    agent { label 'container-fedora-35-prod' }
-                    environment {
-                        TEST_OS = "centos-stream-9"
-                        ARCH = 'x86_64'
-                    }
-                    steps {
-                        run_bare_test()
-                    }
-                    post {
-                        always {
-                            preserve_bare_logs()
-                            send_result('Bare-metal-beaker')
-                            bare_clean()
                         }
                     }
                 }
@@ -571,9 +463,6 @@ void run_virt_test(test_type) {
     }
     if (test_type == 'ostree-rebase') {
         sh "./ostree-rebase.sh"
-    }
-    if (test_type == 'ostree-8-to-9') {
-        sh "./ostree-8-to-9.sh"
     }
 }
 

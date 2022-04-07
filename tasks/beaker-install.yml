@@ -1,6 +1,6 @@
 ---
 - name: "get latest {{ distros[os] }} distro"
-  command: bkr distros-list --name {{ distros[os] }}% --limit 1 --format json
+  command: bkr distros-list --name {{ distros[os] }}% --tag=CTS_NIGHTLY --limit=1 --format=json
   register: distro_result
 
 - name: json format
