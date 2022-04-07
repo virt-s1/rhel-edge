@@ -19,6 +19,13 @@ PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_OCP4_SERVER_NAME="edge-stage-server"
 STAGE_OCP4_REPO_URL="http://${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo/"
+CONTAINER_IMAGE_TYPE=edge-container
+INSTALLER_IMAGE_TYPE=edge-installer
+CONTAINER_FILENAME=container.tar
+INSTALLER_FILENAME=installer.iso
+PROD_REPO_URL=http://192.168.100.1/repo
+PROD_REPO_URL_2="${PROD_REPO_URL}/"
+STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -32,59 +39,39 @@ SSH_KEY=key/ostree_key
 
 case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
-        CONTAINER_IMAGE_TYPE=edge-container
-        INSTALLER_IMAGE_TYPE=edge-installer
-        CONTAINER_FILENAME=container.tar
-        INSTALLER_FILENAME=installer.iso
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
-        PROD_REPO_URL=http://192.168.100.1/repo
-        PROD_REPO_URL_2="${PROD_REPO_URL}/"
-        RT_TO_RT="false"
-        STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
+        USER_IN_INSTALLER_BP="true"
+        ANSIBLE_USER_FOR_BIOS="installeruser"
+        ;;
+    "rhel-8.7")
+        OSTREE_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8-unknown"
         USER_IN_INSTALLER_BP="true"
         ANSIBLE_USER_FOR_BIOS="installeruser"
         ;;
     "rhel-9.0")
-        CONTAINER_IMAGE_TYPE=edge-container
-        INSTALLER_IMAGE_TYPE=edge-installer
-        CONTAINER_FILENAME=container.tar
-        INSTALLER_FILENAME=installer.iso
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
-        PROD_REPO_URL=http://192.168.100.1/repo
-        PROD_REPO_URL_2="${PROD_REPO_URL}/"
-        RT_TO_RT="false"
-        STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
+        USER_IN_INSTALLER_BP="true"
+        ANSIBLE_USER_FOR_BIOS="installeruser"
+        ;;
+    "rhel-9.1")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9.0"
         USER_IN_INSTALLER_BP="true"
         ANSIBLE_USER_FOR_BIOS="installeruser"
         ;;
     "centos-8")
-        CONTAINER_IMAGE_TYPE=edge-container
-        INSTALLER_IMAGE_TYPE=edge-installer
-        CONTAINER_FILENAME=container.tar
-        INSTALLER_FILENAME=installer.iso
         OSTREE_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos-stream8"
-        PROD_REPO_URL=http://192.168.100.1/repo
-        PROD_REPO_URL_2="${PROD_REPO_URL}/"
-        RT_TO_RT="false"
-        STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
         USER_IN_INSTALLER_BP="false"
         ANSIBLE_USER_FOR_BIOS="admin"
         # ANSIBLE_USER_FOR_BIOS="installeruser"
         ;;
     "centos-9")
-        CONTAINER_IMAGE_TYPE=edge-container
-        INSTALLER_IMAGE_TYPE=edge-installer
-        CONTAINER_FILENAME=container.tar
-        INSTALLER_FILENAME=installer.iso
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
-        PROD_REPO_URL=http://192.168.100.1/repo
-        PROD_REPO_URL_2="${PROD_REPO_URL}/"
-        RT_TO_RT="false"
-        STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
         USER_IN_INSTALLER_BP="false"
         ANSIBLE_USER_FOR_BIOS="admin"
         # ANSIBLE_USER_FOR_BIOS="installeruser"
@@ -327,13 +314,6 @@ key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCk
 home = "/home/admin/"
 groups = ["wheel"]
 EOF
-
-if [[ "${RT_TO_RT}" == "true" ]]; then
-    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
-[customizations.kernel]
-name = "kernel-rt"
-EOF
-fi
 
 greenprint "📄 Which blueprint are we using"
 cat "$BLUEPRINT_FILE"
