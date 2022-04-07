@@ -2,34 +2,25 @@
 - hosts: openstack
   gather_facts: no
   become: no
-  vars:
-    cs8_image_url: "{{ image_url[os] }}"
 
   tasks:
-    - name: get latest CentOS Stream images
+    - name: get latest CentOS Stream 9 images
       shell: curl -s {{ image_url[os] }}/ | grep -ioE ">CentOS-Stream-GenericCloud-9-.*.qcow2<" | tr -d '><'
       register: result_file
       when: os == "centos-stream-9"
 
+    - name: get latest CentOS Stream 8 images
+      shell: curl -s {{ image_url[os] }}/ | grep -ioE ">CentOS-Stream-GenericCloud-8-.*.qcow2<" | tr -d '><' | tail -1
+      register: result_file
+      when: os == "centos-stream-8"
+
     - set_fact:
         image_name: "{{ result_file.stdout }}"
-      when: os == "centos-stream-9"
 
     - name: download image
       get_url:
         url: "{{ image_url[os] }}/{{ image_name }}"
         dest: /tmp/
-      when: os == "centos-stream-9"
-
-    - set_fact:
-        image_name: "CentOS-Stream-GenericCloud-8.x86_64.qcow2"
-      when: os == "centos-stream-8"
-
-    - name: download image
-      get_url:
-        url: "{{ cs8_image_url }}"
-        dest: "/tmp/{{ image_name }}"
-      when: os == "centos-stream-8"
 
     - name: upload tmp image to psi openstack
       openstack.cloud.image:
