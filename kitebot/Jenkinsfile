@@ -78,10 +78,10 @@ pipeline {
                         }
                     }
                 }
-                stage('EL9.1 Virt') {
-                    agent { label 'vm-rhel-9-1-0' }
+                stage('EL9.0 Virt') {
+                    agent { label 'vm-rhel-9-0-0' }
                     environment {
-                        TEST_OS = "rhel-9-1"
+                        TEST_OS = "rhel-9-0"
                     }
                     steps {
                         run_virt_test('ostree-legacy')
@@ -93,10 +93,10 @@ pipeline {
                         }
                     }
                 }
-                stage('EL9.1 ng Virt') {
-                    agent { label 'vm-rhel-9-1-0' }
+                stage('EL9.0 ng Virt') {
+                    agent { label 'vm-rhel-9-0-0' }
                     environment {
-                        TEST_OS = "rhel-9-1"
+                        TEST_OS = "rhel-9-0"
                     }
                     steps {
                         run_virt_test('ostree-ng')
@@ -108,10 +108,10 @@ pipeline {
                         }
                     }
                 }
-                stage('EL9.1 raw image') {
-                    agent { label 'vm-rhel-9-1-0' }
+                stage('EL9.0 raw image') {
+                    agent { label 'vm-rhel-9-0-0' }
                     environment {
-                        TEST_OS = "rhel-9-1"
+                        TEST_OS = "rhel-9-0"
                     }
                     steps {
                         run_virt_test('raw-image')
@@ -123,10 +123,10 @@ pipeline {
                         }
                     }
                 }
-                stage('EL9.1 simplified installer') {
-                    agent { label 'vm-rhel-9-0-1' }
+                stage('EL9.0 simplified installer') {
+                    agent { label 'vm-rhel-9-0-0' }
                     environment {
-                        TEST_OS = "rhel-9-1"
+                        TEST_OS = "rhel-9-0"
                     }
                     steps {
                         run_virt_test('simplified-installer')
@@ -138,25 +138,10 @@ pipeline {
                         }
                     }
                 }
-                stage('EL9.1 rebase') {
-                    agent { label 'vm-rhel-9-1-0' }
+                stage('EL9.0 8to9') {
+                    agent { label 'vm-rhel-9-0-0' }
                     environment {
-                        TEST_OS = "rhel-9-1"
-                    }
-                    steps {
-                        run_virt_test('ostree-rebase')
-                    }
-                    post {
-                        always {
-                            preserve_logs()
-                            get_package_info()
-                        }
-                    }
-                }
-                stage('EL9.1 8to9') {
-                    agent { label 'vm-rhel-9-1-0' }
-                    environment {
-                        TEST_OS = "rhel-9-1"
+                        TEST_OS = "rhel-9-0"
                     }
                     steps {
                         run_virt_test('ostree-8-to-9')
@@ -265,21 +250,6 @@ pipeline {
                     }
                     steps {
                         run_virt_test('simplified-installer')
-                    }
-                    post {
-                        always {
-                            preserve_logs()
-                            get_package_info()
-                        }
-                    }
-                }
-                stage('CS9 rebase') {
-                    agent { label 'vm-cs9' }
-                    environment {
-                        TEST_OS = "centos-stream-9"
-                    }
-                    steps {
-                        run_virt_test('ostree-rebase')
                     }
                     post {
                         always {
