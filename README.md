@@ -2,17 +2,6 @@
 
 RHEL-Edge help [documentation](HELP.md)
 
-# RHEL-Edge OSTree repository
-
-1. [RHEL 8.6.0](http://edge-rhel-8-6-normal-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
-2. [RHEL 8.6.0 RT Kernel](http://edge-rhel-8-6-rt-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
-3. [RHEL 9.0.0](http://edge-rhel-9-0-normal-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
-4. [RHEL 9.0.0 RT Kernel](http://edge-rhel-9-0-rt-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
-6. [CentOS Stream 8](http://edge-cs8-normal-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
-6. [CentOS Stream 8 RT Kernel](http://edge-cs8-rt-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
-7. [CentOS Stream 9](http://edge-cs9-normal-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
-8. [CentOS Stream 9 RT Kernel](http://edge-cs9-rt-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo)
-
 ## RHEL-Edge Test Scope
 
 RHEL for Edge test from QE is more like an integration test. The test flow aligns with the customer scenario. The whole test includes three parts:
@@ -153,7 +142,9 @@ You can set these environment variables to run test
 
     TEST_OS            The OS to run the tests in.  Currently supported values:
                            "rhel-8-6"
+                           "rhel-8-7"
                            "rhel-9-0"
+                           "rhel-9-1"
                            "centos-stream-8"
                            "centos-stream-9"
     ARCH               The arch to build image and run test on.  Currently supported values:

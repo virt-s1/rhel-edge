@@ -152,37 +152,6 @@ pipeline {
                         }
                     }
                 }
-                stage('EL9.0 rebase') {
-                    when {
-                        beforeAgent true
-                        anyOf {
-                            allOf {
-                                environment name: 'TRIGGERED_BY', value: 'Triggered by CI message.'
-                                anyOf {
-                                    environment name: 'RELEASE_VERSION', value: '9.0.0'
-                                }
-                            }
-                            allOf {
-                                environment name: 'TRIGGERED_BY', value: 'Started by user Xiaofeng'
-                                environment name: 'RHEL90_REBASE', value: 'true'
-                            }
-                        }
-                    }
-                    agent { label 'vm-rhel-9-0-0' }
-                    environment {
-                        TEST_OS = "rhel-9-0"
-                    }
-                    steps {
-                        run_virt_test('ostree-rebase')
-                    }
-                    post {
-                        always {
-                            preserve_logs()
-                            get_package_info()
-                            send_result('Virt-REBASE')
-                        }
-                    }
-                }
                 stage('EL9.0 8to9') {
                     when {
                         beforeAgent true
