@@ -233,6 +233,13 @@
         state: present
 
     - block:
+        - name: Install dependency packages
+          dnf:
+            name:
+              - gcc
+              - python3-devel
+              - python3-pip
+
         - name: Import the Microsoft repository key
           rpm_key:
             state: present
