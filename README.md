@@ -6,10 +6,9 @@ RHEL-Edge help [documentation](HELP.md)
 
 RHEL for Edge test from QE is more like an integration test. The test flow aligns with the customer scenario. The whole test includes three parts:
 
-1. RHEL for Edge image building with [image-builder](https://github.com/osbuild/osbuild-composer.git)
+1. RHEL for Edge image building with [osbuild-composer](https://github.com/osbuild/osbuild-composer.git)
 
     - Build image at OpenStack VM - x86_64
-    - Build image at Beaker server - aarch64
 
 2. RHEL for Edge image installation and upgrade
 
@@ -105,7 +104,7 @@ Test suite in scenario 2:
 
 1. [`ostree-bare-ng.yml`](ostree-bare-ng.yml): rhel-edge-container/edge-container(tar) image type test
 
-In this scenario, environment setup and test running are based on Ansible playbook. This scenario is for RHEL 8.4 only.
+In this scenario, environment setup and test running are based on Ansible playbook.
 
 1. The test runs on beaker because test needs bare metal machine. So keytab file is needed for beaker authentication.
 2. The RHEL Edge image will be built on OpenStack VM, the encrypted OpenStack credential should be provided.
