@@ -43,7 +43,7 @@ case "${ID}-${VERSION_ID}" in
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
-        BOOT_LOCATION="https://composes.stream.centos.org/production/CentOS-Stream-9-20220331.0/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/os/"
         CUT_DIRS=6
         ;;
     *)
