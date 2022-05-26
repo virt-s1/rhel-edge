@@ -22,6 +22,24 @@
         image_name: "{{ result_file.stdout }}"
       when: result_file.changed
 
+    - name: get latest Fedora rawhide images
+      shell: curl -s {{ image_url[os] }}/ | grep -ioE '>Fedora-Cloud-Base-Rawhide-.*.x86_64.qcow2<' | tr -d '><'
+      register: result_file
+      when: os == "fedora-rawhide"
+
+    - set_fact:
+        image_name: "{{ result_file.stdout }}"
+      when: result_file.changed
+
+    - name: get latest Fedora 36 images
+      shell: curl -s {{ image_url[os] }}/ | grep -ioE '>Fedora-Cloud-Base-36-.*.x86_64.qcow2<' | tr -d '><'
+      register: result_file
+      when: os == "fedora-36"
+
+    - set_fact:
+        image_name: "{{ result_file.stdout }}"
+      when: result_file.changed
+
     - name: download image
       get_url:
         url: "{{ image_url[os] }}/{{ image_name }}"
@@ -35,7 +53,7 @@
         # https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
         properties:
           architecture: x86_64
-          os_distro: centos
+          os_distro: "{{ os_distro[os] }}"
           hw_rng_model: virtio
 
     # image test
@@ -104,7 +122,11 @@
         - name: disk growpart not support
           fail:
             msg: "can't find disk growpart support, edge image {{ os }} {{ arch }} fail"
-          when: "'60G' not in result_growpart.stdout"
+          when:
+            # 60G is for CentOS Streram
+            - "'60G' not in result_growpart.stdout"
+            # 59G is for fedora
+            - "'59G' not in result_growpart.stdout"
 
       rescue:
         - name: remove tmp image
@@ -144,6 +166,6 @@
         # https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
         properties:
           architecture: x86_64
-          os_distro: centos
+          os_distro: "{{ os_distro[os] }}"
           hw_rng_model: virtio
       register: result_image
