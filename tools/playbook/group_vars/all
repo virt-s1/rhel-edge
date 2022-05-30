@@ -39,6 +39,8 @@ images:
   fedora-34: Fedora-Cloud-Base-34
   fedora-35: Fedora-Cloud-Base-35
   remote-35: Fedora-Cloud-Base-35
+  fedora-36: edge-fedora-36
+  fedora-rawhide: edge-fedora-rawhide
 
 image_url:
   centos-stream-9: https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/images
