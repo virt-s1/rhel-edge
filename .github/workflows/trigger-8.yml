@@ -1,0 +1,172 @@
+---
+name: RHEL 8 compose trigger
+
+on:
+  # Triggered by UMB
+  repository_dispatch:
+    types: [compose]
+
+jobs:
+  pr-info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query author repository permissions
+        uses: octokit/request-action@v2.x
+        id: user_permission
+        with:
+          route: GET /repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}/permission
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # restrict running of tests to users with admin or write permission for the repository
+      # see https://docs.github.com/en/free-pro-team@latest/rest/reference/repos#get-repository-permissions-for-a-user
+      - name: Check if user does have correct permissions
+        if: contains('admin write', fromJson(steps.user_permission.outputs.data).permission)
+        id: check_user_perm
+        run: |
+          echo "User '${{ github.event.sender.login }}' has permission '${{ fromJson(steps.user_permission.outputs.data).permission }}' allowed values: 'admin', 'write'"
+          echo "::set-output name=allowed_user::true"
+    outputs:
+      allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
+
+  rhel-8-6:
+    needs: pr-info
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && contains(github.event.client_payload.distro, '8.6.0') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Prepare nightly compose test PR
+        run: date "+%F %R" > pr-creator.txt
+
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "${{ github.event.client_payload.compose_id }} - ${{ steps.date.outputs.date }}"
+          committer: cloudkitebot <henrywangxf1@gmail.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: cpr
+          branch-suffix: random
+          delete-branch: true
+          title: "${{ github.event.client_payload.compose_id }} - ${{ steps.date.outputs.date }}"
+          body: |
+            RHEL compose ${{ github.event.client_payload.compose_id }}
+            - Date: ${{ steps.date.outputs.date }}
+            - Compose URL: ${{ github.event.client_payload.compose_url }}
+
+      - name: Add a comment to trigger test workflow
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          token: ${{ secrets.PAT }}
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          body: /test-rhel-8-6
+
+      - name: Create a project card to track compose test result
+        uses: peter-evans/create-or-update-project-card@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          project-name: RHEL Compose Test
+          column-name: RHEL-8-6
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+
+  rhel-8-7:
+    needs: pr-info
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && contains(github.event.client_payload.distro, '8.7.0') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Prepare nightly compose test PR
+        run: date "+%F %R" > pr-creator.txt
+
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "${{ github.event.client_payload.compose_id }} - ${{ steps.date.outputs.date }}"
+          committer: cloudkitebot <henrywangxf1@gmail.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: cpr
+          branch-suffix: random
+          delete-branch: true
+          title: "${{ github.event.client_payload.compose_id }} - ${{ steps.date.outputs.date }}"
+          body: |
+            RHEL compose ${{ github.event.client_payload.compose_id }}
+            - Date: ${{ steps.date.outputs.date }}
+            - Compose URL: ${{ github.event.client_payload.compose_url }}
+
+      - name: Add a comment to trigger test workflow
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          token: ${{ secrets.PAT }}
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          body: /test-rhel-8-7
+
+      - name: Create a project card to track compose test result
+        uses: peter-evans/create-or-update-project-card@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          project-name: RHEL Compose Test
+          column-name: RHEL-8-7
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+
+  centos-stream-8:
+    needs: pr-info
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && contains(github.event.client_payload.distro, '8.7.0') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Prepare nightly compose test PR
+        run: date "+%F %R" > pr-creator.txt
+
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+
+      - name: Get compose id
+        id: compose_id
+        run: echo "::set-output name=compose_id::$(curl -s https://composes.centos.org/ | grep -ioE '>CentOS-Stream-8-.*/<' | tr -d '><' | tail -1 | tr -d '/')"
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "${{ steps.compose_id.outputs.compose_id }} - ${{ steps.date.outputs.date }}"
+          committer: cloudkitebot <henrywangxf1@gmail.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: cpr
+          branch-suffix: random
+          delete-branch: true
+          title: "${{ steps.compose_id.outputs.compose_id }} - ${{ steps.date.outputs.date }}"
+          body: |
+            RHEL compose ${{ github.event.client_payload.compose_id }}
+            - Date: ${{ steps.date.outputs.date }}
+            - Compose URL: "https://composes.centos.org/${{ steps.compose_id.outputs.compose_id }}/compose/BaseOS/x86_64/os/"
+
+      - name: Add a comment to trigger test workflow
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          token: ${{ secrets.PAT }}
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          body: /test-cs8
+
+      - name: Create a project card to track compose test result
+        uses: peter-evans/create-or-update-project-card@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          project-name: RHEL Compose Test
+          column-name: CentOS-Stream-8
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
