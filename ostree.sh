@@ -8,54 +8,6 @@ set -exuo pipefail
 source /etc/os-release
 ARCH=$(uname -m)
 
-# Set os-variant and boot location used by virt-install.
-case "${ID}-${VERSION_ID}" in
-    "rhel-8.6")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=8
-        ;;
-    "rhel-8.7")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.7.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=8
-        ;;
-    "rhel-9.0")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9.0"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=8
-        ;;
-    "rhel-9.1")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9.0"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=8
-        ;;
-    "centos-8")
-        OSTREE_REF="centos/8/${ARCH}/edge"
-        OS_VARIANT="centos-stream8"
-        BOOT_LOCATION="http://msync.centos.org/centos/8-stream/BaseOS/x86_64/os/"
-        CUT_DIRS=5
-        ;;
-    "centos-9")
-        OSTREE_REF="centos/9/${ARCH}/edge"
-        OS_VARIANT="centos-stream9"
-        BOOT_LOCATION="https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=6
-        ;;
-    *)
-        echo "unsupported distro: ${ID}-${VERSION_ID}"
-        exit 1;;
-esac
-
-# Colorful output.
-function greenprint {
-    echo -e "\033[1;32m${1}\033[0m"
-}
-
 # Set up variables.
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="ostree-${TEST_UUID}"
@@ -72,6 +24,77 @@ KS_FILE=${HTTPD_PATH}/ks.cfg
 COMPOSE_START=${TEMPDIR}/compose-start-${IMAGE_KEY}.json
 COMPOSE_INFO=${TEMPDIR}/compose-info-${IMAGE_KEY}.json
 GRUB_CFG=${HTTPD_PATH}/httpboot/EFI/BOOT/grub.cfg
+
+
+# Set os-variant and boot location used by virt-install.
+case "${ID}-${VERSION_ID}" in
+    "rhel-8.6")
+        OSTREE_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8-unknown"
+        USER_IN_COMMIT="true"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
+        CUT_DIRS=8
+        ;;
+    "rhel-8.7")
+        OSTREE_REF="rhel/8/${ARCH}/edge"
+        USER_IN_COMMIT="true"
+        OS_VARIANT="rhel8-unknown"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.7.0/compose/BaseOS/x86_64/os/"
+        CUT_DIRS=8
+        ;;
+    "rhel-9.0")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        USER_IN_COMMIT="true"
+        OS_VARIANT="rhel9.0"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
+        CUT_DIRS=8
+        ;;
+    "rhel-9.1")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        USER_IN_COMMIT="true"
+        OS_VARIANT="rhel9.0"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/x86_64/os/"
+        CUT_DIRS=8
+        ;;
+    "centos-8")
+        OSTREE_REF="centos/8/${ARCH}/edge"
+        USER_IN_COMMIT="true"
+        OS_VARIANT="centos-stream8"
+        BOOT_LOCATION="http://msync.centos.org/centos/8-stream/BaseOS/x86_64/os/"
+        CUT_DIRS=5
+        ;;
+    "centos-9")
+        OSTREE_REF="centos/9/${ARCH}/edge"
+        USER_IN_COMMIT="true"
+        OS_VARIANT="centos-stream9"
+        BOOT_LOCATION="https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/os/"
+        CUT_DIRS=6
+        ;;
+    "fedora-36")
+        IMAGE_TYPE=fedora-iot-commit
+        USER_IN_COMMIT="false"
+        OSTREE_REF="fedora/36/${ARCH}/iot"
+        OS_VARIANT="fedora36"
+        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/36/Everything/x86_64/os/"
+        CUT_DIRS=8
+        ;;
+    "fedora-37")
+        IMAGE_TYPE=fedora-iot-commit
+        USER_IN_COMMIT="false"
+        OSTREE_REF="fedora/37/${ARCH}/iot"
+        OS_VARIANT="fedora37"
+        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/"
+        CUT_DIRS=8
+        ;;
+    *)
+        echo "unsupported distro: ${ID}-${VERSION_ID}"
+        exit 1;;
+esac
+
+# Colorful output.
+function greenprint {
+    echo -e "\033[1;32m${1}\033[0m"
+}
 
 # Download HTTP boot required files
 greenprint "📥 Download HTTP boot required files"
@@ -246,7 +269,11 @@ groups = []
 [[packages]]
 name = "python3"
 version = "*"
+EOF
 
+# Fedora does not support user configuration in blueprint for fedora-iot-commit image
+if [[ "${USER_IN_COMMIT}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.user]]
 name = "${SSH_USER}"
 description = "Administrator account"
@@ -255,6 +282,7 @@ key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCk
 home = "/home/${SSH_USER}/"
 groups = ["wheel"]
 EOF
+fi
 
 # Build installation image.
 build_image "$BLUEPRINT_FILE" ostree
@@ -289,6 +317,8 @@ keyboard us
 timezone --utc Etc/UTC
 selinux --enforcing
 rootpw --lock --iscrypted locked
+user --name=${SSH_USER} --groups=wheel --iscrypted --password=\$6\$1LgwKw9aOoAi/Zy9\$Pn3ErY1E8/yEanJ98evqKEW.DZp24HTuqXPJl6GYCm8uuobAmwxLv7rGCvTRZhxtcYdmC0.XnYRSR9Sh6de3p0
+sshkey --username=${SSH_USER} "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"
 bootloader --timeout=1 --append="net.ifnames=0 modprobe.blacklist=vc4"
 network --bootproto=dhcp --device=link --activate --onboot=on
 zerombr
@@ -322,6 +352,11 @@ rm -f /var/tmp/zeros
 echo "(Don't worry -- that out-of-space error was expected.)"
 %end
 STOPHERE
+
+# Fedora does not support user configuration in blueprint for fedora-iot-commit image
+if [[ "${USER_IN_COMMIT}" == "true" ]]; then
+    sudo sed -i '/^user\|^sshkey/d' "${KS_FILE}"
+fi
 
 # Install ostree image via anaconda.
 greenprint "Install ostree image via anaconda"

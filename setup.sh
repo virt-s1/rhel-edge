@@ -61,6 +61,10 @@ case "${ID}-${VERSION_ID}" in
     "centos-9")
         sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json
         sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
+    "fedora-36")
+        ;;
+    "fedora-37")
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
