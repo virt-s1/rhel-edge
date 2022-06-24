@@ -607,7 +607,7 @@
     - name: install sanely failing health check unit to test red boot status behavior
       block:
         - name: install sanely failing health check unit to test red boot status behavior
-          command: rpm-ostree install --cache-only http://file-server-virt-qe-3rd.apps.ocp-c1.prod.psi.redhat.com/greenboot-failing-unit-1.0-1.el8.noarch.rpm
+          command: rpm-ostree install --cache-only https://kite-storage.s3.amazonaws.com/greenboot-failing-unit-1.0-1.el8.noarch.rpm
           become: yes
           register: install_result
           retries: 30  # due to https://github.com/osbuild/osbuild-composer/issues/2492
