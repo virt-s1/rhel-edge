@@ -4,6 +4,7 @@
   become: no
   vars:
     date_label: "{{ lookup('pipe', 'date +%y%m%d') }}"
+    flavor: "ci.standard.large"
 
   tasks:
     - name: create keypair for rhel-edge test
@@ -18,7 +19,7 @@
         cloud: rhos-01
         name: "{{ os }}-{{ date_label }}"
         image: "{{ images[os] }}"
-        flavor: "ci.standard.large"
+        flavor: "{{ flavor }}"
         network: "shared_net_9"
         key_name: xiaofwan
         security_groups: debug_vm
@@ -71,7 +72,7 @@
         cloud: rhos-01
         name: "{{ os }}-{{ date_label }}"
         image: "{{ images[os] }}"
-        flavor: "ci.standard.large"
+        flavor: "{{ flavor }}"
         network: "shared_net_9"
         key_name: xiaofwan
         security_groups: debug_vm
@@ -106,7 +107,7 @@
         cloud: rhos-01
         name: "{{ os }}-{{ date_label }}"
         image: "{{ images[os] }}"
-        flavor: "ci.standard.large"
+        flavor: "{{ flavor }}"
         network: "shared_net_9"
         key_name: xiaofwan
         security_groups: debug_vm
@@ -141,7 +142,7 @@
         cloud: rhos-01
         name: "{{ os }}-{{ date_label }}"
         image: "{{ images[os] }}"
-        flavor: "ci.standard.large"
+        flavor: "{{ flavor }}"
         network: "shared_net_9"
         key_name: xiaofwan
         security_groups: debug_vm
