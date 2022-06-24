@@ -75,6 +75,21 @@ function greenprint {
     echo -e "\033[1;32m${1}\033[0m"
 }
 
+# Check file permission
+check_key_perm () {
+    KEY_FILE=$1
+    KEY_PERM=$(stat -L -c "%a %G %U" $1 | grep -oP '\d+' | head -n 1)
+    echo -e "${KEY_PERM}"
+}
+
+# Check ostree_key permissions
+KEY_PERMISSION_PRE=$(check_key_perm "./key/ostree_key")
+echo -e "${KEY_PERMISSION_PRE}"
+if [[ "${KEY_PERMISSION_PRE}" != "600" ]]; then
+   greenprint "💡 File permissions too open...Changing to r/w only for root user"
+   sudo chmod 600 ./key/ostree_key
+fi
+
 # Install required packages
 greenprint "Install required packages"
 sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli podman skopeo wget firewalld lorax xorriso curl jq expect qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm virt-install
