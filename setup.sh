@@ -76,7 +76,7 @@ function greenprint {
 }
 
 # Check ostree_key permissions
-KEY_PERMISSION_PRE=$(stat -L -c "%a %G %U" "$1" | grep -oP '\d+' | head -n 1)
+KEY_PERMISSION_PRE=$(stat -L -c "%a %G %U" key/ostree_key | grep -oP '\d+' | head -n 1)
 echo -e "${KEY_PERMISSION_PRE}"
 if [[ "${KEY_PERMISSION_PRE}" != "600" ]]; then
    greenprint "💡 File permissions too open...Changing to 600"
