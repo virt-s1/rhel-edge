@@ -438,6 +438,8 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
 
     # case: check running container with podman (non-root)
+    # workaround on RHEL 8.6 and 9.0 for issue https://bugzilla.redhat.com/show_bug.cgi?id=2078937
+    # because the fix is not available on 8.6 and 9.0 yet
     - name: run ubi8 image with non-root
       command: podman run ubi8:latest cat /etc/redhat-release
       register: podman_result
@@ -445,6 +447,10 @@
       delay: 2
       until: podman_result is success
       ignore_errors: yes
+      when: (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.0', '>')) or
+            (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>') and ansible_facts ['distribution_version'] is version('9.0', '!=')) or
+            (ansible_facts['distribution'] == 'CentOS') or
+            (ansible_facts['distribution'] == 'Fedora')
 
     - name: run container test
       block:
@@ -461,6 +467,10 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
+      when: (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.0', '>')) or
+            (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>') and ansible_facts ['distribution_version'] is version('9.0', '!=')) or
+            (ansible_facts['distribution'] == 'CentOS') or
+            (ansible_facts['distribution'] == 'Fedora')
 
     # case: check dnf package and it should not be installed
     # https://github.com/osbuild/osbuild-composer/blob/master/internal/distro/rhel8/distro.go#L642

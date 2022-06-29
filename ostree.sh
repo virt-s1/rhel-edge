@@ -60,14 +60,12 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="centos/8/${ARCH}/edge"
         USER_IN_COMMIT="true"
         OS_VARIANT="centos-stream8"
-        BOOT_LOCATION="http://msync.centos.org/centos/8-stream/BaseOS/x86_64/os/"
         CUT_DIRS=5
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         USER_IN_COMMIT="true"
         OS_VARIANT="centos-stream9"
-        BOOT_LOCATION="https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/os/"
         CUT_DIRS=6
         ;;
     "fedora-36")
@@ -90,6 +88,17 @@ case "${ID}-${VERSION_ID}" in
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
 esac
+
+# For CentOS Stream test, do not use latest link but use COMPOSE ID URL instead to work around issue
+# https://bugzilla.redhat.com/show_bug.cgi?id=2065708
+if [[ "${ID}-${VERSION_ID}" == "centos-8" ]]; then
+    CURRENT_COMPOSE_CS8=$(curl -s "https://composes.centos.org/" | grep -ioE ">CentOS-Stream-8-.*/<" | tr -d '>/<' | tail -1)
+    BOOT_LOCATION="https://composes.centos.org/${CURRENT_COMPOSE_CS8}/compose/BaseOS/x86_64/os/"
+fi
+if [[ "${ID}-${VERSION_ID}" == "centos-9" ]]; then
+    CURRENT_COMPOSE_CS9=$(curl -s "https://composes.stream.centos.org/production/" | grep -ioE ">CentOS-Stream-9-.*/<" | tr -d '>/<' | tail -1)
+    BOOT_LOCATION="https://composes.stream.centos.org/production/${CURRENT_COMPOSE_CS9}/compose/BaseOS/x86_64/os/"
+fi
 
 # Colorful output.
 function greenprint {
