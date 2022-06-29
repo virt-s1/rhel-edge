@@ -4,6 +4,8 @@
 
 [Composing, Installing, and Managing RHEL for Edge Images on Red Hat Enterprise Linux 8](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html-single/composing_installing_and_managing_rhel_for_edge_images/index)
 
+[Composing, installing, and managing RHEL for Edge Images on Red Hat Enterprise Linux 9](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/composing_installing_and_managing_rhel_for_edge_images)
+
 ## RHEL for Edge Demonstration Video
 
 1. [RHEL for Edge Part 1: Creating an Image](https://www.youtube.com/watch?v=RwOMEdDBjbw)
