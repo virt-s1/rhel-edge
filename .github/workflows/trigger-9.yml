@@ -34,6 +34,20 @@ jobs:
           else
               COMPOSE_ID_90="false"
           fi
+
+          if [[ "$COMPOSE_ID_90" != "false" ]]; then
+              OSBUILD_VERSION_90=$(curl -s "${COMPOSE_URL_90}/${COMPOSE_ID_90}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION_90=$(curl -s "${COMPOSE_URL_90}/${COMPOSE_ID_90}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION_90=$(curl -s "${COMPOSE_URL_90}/${COMPOSE_ID_90}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "::set-output name=osbuild_version_90::$OSBUILD_VERSION_90"
+              echo "::set-output name=osbuild_composer_version_90::$OSBUILD_COMPOSER_VERSION_90"
+              echo "::set-output name=composer_cli_version_90::$COMPOSER_CLI_VERSION_90"
+          else
+              echo "::set-output name=osbuild_version_90::Null"
+              echo "::set-output name=osbuild_composer_version_90::Null"
+              echo "::set-output name=composer_cli_version_90::Null"
+          fi
+
           echo "::set-output name=rhel90_compose::$COMPOSE_ID_90"
 
       - name: Check RHEL 9.1 compose
@@ -51,11 +65,31 @@ jobs:
           else
               COMPOSE_ID_91="false"
           fi
+
+          if [[ "$COMPOSE_ID_91" != "false" ]]; then
+              OSBUILD_VERSION_91=$(curl -s "${COMPOSE_URL_91}/${COMPOSE_ID_91}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION_91=$(curl -s "${COMPOSE_URL_91}/${COMPOSE_ID_91}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION_91=$(curl -s "${COMPOSE_URL_91}/${COMPOSE_ID_91}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "::set-output name=osbuild_version_91::$OSBUILD_VERSION_91"
+              echo "::set-output name=osbuild_composer_version_91::$OSBUILD_COMPOSER_VERSION_91"
+              echo "::set-output name=composer_cli_version_91::$COMPOSER_CLI_VERSION_91"
+          else
+              echo "::set-output name=osbuild_version_91::Null"
+              echo "::set-output name=osbuild_composer_version_91::Null"
+              echo "::set-output name=composer_cli_version_91::Null"
+          fi
+
           echo "::set-output name=rhel91_compose::$COMPOSE_ID_91"
 
     outputs:
       rhel90_compose: ${{ steps.check_compose_id_90.outputs.rhel90_compose }}
       rhel91_compose: ${{ steps.check_compose_id_91.outputs.rhel91_compose }}
+      osbuild_version_90: ${{ steps.check_compose_id_90.outputs.osbuild_version_90 }}
+      osbuild_composer_version_90: ${{ steps.check_compose_id_90.outputs.osbuild_composer_version_90 }}
+      composer_cli_version_90: ${{ steps.check_compose_id_90.outputs.composer_cli_version_90 }}
+      osbuild_version_91: ${{ steps.check_compose_id_91.outputs.osbuild_version_91 }}
+      osbuild_composer_version_91: ${{ steps.check_compose_id_91.outputs.osbuild_composer_version_91 }}
+      composer_cli_version_91: ${{ steps.check_compose_id_91.outputs.composer_cli_version_91 }}
 
   rhel-9-0:
     needs: check-compose
@@ -91,6 +125,10 @@ jobs:
             RHEL 9.0 compose ${{ needs.check-compose.outputs.rhel90_compose }}
             - Date: ${{ steps.date.outputs.date }}
             - Compose URL: "${{ env.COMPOSE_URL_90 }}/${{ needs.check-compose.outputs.rhel90_compose }}"
+            - Packages:
+                - ${{ needs.check-compose.outputs.osbuild_version_90 }}
+                - ${{ needs.check-compose.outputs.osbuild_composer_version_90 }}
+                - ${{ needs.check-compose.outputs.composer_cli_version_90 }}
 
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
@@ -149,6 +187,10 @@ jobs:
             RHEL 9.1 compose ${{ needs.check-compose.outputs.rhel91_compose }}
             - Date: ${{ steps.date.outputs.date }}
             - Compose URL: "${{ env.COMPOSE_URL_91 }}/${{ needs.check-compose.outputs.rhel91_compose }}"
+            - Packages:
+                - ${{ needs.check-compose.outputs.osbuild_version_91 }}
+                - ${{ needs.check-compose.outputs.osbuild_composer_version_91 }}
+                - ${{ needs.check-compose.outputs.composer_cli_version_91 }}
 
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'

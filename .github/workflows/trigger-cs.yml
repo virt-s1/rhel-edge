@@ -35,6 +35,20 @@ jobs:
           else
               COMPOSE_ID_CS8="false"
           fi
+
+          if [[ "$COMPOSE_ID_CS8" != "false" ]]; then
+              OSBUILD_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "::set-output name=osbuild_version_cs8::$OSBUILD_VERSION_CS8"
+              echo "::set-output name=osbuild_composer_version_cs8::$OSBUILD_COMPOSER_VERSION_CS8"
+              echo "::set-output name=composer_cli_version_cs8::$COMPOSER_CLI_VERSION_CS8"
+          else
+              echo "::set-output name=osbuild_version_cs8::Null"
+              echo "::set-output name=osbuild_composer_version_cs8::Null"
+              echo "::set-output name=composer_cli_version_cs8::Null"
+          fi
+
           echo "::set-output name=cs8_compose::$COMPOSE_ID_CS8"
 
       - name: Check CentOS Stream 9 compose
@@ -52,11 +66,31 @@ jobs:
           else
               COMPOSE_ID_CS9="false"
           fi
+
+          if [[ "$COMPOSE_ID_CS9" != "false" ]]; then
+              OSBUILD_VERSION_CS9=$(curl -s "${COMPOSE_URL_CS9}/${COMPOSE_ID_CS9}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION_CS9=$(curl -s "${COMPOSE_URL_CS9}/${COMPOSE_ID_CS9}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION_CS9=$(curl -s "${COMPOSE_URL_CS9}/${COMPOSE_ID_CS9}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "::set-output name=osbuild_version_cs9::$OSBUILD_VERSION_CS9"
+              echo "::set-output name=osbuild_composer_version_cs9::$OSBUILD_COMPOSER_VERSION_CS9"
+              echo "::set-output name=composer_cli_version_cs9::$COMPOSER_CLI_VERSION_CS9"
+          else
+              echo "::set-output name=osbuild_version_cs9::Null"
+              echo "::set-output name=osbuild_composer_version_cs9::Null"
+              echo "::set-output name=composer_cli_version_cs9::Null"
+          fi
+
           echo "::set-output name=cs9_compose::$COMPOSE_ID_CS9"
 
     outputs:
       cs8_compose: ${{ steps.check_compose_id_cs8.outputs.cs8_compose }}
       cs9_compose: ${{ steps.check_compose_id_cs9.outputs.cs9_compose }}
+      osbuild_version_cs8: ${{ steps.check_compose_id_cs8.outputs.osbuild_version_cs8 }}
+      osbuild_composer_version_cs8: ${{ steps.check_compose_id_cs8.outputs.osbuild_composer_version_cs8 }}
+      composer_cli_version_cs8: ${{ steps.check_compose_id_cs8.outputs.composer_cli_version_cs8 }}
+      osbuild_version_cs9: ${{ steps.check_compose_id_cs9.outputs.osbuild_version_cs9 }}
+      osbuild_composer_version_cs9: ${{ steps.check_compose_id_cs9.outputs.osbuild_composer_version_cs9 }}
+      composer_cli_version_cs9: ${{ steps.check_compose_id_cs9.outputs.composer_cli_version_cs9 }}
 
   centos-stream-8:
     needs: check-compose
@@ -92,6 +126,10 @@ jobs:
             CentOS Stream 8 compose ${{ needs.check-compose.outputs.cs8_compose }}
             - Date: ${{ steps.date.outputs.date }}
             - Compose URL: "${{ env.COMPOSE_URL_CS8 }}/${{ needs.check-compose.outputs.cs8_compose }}"
+            - Packages:
+                - ${{ needs.check-compose.outputs.osbuild_version_cs8 }}
+                - ${{ needs.check-compose.outputs.osbuild_composer_version_cs8 }}
+                - ${{ needs.check-compose.outputs.composer_cli_version_cs8 }}
 
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
@@ -150,6 +188,10 @@ jobs:
             CentOS Stream 9 compose ${{ needs.check-compose.outputs.cs9_compose }}
             - Date: ${{ steps.date.outputs.date }}
             - Compose URL: "${{ env.COMPOSE_URL_CS9 }}/${{ needs.check-compose.outputs.cs9_compose }}"
+            - Packages:
+                - ${{ needs.check-compose.outputs.osbuild_version_cs9 }}
+                - ${{ needs.check-compose.outputs.osbuild_composer_version_cs9 }}
+                - ${{ needs.check-compose.outputs.composer_cli_version_cs9 }}
 
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'

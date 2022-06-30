@@ -27,9 +27,26 @@ jobs:
           if [[ " ${TESTED_COMPOSE[*]} " =~ "$COMPOSE_ID" ]]; then
               COMPOSE_ID="false"
           fi
+
+          if [[ "$COMPOSE_ID" != "false" ]]; then
+              OSBUILD_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "::set-output name=osbuild_version::$OSBUILD_VERSION"
+              echo "::set-output name=osbuild_composer_version::$OSBUILD_COMPOSER_VERSION"
+              echo "::set-output name=composer_cli_version::$COMPOSER_CLI_VERSION"
+          else
+              echo "::set-output name=osbuild_version::Null"
+              echo "::set-output name=osbuild_composer_version::Null"
+              echo "::set-output name=composer_cli_version::Null"
+          fi
+
           echo "::set-output name=rawhide_compose::$COMPOSE_ID"
     outputs:
       rawhide_compose: ${{ steps.check_compose_id.outputs.rawhide_compose }}
+      osbuild_version: ${{ steps.check_compose_id.outputs.osbuild_version }}
+      osbuild_composer_version: ${{ steps.check_compose_id.outputs.osbuild_composer_version }}
+      composer_cli_version: ${{ steps.check_compose_id.outputs.composer_cli_version }}
 
   fedora-rawhide:
     needs: check-compose
@@ -65,6 +82,10 @@ jobs:
             Fedora rawhide compose ${{ needs.check-compose.outputs.rawhide_compose }}
             - Date: ${{ steps.date.outputs.date }}
             - Compose URL: ${{ env.COMPOSE_URL_rawhide }}
+            - Packages:
+                - ${{ needs.check-compose.outputs.osbuild_version }}
+                - ${{ needs.check-compose.outputs.osbuild_composer_version }}
+                - ${{ needs.check-compose.outputs.composer_cli_version }}
 
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
