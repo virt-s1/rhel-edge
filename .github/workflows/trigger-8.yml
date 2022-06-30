@@ -72,7 +72,7 @@ jobs:
               COMPOSER_CLI_VERSION_87=$(curl -s "${COMPOSE_URL_87}/${COMPOSE_ID_87}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
               echo "::set-output name=osbuild_version_87::$OSBUILD_VERSION_87"
               echo "::set-output name=osbuild_composer_version_87::$OSBUILD_COMPOSER_VERSION_87"
-              echo "::set-output name=composer_cli_version_86::$COMPOSER_CLI_VERSION_87"
+              echo "::set-output name=composer_cli_version_87::$COMPOSER_CLI_VERSION_87"
           else
               echo "::set-output name=osbuild_version_87::Null"
               echo "::set-output name=osbuild_composer_version_87::Null"
