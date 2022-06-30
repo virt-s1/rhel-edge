@@ -2,6 +2,7 @@
 name: RHEL 9 compose trigger
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '0 2 * * *'
     - cron: '0 14 * * *'

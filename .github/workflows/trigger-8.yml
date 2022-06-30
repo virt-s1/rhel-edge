@@ -2,6 +2,7 @@
 name: RHEL 8 compose trigger
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '0 1 * * *'
     - cron: '0 13 * * *'
