@@ -33,7 +33,7 @@ source /etc/os-release
 
 # set locale to en_US.UTF-8
 sudo dnf install -y glibc-langpack-en
-localectl set-locale LANG=en_US.UTF-8
+sudo localectl set-locale LANG=en_US.UTF-8
 
 # Install openshift client
 curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
