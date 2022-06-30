@@ -18,14 +18,14 @@ Send a pull request and add comment according to the following table:
 
 | Comment Content | Triggered Tests |
 | --------------- | --------------- |
-| `/test-rhel-8-6`/`/test-rhel-8-7`/`/test-cs8`  | `ostree.sh`, `ostree-ng.sh`, `ostree-raw-image.sh`, `ostree-simplified-installer.sh`, `ostree-rebase.sh` |
-| `/test-rhel-9-0`/`/test-rhel-9-1`/`/test-cs9`  | `ostree.sh`, `ostree-ng.sh`, `ostree-raw-image.sh`, `ostree-simplified-installer.sh`, `ostree-8-to-9.sh` |
-| `/test-rhel-8-6-virt`/`/test-rhel-8-7-virt`/`/test-rhel-9-0-virt`/`/test-rhel-9-1-virt`/`/test-cs8-virt`/`/test-cs9-virt`/`test-rawhide-virt` | `ostree.sh` |
-| `/test-rhel-8-6-ng`/`/test-rhel-8-7-ng`/`/test-rhel-9-0-ng`/`/test-rhel-9-1-ng`/`/test-cs8-ng`/`/test-cs9-ng`/`test-rawhide-ng` | `ostree-ng.sh` |
-| `/test-rhel-8-6-raw`/`/test-rhel-8-7-raw`/`/test-rhel-9-0-raw`/`/test-rhel-9-1-raw`/`/test-cs8-raw`/`/test-cs9-raw` | `ostree-raw-image.sh` |
-| `/test-rhel-8-6-simplified`/`/test-rhel-8-7-simplified`/`/test-rhel-9-0-simplified`/`/test-rhel-9-1-simplified`/`/test-cs8-simplified`/`/test-cs9-simplified` | `ostree-simplified-installer.sh` |
-| `/test-rhel-8-6-rebase`/`/test-rhel-8-7-rebase`/`/test-cs8-rebase` | `ostree-rebase.sh` |
-| `/test-rhel-9-0-8to9`/`/test-rhel-9-1-8to9`/`/test-cs9-8to9` | `ostree-8-to-9.sh` |
+| `/test-rhel-8-6`, `/test-rhel-8-7`, `/test-cs8`  | `ostree.sh`, `ostree-ng.sh`, `ostree-raw-image.sh`, `ostree-simplified-installer.sh`, `ostree-rebase.sh` |
+| `/test-rhel-9-0`, `/test-rhel-9-1`, `/test-cs9`  | `ostree.sh`, `ostree-ng.sh`, `ostree-raw-image.sh`, `ostree-simplified-installer.sh`, `ostree-8-to-9.sh` |
+| `/test-rhel-8-6-virt`, `/test-rhel-8-7-virt`, `/test-rhel-9-0-virt`, `/test-rhel-9-1-virt`, `/test-cs8-virt`, `/test-cs9-virt`, `test-rawhide-virt` | `ostree.sh` |
+| `/test-rhel-8-6-ng`, `/test-rhel-8-7-ng`, `/test-rhel-9-0-ng`, `/test-rhel-9-1-ng`, `/test-cs8-ng`, `/test-cs9-ng`, `test-rawhide-ng` | `ostree-ng.sh` |
+| `/test-rhel-8-6-raw`, `/test-rhel-8-7-raw`, `/test-rhel-9-0-raw`, `/test-rhel-9-1-raw`, `/test-cs8-raw`, `/test-cs9-raw` | `ostree-raw-image.sh` |
+| `/test-rhel-8-6-simplified`, `/test-rhel-8-7-simplified`, `/test-rhel-9-0-simplified`, `/test-rhel-9-1-simplified`, `/test-cs8-simplified`, `/test-cs9-simplified` | `ostree-simplified-installer.sh` |
+| `/test-rhel-8-6-rebase`, `/test-rhel-8-7-rebase`, `/test-cs8-rebase` | `ostree-rebase.sh` |
+| `/test-rhel-9-0-8to9`, `/test-rhel-9-1-8to9`, `/test-cs9-8to9` | `ostree-8-to-9.sh` |
 
 ## rhel-edge repository CI
 
