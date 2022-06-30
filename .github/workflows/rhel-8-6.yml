@@ -71,15 +71,8 @@ jobs:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
-      - name: Checkout rhel-edge repository
-        uses: actions/checkout@v3
-        with:
-          repository: virt-s1/rhel-edge
-          path: rhel-edge
-
       - name: run ostree.sh
         run: ./ostree.sh
-        working-directory: ./rhel-edge
 
       - name: Set result status
         if: always()
@@ -91,6 +84,13 @@ jobs:
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: edge-commit-cs8
+          path: |
+            *.json
+            *.log
 
   edge-installer-86:
     needs: pr-info
@@ -118,15 +118,8 @@ jobs:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
-      - name: Checkout rhel-edge repository
-        uses: actions/checkout@v3
-        with:
-          repository: virt-s1/rhel-edge
-          path: rhel-edge
-
       - name: run ostree-ng.sh
         run: ./ostree-ng.sh
-        working-directory: ./rhel-edge
         env:
           OCP4_TOKEN: ${{ secrets.OCP4_TOKEN }}
           QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
@@ -142,6 +135,13 @@ jobs:
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: edge-commit-cs8
+          path: |
+            *.json
+            *.log
 
   edge-raw-image-86:
     needs: pr-info
@@ -169,15 +169,8 @@ jobs:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
-      - name: Checkout rhel-edge repository
-        uses: actions/checkout@v3
-        with:
-          repository: virt-s1/rhel-edge
-          path: rhel-edge
-
       - name: run ostree-raw-image.sh
         run: ./ostree-raw-image.sh
-        working-directory: ./rhel-edge
 
       - name: Set result status
         if: always()
@@ -189,6 +182,13 @@ jobs:
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: edge-commit-cs8
+          path: |
+            *.json
+            *.log
 
   edge-simplified-86:
     needs: pr-info
@@ -216,15 +216,8 @@ jobs:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
-      - name: Checkout rhel-edge repository
-        uses: actions/checkout@v3
-        with:
-          repository: virt-s1/rhel-edge
-          path: rhel-edge
-
       - name: run ostree-simplified-installer.sh
         run: ./ostree-simplified-installer.sh
-        working-directory: ./rhel-edge
 
       - name: Set result status
         if: always()
@@ -236,6 +229,13 @@ jobs:
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: edge-commit-cs8
+          path: |
+            *.json
+            *.log
 
   edge-rebase-86:
     needs: pr-info
@@ -263,15 +263,8 @@ jobs:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
-      - name: Checkout rhel-edge repository
-        uses: actions/checkout@v3
-        with:
-          repository: virt-s1/rhel-edge
-          path: rhel-edge
-
       - name: run ostree-rebase.sh
         run: ./ostree-rebase.sh
-        working-directory: ./rhel-edge
 
       - name: Set result status
         if: always()
@@ -283,3 +276,10 @@ jobs:
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: edge-commit-cs8
+          path: |
+            *.json
+            *.log
