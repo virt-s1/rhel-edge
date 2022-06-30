@@ -164,3 +164,5 @@ sudo composer-cli sources list
 for SOURCE in $(sudo composer-cli sources list); do
     sudo composer-cli sources info "$SOURCE"
 done
+
+echo "pr test passed!"
