@@ -1,0 +1,54 @@
+---
+name: Clear all compose files
+
+on:
+  workflow_dispatch:
+  schedule:
+    # every two weeks
+    - cron: '0 0 */15 * *'
+
+jobs:
+  clear-compose-file:
+    if: github.repository == 'virt-s1/rhel-edge'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Shorten compose file if it's long than 10 lines
+        run: |
+          for filename in compose/compose.*; do
+              len=$(wc -l < $filename)
+              if (( $len > 10 )); then
+                  cut_len=$(( $len - 10 ))
+                  sed -i -e "1,${cut_len}d" $filename
+              fi
+          done
+
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Clear compose file - ${{ steps.date.outputs.date }}"
+          committer: cloudkitebot <henrywangxf1@gmail.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: cpr
+          branch-suffix: random
+          delete-branch: true
+          title: "Clear compose file - ${{ steps.date.outputs.date }}"
+          labels: needs-review,auto-merge
+          body: |
+            Clear compose file
+            - Date: ${{ steps.date.outputs.date }}
+
+      - name: Enable Pull Request Automerge
+        if: steps.cpr.outputs.pull-request-operation == 'created'
+        uses: peter-evans/enable-pull-request-automerge@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: rebase

@@ -1,5 +1,5 @@
 ---
-name: Run Edge Test on RHEL 8.6
+name: Run Edge Test on CentOS Stream 8
 
 on:
   issue_comment:
@@ -9,12 +9,12 @@ on:
 jobs:
   pr-info:
     if: ${{ github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-rhel-8-6') ||
-            endsWith(github.event.comment.body, '/test-rhel-8-6-virt') ||
-            endsWith(github.event.comment.body, '/test-rhel-8-6-ng') ||
-            endsWith(github.event.comment.body, '/test-rhel-8-6-raw') ||
-            endsWith(github.event.comment.body, '/test-rhel-8-6-simplified') ||
-            endsWith(github.event.comment.body, '/test-rhel-8-6-rebase')) }}
+            (endsWith(github.event.comment.body, '/test-cs8') ||
+            endsWith(github.event.comment.body, '/test-cs8-virt') ||
+            endsWith(github.event.comment.body, '/test-cs8-ng') ||
+            endsWith(github.event.comment.body, '/test-cs8-raw') ||
+            endsWith(github.event.comment.body, '/test-cs8-simplified') ||
+            endsWith(github.event.comment.body, '/test-cs8-rebase')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Query author repository permissions
@@ -45,14 +45,14 @@ jobs:
       allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
       sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
 
-  edge-commit-86:
+  edge-commit-cs8:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-rhel-8-6') ||
-            endsWith(github.event.comment.body, '/test-rhel-8-6-virt')) }}
-    runs-on: [kite, x86_64, rhos-01, rhel-8-6, large]
+            (endsWith(github.event.comment.body, '/test-cs8') ||
+            endsWith(github.event.comment.body, '/test-cs8-virt')) }}
+    runs-on: [kite, x86_64, gcp, centos-stream-8, large]
     env:
-      STATUS_NAME: edge-commit-8.6
+      STATUS_NAME: edge-commit-cs8
 
     steps:
       - name: Create in-progress status
@@ -92,14 +92,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  edge-installer-86:
+  edge-installer-cs8:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-rhel-8-6') ||
-            endsWith(github.event.comment.body, '/test-rhel-8-6-ng')) }}
-    runs-on: [kite, x86_64, rhos-01, rhel-8-6, large]
+            (endsWith(github.event.comment.body, '/test-cs8') ||
+            endsWith(github.event.comment.body, '/test-cs8-ng')) }}
+    runs-on: [kite, x86_64, gcp, centos-stream-8, large]
     env:
-      STATUS_NAME: edge-installer-8.6
+      STATUS_NAME: edge-installer-cs8
 
     steps:
       - name: Create in-progress status
@@ -128,7 +128,7 @@ jobs:
         run: ./ostree-ng.sh
         working-directory: ./rhel-edge
         env:
-          OCP4_TOKEN: ${{ secrets.OCP4_TOKEN }}
+          CRC_PULL_SECRET_FILE: ${{ secrets.CRC_PULL_SECRET_FILE }}
           QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
           QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
 
@@ -143,14 +143,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  edge-raw-image-86:
+  edge-raw-image-cs8:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-rhel-8-6') ||
-            endsWith(github.event.comment.body, '/test-rhel-8-6-raw')) }}
-    runs-on: [kite, x86_64, rhos-01, rhel-8-6, large]
+            (endsWith(github.event.comment.body, '/test-cs8') ||
+            endsWith(github.event.comment.body, '/test-cs8-raw')) }}
+    runs-on: [kite, x86_64, gcp, centos-stream-8, large]
     env:
-      STATUS_NAME: edge-raw-image-8.6
+      STATUS_NAME: edge-raw-image-cs8
 
     steps:
       - name: Create in-progress status
@@ -190,14 +190,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  edge-simplified-86:
+  edge-simplified-cs8:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-rhel-8-6') ||
-            endsWith(github.event.comment.body, '/test-rhel-8-6-simplified')) }}
-    runs-on: [kite, x86_64, rhos-01, rhel-8-6, large]
+            (endsWith(github.event.comment.body, '/test-cs8') ||
+            endsWith(github.event.comment.body, '/test-cs8-simplified')) }}
+    runs-on: [kite, x86_64, gcp, centos-stream-8, large]
     env:
-      STATUS_NAME: edge-simplified-installer-8.6
+      STATUS_NAME: edge-simplified-installer-cs8
 
     steps:
       - name: Create in-progress status
@@ -237,14 +237,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  edge-rebase-86:
+  edge-rebase-cs8:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-rhel-8-6') ||
-            endsWith(github.event.comment.body, '/test-rhel-8-6-rebase')) }}
-    runs-on: [kite, x86_64, rhos-01, rhel-8-6, large]
+            (endsWith(github.event.comment.body, '/test-cs8') ||
+            endsWith(github.event.comment.body, '/test-cs8-rebase')) }}
+    runs-on: [kite, x86_64, gcp, centos-stream-8, large]
     env:
-      STATUS_NAME: edge-rebase-8.6
+      STATUS_NAME: edge-rebase-cs8
 
     steps:
       - name: Create in-progress status

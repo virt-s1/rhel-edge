@@ -1,0 +1,89 @@
+---
+name: Fedora compose trigger
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+    - cron: '0 16 * * *'
+
+env:
+  COMPOSE_URL_rawhide: https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide
+
+jobs:
+  check-compose:
+    # Do not run this job on any fork repos
+    if: github.repository == 'virt-s1/rhel-edge'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check if fedora rawhide compose is new
+        id: check_compose_id
+        run: |
+          curl -s "${COMPOSE_URL_rawhide}/COMPOSE_ID" --output COMPOSE_ID
+          COMPOSE_ID=$(cat COMPOSE_ID)
+          TESTED_COMPOSE=( $( cat compose/compose.fedora ) )
+          if [[ " ${TESTED_COMPOSE[*]} " =~ "$COMPOSE_ID" ]]; then
+              COMPOSE_ID="false"
+          fi
+          echo "::set-output name=rawhide_compose::$COMPOSE_ID"
+    outputs:
+      rawhide_compose: ${{ steps.check_compose_id.outputs.rawhide_compose }}
+
+  fedora-rawhide:
+    needs: check-compose
+    if: ${{ needs.check-compose.outputs.rawhide_compose != 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Add new compose id in compose.fedora
+        run: |
+          compose_id="${{ needs.check-compose.outputs.rawhide_compose }}"
+          echo $compose_id >> compose/compose.fedora
+          cat compose/compose.fedora
+
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "${{ needs.check-compose.outputs.rawhide_compose }} - ${{ steps.date.outputs.date }}"
+          committer: cloudkitebot <henrywangxf1@gmail.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: cpr
+          branch-suffix: random
+          delete-branch: true
+          title: "${{ needs.check-compose.outputs.rawhide_compose }} - ${{ steps.date.outputs.date }}"
+          labels: needs-review,auto-merge,fedora-rawhide
+          body: |
+            Fedora rawhide compose ${{ needs.check-compose.outputs.rawhide_compose }}
+            - Date: ${{ steps.date.outputs.date }}
+            - Compose URL: ${{ env.COMPOSE_URL_rawhide }}
+
+      - name: Enable Pull Request Automerge
+        if: steps.cpr.outputs.pull-request-operation == 'created'
+        uses: peter-evans/enable-pull-request-automerge@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: rebase
+
+      - name: Add a comment to trigger test workflow
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          token: ${{ secrets.PAT }}
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          body: /test-rawhide
+
+      - name: Create a project card to track compose test result
+        uses: peter-evans/create-or-update-project-card@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          project-name: Fedora Compose Test
+          column-name: Fedora-rawhide
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}

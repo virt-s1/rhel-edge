@@ -1,14 +1,14 @@
 ---
-name: RHEL 8 compose trigger
+name: RHEL 9 compose trigger
 
 on:
   schedule:
-    - cron: '0 1 * * *'
-    - cron: '0 13 * * *'
+    - cron: '0 2 * * *'
+    - cron: '0 14 * * *'
 
 env:
-  COMPOSE_URL_86: http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/updates/RHEL-8
-  COMPOSE_URL_87: http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8
+  COMPOSE_URL_90: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/updates/RHEL-9
+  COMPOSE_URL_91: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9
 
 jobs:
   check-compose:
@@ -18,56 +18,56 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Check RHEL 8.6 compose
-        id: check_compose_id_86
+      - name: Check RHEL 9.0 compose
+        id: check_compose_id_90
         run: |
-          curl -s ${COMPOSE_URL_86}/latest-RHEL-8.6.0/STATUS --output STATUS_86
-          STATUS_86=$(cat STATUS_86)
-          if [[ "$STATUS_86" == "FINISHED" ]]; then
-              curl -s ${COMPOSE_URL_86}/latest-RHEL-8.6.0/COMPOSE_ID --output COMPOSE_ID_86
-              COMPOSE_ID_86=$(cat COMPOSE_ID_86)
-              TESTED_COMPOSE_86=( $( cat compose/compose.86 ) )
-              if [[ " ${TESTED_COMPOSE_86[*]} " =~ "$COMPOSE_ID_86" ]]; then
-                  COMPOSE_ID_86="false"
+          curl -s ${COMPOSE_URL_90}/latest-RHEL-9.0.0/STATUS --output STATUS_90
+          STATUS_90=$(cat STATUS_90)
+          if [[ "$STATUS_90" == "FINISHED" ]]; then
+              curl -s ${COMPOSE_URL_90}/latest-RHEL-9.0.0/COMPOSE_ID --output COMPOSE_ID_90
+              COMPOSE_ID_90=$(cat COMPOSE_ID_90)
+              TESTED_COMPOSE_90=( $( cat compose/compose.90 ) )
+              if [[ " ${TESTED_COMPOSE_90[*]} " =~ "$COMPOSE_ID_90" ]]; then
+                  COMPOSE_ID_90="false"
               fi
           else
-              COMPOSE_ID_86="false"
+              COMPOSE_ID_90="false"
           fi
-          echo "::set-output name=rhel86_compose::$COMPOSE_ID_86"
+          echo "::set-output name=rhel90_compose::$COMPOSE_ID_90"
 
-      - name: Check RHEL 8.7 compose
-        id: check_compose_id_87
+      - name: Check RHEL 9.1 compose
+        id: check_compose_id_91
         run: |
-          curl -s ${COMPOSE_URL_87}/latest-RHEL-8.7.0/STATUS --output STATUS_87
-          STATUS_87=$(cat STATUS_87)
-          if [[ "$STATUS_87" == "FINISHED" ]]; then
-              curl -s ${COMPOSE_URL_87}/latest-RHEL-8.7.0/COMPOSE_ID --output COMPOSE_ID_87
-              COMPOSE_ID_87=$(cat COMPOSE_ID_87)
-              TESTED_COMPOSE_87=( $( cat compose/compose.87 ) )
-              if [[ " ${TESTED_COMPOSE_87[*]} " =~ "$COMPOSE_ID_87" ]]; then
-                  COMPOSE_ID_87="false"
+          curl -s ${COMPOSE_URL_91}/latest-RHEL-9.1.0/STATUS --output STATUS_91
+          STATUS_91=$(cat STATUS_91)
+          if [[ "$STATUS_91" == "FINISHED" ]]; then
+              curl -s ${COMPOSE_URL_91}/latest-RHEL-9.1.0/COMPOSE_ID --output COMPOSE_ID_91
+              COMPOSE_ID_91=$(cat COMPOSE_ID_91)
+              TESTED_COMPOSE_91=( $( cat compose/compose.91 ) )
+              if [[ " ${TESTED_COMPOSE_91[*]} " =~ "$COMPOSE_ID_91" ]]; then
+                  COMPOSE_ID_91="false"
               fi
           else
-              COMPOSE_ID_87="false"
+              COMPOSE_ID_91="false"
           fi
-          echo "::set-output name=rhel87_compose::$COMPOSE_ID_87"
+          echo "::set-output name=rhel91_compose::$COMPOSE_ID_91"
 
     outputs:
-      rhel86_compose: ${{ steps.check_compose_id_86.outputs.rhel86_compose }}
-      rhel87_compose: ${{ steps.check_compose_id_87.outputs.rhel87_compose }}
+      rhel90_compose: ${{ steps.check_compose_id_90.outputs.rhel90_compose }}
+      rhel91_compose: ${{ steps.check_compose_id_91.outputs.rhel91_compose }}
 
-  rhel-8-6:
+  rhel-9-0:
     needs: check-compose
-    if: ${{ needs.check-compose.outputs.rhel86_compose != 'false' }}
+    if: ${{ needs.check-compose.outputs.rhel90_compose != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - name: Add new compose id in compose.86
+      - name: Add new compose id in compose.90
         run: |
-          compose_id="${{ needs.check-compose.outputs.rhel86_compose }}"
-          echo $compose_id >> compose/compose.86
-          cat compose/compose.86
+          compose_id="${{ needs.check-compose.outputs.rhel90_compose }}"
+          echo $compose_id >> compose/compose.90
+          cat compose/compose.90
 
       - name: Get current date
         id: date
@@ -78,18 +78,18 @@ jobs:
         uses: peter-evans/create-pull-request@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "${{ needs.check-compose.outputs.rhel86_compose }} - ${{ steps.date.outputs.date }}"
+          commit-message: "${{ needs.check-compose.outputs.rhel90_compose }} - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "${{ needs.check-compose.outputs.rhel86_compose }} - ${{ steps.date.outputs.date }}"
-          labels: needs-review,auto-merge,RHEL-8.6.0
+          title: "${{ needs.check-compose.outputs.rhel90_compose }} - ${{ steps.date.outputs.date }}"
+          labels: needs-review,auto-merge,RHEL-9.0.0
           body: |
-            RHEL 8.6 compose ${{ needs.check-compose.outputs.rhel86_compose }}
+            RHEL 9.0 compose ${{ needs.check-compose.outputs.rhel90_compose }}
             - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: "${{ env.COMPOSE_URL_86 }}/${{ needs.check-compose.outputs.rhel86_compose }}"
+            - Compose URL: "${{ env.COMPOSE_URL_90 }}/${{ needs.check-compose.outputs.rhel90_compose }}"
 
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
@@ -104,28 +104,28 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-          body: /test-rhel-8-6
+          body: /test-rhel-9-0
 
       - name: Create a project card to track compose test result
         uses: peter-evans/create-or-update-project-card@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: RHEL Compose Test
-          column-name: RHEL-8-6
+          column-name: RHEL-9-0
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
 
-  rhel-8-7:
+  rhel-9-1:
     needs: check-compose
-    if: ${{ needs.check-compose.outputs.rhel87_compose != 'false' }}
+    if: ${{ needs.check-compose.outputs.rhel91_compose != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - name: Add new compose id in compose.87
+      - name: Add new compose id in compose.91
         run: |
-          compose_id="${{ needs.check-compose.outputs.rhel87_compose }}"
-          echo $compose_id >> compose/compose.87
-          cat compose/compose.87
+          compose_id="${{ needs.check-compose.outputs.rhel91_compose }}"
+          echo $compose_id >> compose/compose.91
+          cat compose/compose.91
 
       - name: Get current date
         id: date
@@ -136,18 +136,18 @@ jobs:
         uses: peter-evans/create-pull-request@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "${{ needs.check-compose.outputs.rhel87_compose }} - ${{ steps.date.outputs.date }}"
+          commit-message: "${{ needs.check-compose.outputs.rhel91_compose }} - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "${{ needs.check-compose.outputs.rhel87_compose }} - ${{ steps.date.outputs.date }}"
-          labels: needs-review,auto-merge,RHEL-8.7.0
+          title: "${{ needs.check-compose.outputs.rhel91_compose }} - ${{ steps.date.outputs.date }}"
+          labels: needs-review,auto-merge,RHEL-9.1.0
           body: |
-            RHEL 8.7 compose ${{ needs.check-compose.outputs.rhel87_compose }}
+            RHEL 9.1 compose ${{ needs.check-compose.outputs.rhel91_compose }}
             - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: "${{ env.COMPOSE_URL_87 }}/${{ needs.check-compose.outputs.rhel87_compose }}"
+            - Compose URL: "${{ env.COMPOSE_URL_91 }}/${{ needs.check-compose.outputs.rhel91_compose }}"
 
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
@@ -162,12 +162,12 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-          body: /test-rhel-8-7
+          body: /test-rhel-9-1
 
       - name: Create a project card to track compose test result
         uses: peter-evans/create-or-update-project-card@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: RHEL Compose Test
-          column-name: RHEL-8-7
+          column-name: RHEL-9-1
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
