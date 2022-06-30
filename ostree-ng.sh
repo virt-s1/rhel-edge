@@ -386,7 +386,7 @@ sudo rm -f "$IMAGE_FILENAME"
 greenprint "Running stage repo in OCP4"
 if [[ $ON_GCP == "true" ]]; then
     setup_crc
-    eval $(crc oc-env)
+    eval "$(crc oc-env)"
     oc login https://api.crc.testing:6443 -u kubeadmin -p foobar
 else
     oc login --token="${OCP4_TOKEN}" --server=https://api.ocp-c1.prod.psi.redhat.com:6443 -n rhel-edge --insecure-skip-tls-verify
