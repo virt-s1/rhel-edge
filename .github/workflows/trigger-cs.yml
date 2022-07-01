@@ -121,7 +121,7 @@ jobs:
           branch-suffix: random
           delete-branch: true
           title: "${{ needs.check-compose.outputs.cs8_compose }} - ${{ steps.date.outputs.date }}"
-          labels: auto-merge,centos-stream-8
+          labels: auto-merge,CentOS-Stream-8
           body: |
             CentOS Stream 8 compose ${{ needs.check-compose.outputs.cs8_compose }}
             - Date: ${{ steps.date.outputs.date }}
@@ -183,7 +183,7 @@ jobs:
           branch-suffix: random
           delete-branch: true
           title: "${{ needs.check-compose.outputs.cs9_compose }} - ${{ steps.date.outputs.date }}"
-          labels: auto-merge,centos-stream-9
+          labels: auto-merge,CentOS-Stream-9
           body: |
             CentOS Stream 9 compose ${{ needs.check-compose.outputs.cs9_compose }}
             - Date: ${{ steps.date.outputs.date }}
