@@ -8,7 +8,8 @@ RHEL for Edge test from QE is more like an integration test. The test flow align
 
 1. RHEL for Edge image building with [osbuild-composer](https://github.com/osbuild/osbuild-composer.git)
 
-    - Build image at OpenStack VM - x86_64
+    - Build RHEL 8 and RHEL 9 x86_64 images at OpenStack VM
+    - Build CentOS Stream 8 and CentOS Stream 9 x86_64 images at Google Cloud VM
 
 2. RHEL for Edge image installation and upgrade
 
@@ -47,33 +48,23 @@ Considering Upstream CI environment and test duration, the Upstream CI only cove
 
 ### Downstream CI
 
-The Downstream CI covers both virtualization and bare metal installation scenarios. Downstream CI is hosted by [Jenkins](https://jenkins-cloudci-prod-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/job/rhel-edge/job/rhel_edge_x86_64/) and triggered by RHEL 8 nightly compose.
+[RHEL 8, RHEL 9, CentOS Stream 8 and CentOS Stream 9 report dashboard](https://github.com/virt-s1/rhel-edge/projects/1)
 
-The test result will be sent to Google Chat Room [RHEL-Edge Nightly CI Bot](https://chat.google.com/u/0/room/AAAAvEUnS8s). If you're interested downstream RHEL for Edge test result, please join this room.
+[Fedora rawhide report dashboard](https://github.com/virt-s1/rhel-edge/projects/2)
 
 ### CI for this repository
 
-CI for this repository is to test `test code`. It's triggered by PR in this repository. Any changes for `test code` has to be pass all tests of CI before they are merged into master. CI for this repository is hosted by [Jenkins](https://jenkins-cloudci-prod-virt-qe-3rd.apps.ocp4.prod.psi.redhat.com/job/Virt-S1/job/rhel-edge/view/change-requests/).
+CI for this repository is to test `test code`. It's triggered by PR in this repository. Any changes for `test code` has to be pass all tests of CI before they are merged into master.
 
 Test of this CI includes:
 
 1. [Shellcheck](https://www.shellcheck.net/): running as Github Action
 2. [Yaml lint](https://yamllint.readthedocs.io/en/stable/): running as Github Action
-3. Virt and bare metal tests: running on Jenkins
+3. [Edge tests](https://github.com/virt-s1/rhel-edge/blob/main/CI.md#rhel-for-edge-ci): running as Github Action
 
-### Daily job to build and host OSTree Repository
+### Test Scenario
 
-RHEL for Edge has a daily job to build container image and run it on PSI ocp-c1.
-
-## RHEL-Edge Test Scenarios
-
-1. Build RHEL Edge image on Openstack VM and install it on nested VM. Test covers both BIOS and UEFI installation.
-
-2. Build RHEL Edge image on OpenStack VM and install it on bare metal machine.
-
-### Scenario 1
-
-Test suites in scenario 1:
+Test suites in scenario:
 
 1. [`ostree.sh`](ostree.sh): rhel-edge-commit/edge-commit(tar) image type test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
 2. [`ostree-ng.sh`](ostree-ng.sh): rhel-edge-container/edge-container(tar) and rhel-edge-installer/edge-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
@@ -98,42 +89,14 @@ Test suites in scenario 1:
     - libvirt-daemon-kvm
     - virt-install
 
-### Scenario 2
-
-Test suite in scenario 2:
-
-1. [`ostree-bare-ng.yml`](ostree-bare-ng.yml): rhel-edge-container/edge-container(tar) image type test
-
-In this scenario, environment setup and test running are based on Ansible playbook.
-
-1. The test runs on beaker because test needs bare metal machine. So keytab file is needed for beaker authentication.
-2. The RHEL Edge image will be built on OpenStack VM, the encrypted OpenStack credential should be provided.
-
-#### Test environment prpare
-
-1. Required packages.
-
-    - ansible
-    - python3-lxml
-    - openstacksdk(pip)
-
-2. Environment.
-
-    - OpenStack credentials
-    - Kerberos keytab file required by beaker
-
 ## Run Test
-
-### Scenario 1
 
     $ ./ostree.sh
     $ OCP4_TOKEN=abcdefg QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./ostree-ng.sh
     $ ./ostree-raw-image.sh
     $ ./ostree-simplified-installer.sh
-
-### Scenario 2
-
-    $ ARCH=x86_64 TEST_OS=rhel-9-0 ansible-playbook -v -i inventory ostree-bare-ng.yml
+    $ ./ostree-rebase.sh
+    $ ./ostree-8-to-9.sh
 
 ## Configuration
 
