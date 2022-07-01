@@ -77,7 +77,7 @@ jobs:
           branch-suffix: random
           delete-branch: true
           title: "${{ needs.check-compose.outputs.rawhide_compose }} - ${{ steps.date.outputs.date }}"
-          labels: needs-review,auto-merge,fedora-rawhide
+          labels: auto-merge,fedora-rawhide
           body: |
             Fedora rawhide compose ${{ needs.check-compose.outputs.rawhide_compose }}
             - Date: ${{ steps.date.outputs.date }}

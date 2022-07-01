@@ -120,7 +120,7 @@ jobs:
           branch-suffix: random
           delete-branch: true
           title: "${{ needs.check-compose.outputs.rhel90_compose }} - ${{ steps.date.outputs.date }}"
-          labels: needs-review,auto-merge,RHEL-9.0.0
+          labels: auto-merge,RHEL-9.0.0
           body: |
             RHEL 9.0 compose ${{ needs.check-compose.outputs.rhel90_compose }}
             - Date: ${{ steps.date.outputs.date }}
@@ -182,7 +182,7 @@ jobs:
           branch-suffix: random
           delete-branch: true
           title: "${{ needs.check-compose.outputs.rhel91_compose }} - ${{ steps.date.outputs.date }}"
-          labels: needs-review,auto-merge,RHEL-9.1.0
+          labels: auto-merge,RHEL-9.1.0
           body: |
             RHEL 9.1 compose ${{ needs.check-compose.outputs.rhel91_compose }}
             - Date: ${{ steps.date.outputs.date }}
