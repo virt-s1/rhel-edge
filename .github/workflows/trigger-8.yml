@@ -5,7 +5,9 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 1 * * *'
+    - cron: '0 7 * * *'
     - cron: '0 13 * * *'
+    - cron: '0 19 * * *'
 
 env:
   COMPOSE_URL_86: http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/updates/RHEL-8
