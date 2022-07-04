@@ -48,7 +48,7 @@ jobs:
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
             (endsWith(github.event.comment.body, '/test-rawhide') ||
             endsWith(github.event.comment.body, '/test-rawhide-virt')) }}
-    runs-on: [kite, x86_64, rhos-01, fedora-rawhide, large]
+    runs-on: [kite, x86_64, gcp, fedora-rawhide, large]
     env:
       STATUS_NAME: iot-commit-rawhide
 
@@ -69,7 +69,8 @@ jobs:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
-      - run: echo "Run ostree.sh script"
+      - name: run ostree.sh
+        run: ./ostree.sh
 
       - name: Set result status
         if: always()
@@ -82,80 +83,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  iot-installer-rawhide:
-    needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-rawhide') ||
-            endsWith(github.event.comment.body, '/test-rawhide-ng')) }}
-    runs-on: [kite, x86_64, rhos-01, fedora-rawhide, large]
-    env:
-      STATUS_NAME: iot-installer-rawhide
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
+      - uses: actions/upload-artifact@v3
         with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Clone repository
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.pr-info.outputs.sha }}
-          fetch-depth: 0
-
-      - run: echo "Run ostree-ng.sh script"
-
-      - name: Set result status
-        if: always()
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: ${{ job.status }}
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  iot-rebase-rawhide:
-    needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-rawhide') ||
-            endsWith(github.event.comment.body, '/test-rawhide-rebase')) }}
-    runs-on: [kite, x86_64, rhos-01, fedora-rawhide, large]
-    env:
-      STATUS_NAME: iot-rebase-rawhide
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Clone repository
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.pr-info.outputs.sha }}
-          fetch-depth: 0
-
-      - run: echo "Run ostree-ng.sh script"
-
-      - name: Set result status
-        if: always()
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: ${{ job.status }}
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: iot-commit-rawhide
+          path: |
+            *.json
+            *.log
