@@ -109,7 +109,7 @@ function greenprint {
 greenprint "📥 Download HTTP boot required files"
 sudo rm -rf "${HTTPD_PATH}/httpboot"
 sudo mkdir -p "${HTTPD_PATH}/httpboot"
-REQUIRED_FOLDERS=( "EFI" "images" "isolinux" )
+REQUIRED_FOLDERS=( "EFI" "images" )
 for i in "${REQUIRED_FOLDERS[@]}"
 do
     sudo wget --inet4-only -r --no-parent -e robots=off -nH --cut-dirs="$CUT_DIRS" --reject "index.html*" --reject "boot.iso" "${BOOT_LOCATION}${i}/" -P "${HTTPD_PATH}/httpboot/"
