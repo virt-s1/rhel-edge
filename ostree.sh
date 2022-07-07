@@ -34,6 +34,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_COMMIT="true"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
+        ADD_SSSD="false"
         ;;
     "rhel-8.7")
         OSTREE_REF="rhel/8/${ARCH}/edge"
@@ -41,6 +42,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel8-unknown"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.7.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
+        ADD_SSSD="true"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -48,6 +50,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel9.0"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
+        ADD_SSSD="false"
         ;;
     "rhel-9.1")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -55,18 +58,21 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel9.0"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
+        ADD_SSSD="true"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
         USER_IN_COMMIT="true"
         OS_VARIANT="centos-stream8"
         CUT_DIRS=5
+        ADD_SSSD="true"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         USER_IN_COMMIT="true"
         OS_VARIANT="centos-stream9"
         CUT_DIRS=6
+        ADD_SSSD="true"
         ;;
     "fedora-36")
         IMAGE_TYPE=fedora-iot-commit
@@ -75,6 +81,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="fedora36"
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/36/Everything/x86_64/os/"
         CUT_DIRS=8
+        ADD_SSSD="false"
         ;;
     "fedora-37")
         IMAGE_TYPE=fedora-iot-commit
@@ -83,6 +90,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="fedora37"
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/"
         CUT_DIRS=8
+        ADD_SSSD="false"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -275,10 +283,21 @@ description = "A base ostree image"
 version = "0.0.1"
 modules = []
 groups = []
+
 [[packages]]
 name = "python3"
 version = "*"
 EOF
+
+# For BZ#2088459, RHEL 8.6 and 9.0 will not have new release which fix this issue
+# RHEL 8.6 and 9.0 will not include sssd package in blueprint
+if [[ "${ADD_SSSD}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[packages]]
+name = "sssd"
+version = "*"
+EOF
+fi
 
 # Fedora does not support user configuration in blueprint for fedora-iot-commit image
 if [[ "${USER_IN_COMMIT}" == "true" ]]; then
@@ -414,9 +433,11 @@ description = "An upgrade ostree image"
 version = "0.0.2"
 modules = []
 groups = []
+
 [[packages]]
 name = "python3"
 version = "*"
+
 [[packages]]
 name = "wget"
 version = "*"
@@ -429,6 +450,16 @@ key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCk
 home = "/home/${SSH_USER}/"
 groups = ["wheel"]
 EOF
+
+# For BZ#2088459, RHEL 8.6 and 9.0 will not have new release which fix this issue
+# RHEL 8.6 and 9.0 will not include sssd package in blueprint
+if [[ "${ADD_SSSD}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[packages]]
+name = "sssd"
+version = "*"
+EOF
+fi
 
 # Build upgrade image.
 build_image "$BLUEPRINT_FILE" upgrade
