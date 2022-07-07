@@ -27,6 +27,7 @@ PROD_REPO_URL=http://192.168.100.1/repo
 PROD_REPO_URL_2="${PROD_REPO_URL}/"
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
 ON_GCP="false"
+ANSIBLE_USER="installeruser"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -42,48 +43,34 @@ case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
-        USER_IN_INSTALLER_BP="true"
-        ANSIBLE_USER_FOR_BIOS="installeruser"
         ;;
     "rhel-8.7")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
-        USER_IN_INSTALLER_BP="true"
-        ANSIBLE_USER_FOR_BIOS="installeruser"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
-        USER_IN_INSTALLER_BP="true"
-        ANSIBLE_USER_FOR_BIOS="installeruser"
         ;;
     "rhel-9.1")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
-        USER_IN_INSTALLER_BP="true"
-        ANSIBLE_USER_FOR_BIOS="installeruser"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos-stream8"
-        USER_IN_INSTALLER_BP="false"
-        ANSIBLE_USER_FOR_BIOS="admin"
         sudo dnf install -y dmidecode
         sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
         # for debugging on openstack
         # sudo dmidecode -s system-product-name | grep "OpenStack Compute" && ON_GCP="true"
-        # ANSIBLE_USER_FOR_BIOS="installeruser"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
-        USER_IN_INSTALLER_BP="false"
-        ANSIBLE_USER_FOR_BIOS="admin"
         sudo dnf install -y dmidecode
         sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
         # for debugging on openstack
         # sudo dmidecode -s system-product-name | grep "OpenStack Compute" && ON_GCP="true"
-        # ANSIBLE_USER_FOR_BIOS="installeruser"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -437,19 +424,15 @@ description = "A base rhel-edge installer image"
 version = "0.0.1"
 modules = []
 groups = []
-EOF
 
-if [[ "$USER_IN_INSTALLER_BP" == "true" ]]; then
-    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.user]]
-name = "installeruser"
+name = "${ANSIBLE_USER}"
 description = "Added by installer blueprint"
 password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl."
 key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"
 home = "/home/installeruser/"
 groups = ["wheel"]
 EOF
-fi
 
 greenprint "📄 Which blueprint are we using"
 cat "$BLUEPRINT_FILE"
@@ -537,7 +520,7 @@ sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
 ${BIOS_GUEST_ADDRESS}
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=${ANSIBLE_USER_FOR_BIOS}
+ansible_user=${ANSIBLE_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 EOF
@@ -698,7 +681,7 @@ sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
 ${UEFI_GUEST_ADDRESS}
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=${ANSIBLE_USER_FOR_BIOS}
+ansible_user=${ANSIBLE_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 EOF
