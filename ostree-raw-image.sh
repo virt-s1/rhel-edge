@@ -42,26 +42,32 @@ case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
+        ADD_SSSD="false"
         ;;
     "rhel-8.7")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
+        ADD_SSSD="true"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
+        ADD_SSSD="false"
         ;;
     "rhel-9.1")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
+        ADD_SSSD="true"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos-stream8"
+        ADD_SSSD="true"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
+        ADD_SSSD="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -262,6 +268,16 @@ key = "${SSH_KEY_PUB}"
 home = "/home/admin/"
 groups = ["wheel"]
 EOF
+
+# For BZ#2088459, RHEL 8.6 and 9.0 will not have new release which fix this issue
+# RHEL 8.6 and 9.0 will not include sssd package in blueprint
+if [[ "${ADD_SSSD}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[packages]]
+name = "sssd"
+version = "*"
+EOF
+fi
 
 greenprint "📄 container blueprint"
 cat "$BLUEPRINT_FILE"
@@ -526,6 +542,16 @@ password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHB
 home = "/home/admin/"
 groups = ["wheel"]
 EOF
+
+# For BZ#2088459, RHEL 8.6 and 9.0 will not have new release which fix this issue
+# RHEL 8.6 and 9.0 will not include sssd package in blueprint
+if [[ "${ADD_SSSD}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[packages]]
+name = "sssd"
+version = "*"
+EOF
+fi
 
 greenprint "📄 upgrade blueprint"
 cat "$BLUEPRINT_FILE"
