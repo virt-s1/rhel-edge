@@ -125,24 +125,14 @@ build_image() {
     else
         sudo composer-cli --json compose start-ostree --ref "$OSTREE_REF" "$blueprint_name" "$image_type" | tee "$COMPOSE_START"
     fi
-    # RHEL 8.6 and 9 use new command line tool weldr-client which has new response body
-    if rpm -q --quiet weldr-client; then
-        COMPOSE_ID=$(jq -r '.body.build_id' "$COMPOSE_START")
-    else
-        COMPOSE_ID=$(jq -r '.build_id' "$COMPOSE_START")
-    fi
+    COMPOSE_ID=$(jq -r '.body.build_id' "$COMPOSE_START")
 
     # Wait for the compose to finish.
     greenprint "⏱ Waiting for compose to finish: ${COMPOSE_ID}"
     while true; do
         sudo composer-cli --json compose info "${COMPOSE_ID}" | tee "$COMPOSE_INFO" > /dev/null
 
-        # RHEL 8.6 and 9 use new command line tool weldr-client which has new response body
-        if rpm -q --quiet weldr-client; then
-            COMPOSE_STATUS=$(jq -r '.body.queue_status' "$COMPOSE_INFO")
-        else
-            COMPOSE_STATUS=$(jq -r '.queue_status' "$COMPOSE_INFO")
-        fi
+        COMPOSE_STATUS=$(jq -r '.body.queue_status' "$COMPOSE_INFO")
 
         # Is the compose finished?
         if [[ $COMPOSE_STATUS != RUNNING ]] && [[ $COMPOSE_STATUS != WAITING ]]; then
