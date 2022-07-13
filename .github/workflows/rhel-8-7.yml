@@ -171,6 +171,9 @@ jobs:
 
       - name: run ostree-raw-image.sh
         run: ./ostree-raw-image.sh
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
 
       - name: Set result status
         if: always()
