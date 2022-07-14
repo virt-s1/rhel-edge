@@ -37,9 +37,9 @@ jobs:
           fi
 
           if [[ "$COMPOSE_ID_CS8" != "false" ]]; then
-              OSBUILD_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
-              OSBUILD_COMPOSER_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
-              COMPOSER_CLI_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              OSBUILD_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*</a" | tr -d "></a")
+              OSBUILD_COMPOSER_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*</a" | tr -d "></a")
+              COMPOSER_CLI_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*</a" | tr -d "></a")
               echo "::set-output name=osbuild_version_cs8::$OSBUILD_VERSION_CS8"
               echo "::set-output name=osbuild_composer_version_cs8::$OSBUILD_COMPOSER_VERSION_CS8"
               echo "::set-output name=composer_cli_version_cs8::$COMPOSER_CLI_VERSION_CS8"
