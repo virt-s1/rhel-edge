@@ -11,7 +11,7 @@ RHEL for Edge test from QE is more like an integration test. The test flow align
     - Build RHEL 8 and RHEL 9 x86_64 images at OpenStack VM
     - Build CentOS Stream 8 and CentOS Stream 9 x86_64 images at Google Cloud VM
 
-2. RHEL for Edge image installation and upgrade
+2. RHEL for Edge image installation
 
     - `edge-commit`: Setup HTTP server to serve as ostree repo, and install with kickstart
     - `edge-container`: Setup prod ostree repo, `edge-container` as stage repo, and install with kickstart from prod ostree repo
@@ -19,22 +19,19 @@ RHEL for Edge test from QE is more like an integration test. The test flow align
     - `edge-raw-image`: Boot from raw image with KVM
     - `edge-simplified-installer`: Install from `edge-simplified-installer` ISO
 
-3. checkings after installation/upgrade.
+3. RHEL for Edge system upgrade
+
+    - Upgrade with the same OSTree ref
+    - Upgrade to a new OSTree ref
+    - Upgrade from RHEL 8 to RHEL 9 or from CentOS Stream 8 to CentOS Stream 9
+
+3. Checkings after installation/upgrade.
 
     - Check installed ostree commit
     - Check mount point
     - Check [`greenboot`](https://github.com/fedora-iot/greenboot.git) services
+    - Run container with `podman` (root and non-root)
     - Check auto rollback with [`greenboot`](https://github.com/fedora-iot/greenboot.git) when failure is detected
-
-4. RHEL for Edge rebase
-
-    - Build upgrade ostree commit with different ostree ref
-    - Rebase on new ostree ref
-
-5. RHEL for Edge system upgrade test
-
-    - From RHEL 8 to RHEL 9
-    - From CentOS Stream 8 to CentOS Stream 9
 
 ## RHEL-Edge CI
 
@@ -75,7 +72,7 @@ Test suites in scenario:
 
 #### Test environment prpare
 
-1. You can run this scenario on any RHEL machine, like server, laptop, or VM, but KVM has to be enabled.
+1. You can run this scenario on any x86_64 machine, like server, laptop, or VM, but KVM has to be enabled.
 
         $ls -l /dev/kvm
 
@@ -93,7 +90,7 @@ Test suites in scenario:
 
     $ ./ostree.sh
     $ OCP4_TOKEN=abcdefg QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./ostree-ng.sh
-    $ ./ostree-raw-image.sh
+    $ DOCKERHUB_USERNAME=rhel-edge DOCKERHUB_PASSWORD=123456 ./ostree-raw-image.sh
     $ ./ostree-simplified-installer.sh
     $ ./ostree-rebase.sh
     $ ./ostree-8-to-9.sh
@@ -109,12 +106,18 @@ You can set these environment variables to run test
                            "rhel-9-1"
                            "centos-stream-8"
                            "centos-stream-9"
+                           "fedora-36" (For ostree.sh only)
+                           "fedora-37" (For ostree.sh only)
     ARCH               The arch to build image and run test on.  Currently supported values:
                            "x86_64"
     QUAY_USERNAME      quay.io username
                            Used to test pushing Edge OCI-archive image to quay.io
     QUAY_PASSWORD      quay.io password
                            Used to test pushing Edge OCI-archive image to quay.io
+    DOCKERHUB_USERNAME      Docker hub account username
+                           Used to test pushing Edge OCI-archive image to Docker hub
+    DOCKERHUB_PASSWORD      Docker hub account password
+                           Used to test pushing Edge OCI-archive image to Docker hub
     OCP4_TOKEN         Edit-able SA token on PSI Openshift 4
                            Deploy edge-container on PSI OCP4
 
