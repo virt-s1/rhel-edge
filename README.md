@@ -1,4 +1,4 @@
-# RHEL-Edge Test
+# RHEL-Edge
 
 RHEL-Edge help [documentation](HELP.md)
 
@@ -55,38 +55,32 @@ CI for this repository is to test `test code`. It's triggered by PR in this repo
 
 Test of this CI includes:
 
-1. [Shellcheck](https://www.shellcheck.net/): running as Github Action
-2. [Yaml lint](https://yamllint.readthedocs.io/en/stable/): running as Github Action
-3. [Edge tests](https://github.com/virt-s1/rhel-edge/blob/main/CI.md#rhel-for-edge-ci): running as Github Action
+1. [Shellcheck](https://www.shellcheck.net/): running on Github
+2. [Yaml lint](https://yamllint.readthedocs.io/en/stable/): running on Github
+3. [Edge tests](https://github.com/virt-s1/rhel-edge/blob/main/CI.md#rhel-for-edge-ci): running on Github
+
+RHEL-Edge CI details can be found from [CI doc](CI.md)
+
+## RHEL-Edge Test
 
 ### Test Scenario
 
 Test suites in scenario:
 
-1. [`ostree.sh`](ostree.sh): rhel-edge-commit/edge-commit(tar) image type test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
-2. [`ostree-ng.sh`](ostree-ng.sh): rhel-edge-container/edge-container(tar) and rhel-edge-installer/edge-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
-3. [`ostree-raw-image.sh`](ostree-raw-image.sh): edge-raw-image image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
-4. [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh): edge-simplified-installer image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
-5. [`ostree-rebase.sh`](ostree-rebase.sh): Different ostree ref rebase test
+1. [`ostree.sh`](ostree.sh): edge-commit/fedora-iot-commit(tar) image type test on RHEL 8.x, RHEL 9.x, CentOS Stream 8,  CentOS Stream 9, and Fedora
+2. [`ostree-ng.sh`](ostree-ng.sh): edge-container and edge-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
+3. [`ostree-raw-image.sh`](ostree-raw-image.sh): edge-raw-image(raw) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
+4. [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh): edge-simplified-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
+5. [`ostree-rebase.sh`](ostree-rebase.sh): Different ostree ref rebase test on RHEL 8.x and CentOS Stream 8
 6. [`ostree-8-to-9.sh`](ostree-8-to-9.sh): RHEL 8/CentOS Stream 8 Edge system upgrade to RHEL 9/CentOS Stream 9 Edge system test
 
-#### Test environment prpare
+### Test environment
 
-1. You can run this scenario on any x86_64 machine, like server, laptop, or VM, but KVM has to be enabled.
+You can run RHEL for Edge test on any x86_64 machine, like server, laptop, or VM, but KVM has to be enabled. Otherwise QEMU will be used and the test will take a really long time.
 
-        $ls -l /dev/kvm
+    $ls -l /dev/kvm
 
-2. Required packages.
-
-    - ansible
-    - jq
-    - qemu-img
-    - qemu-kvm
-    - libvirt-client
-    - libvirt-daemon-kvm
-    - virt-install
-
-## Run Test
+### Test Run
 
     $ ./ostree.sh
     $ OCP4_TOKEN=abcdefg QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./ostree-ng.sh
@@ -95,7 +89,7 @@ Test suites in scenario:
     $ ./ostree-rebase.sh
     $ ./ostree-8-to-9.sh
 
-## Configuration
+### Test Configuration
 
 You can set these environment variables to run test
 

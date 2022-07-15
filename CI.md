@@ -2,7 +2,7 @@
 
 ## RHEL 8.x and 9.x nightly compose CI
 
-RHEL 8 compose trigger and RHEL 9 compose trigger will be run twice every day. They will check **COMPOSE_ID** of their **latest** compose link. If the **COMPOSE_ID** can't be found in ***compose/compose.86*** or ***compose/compose.87*** or ***compose/compose.90*** or ***compose/compose.91***, a new pull request will be created, auto merge will be enabled, and a comment */test-rhel-8-6* or */test-rhel-8-7* or */test-rhel-9-0* or */test-rhel-9-1* will be added. That will trigger all RHEL for Edge tests on RHEL 8.x and 9.x VM deployed on PSI OpenStack.
+RHEL 8 compose trigger and RHEL 9 compose trigger will be run four times every day. They will check **COMPOSE_ID** of their **latest** compose link. If the **COMPOSE_ID** can't be found in ***compose/compose.86*** or ***compose/compose.87*** or ***compose/compose.90*** or ***compose/compose.91***, a new pull request will be created, auto merge will be enabled, and a comment */test-rhel-8-6* or */test-rhel-8-7* or */test-rhel-9-0* or */test-rhel-9-1* will be added. That will trigger all RHEL for Edge tests on RHEL 8.x and 9.x VM deployed on PSI OpenStack.
 
 ## CentOS Stream 8 and 9 compose CI
 
