@@ -80,6 +80,15 @@ You can run RHEL for Edge test on any x86_64 machine, like server, laptop, or VM
 
     $ls -l /dev/kvm
 
+#### Supported OS
+
+    RHEL 8.6/8.7
+    RHEL 9.0/9.1
+    CentOS Stream 8
+    CentOS Stream 9
+    Fedora 36 (For `ostree.sh` only)
+    Fedora 37 (For `ostree.sh` only)
+
 ### Test Run
 
     $ ./ostree.sh
@@ -93,17 +102,6 @@ You can run RHEL for Edge test on any x86_64 machine, like server, laptop, or VM
 
 You can set these environment variables to run test
 
-    TEST_OS            The OS to run the tests in.  Currently supported values:
-                           "rhel-8-6"
-                           "rhel-8-7"
-                           "rhel-9-0"
-                           "rhel-9-1"
-                           "centos-stream-8"
-                           "centos-stream-9"
-                           "fedora-36" (For ostree.sh only)
-                           "fedora-37" (For ostree.sh only)
-    ARCH               The arch to build image and run test on.  Currently supported values:
-                           "x86_64"
     QUAY_USERNAME      quay.io username
                            Used to test pushing Edge OCI-archive image to quay.io
     QUAY_PASSWORD      quay.io password
