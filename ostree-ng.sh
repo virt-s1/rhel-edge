@@ -39,6 +39,9 @@ COMPOSE_INFO=${TEMPDIR}/compose-info-${IMAGE_KEY}.json
 SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5)
 SSH_KEY=key/ostree_key
 
+# New version mkksiso: Move kickstart to --ks KICKSTART
+NEW_MKKSISO="false"
+
 case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
@@ -55,6 +58,7 @@ case "${ID}-${VERSION_ID}" in
     "rhel-9.1")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
+        NEW_MKKSISO="true"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -71,6 +75,7 @@ case "${ID}-${VERSION_ID}" in
         sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
         # for debugging on openstack
         # sudo dmidecode -s system-product-name | grep "OpenStack Compute" && ON_GCP="true"
+        NEW_MKKSISO="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -133,7 +138,11 @@ ostree remote add --no-gpg-verify --no-sign-verify rhel ${PROD_REPO_URL}
 EOFKS
 
     echo "Writing new ISO"
-    sudo mkksiso -c "console=ttyS0,115200" "${newksfile}" "${iso}" "${newiso}"
+    if [[ "$NEW_MKKSISO" == "true" ]]; then
+        sudo mkksiso -c "console=ttyS0,115200" --ks "${newksfile}" "${iso}" "${newiso}"
+    else
+        sudo mkksiso -c "console=ttyS0,115200" "${newksfile}" "${iso}" "${newiso}"
+    fi
 
     echo "==== NEW KICKSTART FILE ===="
     cat "${newksfile}"
