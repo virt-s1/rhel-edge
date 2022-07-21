@@ -71,6 +71,7 @@ jobs:
 
       - name: run ostree.sh
         run: ./ostree.sh
+        timeout-minutes: 60
 
       - name: Set result status
         if: always()

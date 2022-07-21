@@ -73,6 +73,7 @@ jobs:
 
       - name: run ostree.sh
         run: ./ostree.sh
+        timeout-minutes: 60
 
       - name: Set result status
         if: always()
@@ -124,6 +125,7 @@ jobs:
           OCP4_TOKEN: ${{ secrets.OCP4_TOKEN }}
           QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
           QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+        timeout-minutes: 120
 
       - name: Set result status
         if: always()
@@ -174,6 +176,7 @@ jobs:
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+        timeout-minutes: 90
 
       - name: Set result status
         if: always()
@@ -221,6 +224,7 @@ jobs:
 
       - name: run ostree-simplified-installer.sh
         run: ./ostree-simplified-installer.sh
+        timeout-minutes: 120
 
       - name: Set result status
         if: always()
@@ -268,6 +272,7 @@ jobs:
 
       - name: run ostree-8-to-9.sh
         run: ./ostree-8-to-9.sh
+        timeout-minutes: 90
 
       - name: Set result status
         if: always()
