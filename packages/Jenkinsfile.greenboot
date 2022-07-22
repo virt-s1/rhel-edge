@@ -1,0 +1,32 @@
+pipeline {
+    agent {
+        node {
+            label 'container-fedora-36-stage'
+        }
+    }
+    stages {
+        stage("Trigger github workflow") {
+            steps {
+                script {
+                    print env.CI_MESSAGE
+                    sh('printenv')
+
+                    // Package NVR
+                    env.NVR=sh(returnStdout: true, script: "echo $CI_MESSAGE | jq '.info.request[0]' --raw-output | grep -ioE 'greenboot.*.rpm$' | sed 's/.src//'").trim()
+                    print env.NVR
+
+                    // Build name
+                    currentBuild.displayName = "${env.BUILD_NUMBER} - Package: ${env.NVR}"
+
+                    // Trigger github workflow
+                    sh '''#!/bin/bash
+                        package_list=$(echo $CI_MESSAGE | jq -r '.info.result.rpms | join(",")')
+                        package_nvr=$(echo $CI_MESSAGE | jq '.info.request[0]' --raw-output | grep -ioE 'greenboot.*.rpm$' | sed 's/.src//')
+                        echo $package_list
+                        echo $package_nvr
+                    '''
+                }
+            }
+        }
+    }
+}
