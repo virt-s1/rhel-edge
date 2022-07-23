@@ -120,7 +120,7 @@ sudo mkdir -p "${HTTPD_PATH}/httpboot"
 REQUIRED_FOLDERS=( "EFI" "images" )
 for i in "${REQUIRED_FOLDERS[@]}"
 do
-    sudo wget --inet4-only -r --no-parent -e robots=off -nH --cut-dirs="$CUT_DIRS" --reject "index.html*" --reject "boot.iso" "${BOOT_LOCATION}${i}/" -P "${HTTPD_PATH}/httpboot/"
+    sudo wget -q --inet4-only -r --no-parent -e robots=off -nH --cut-dirs="$CUT_DIRS" --reject "index.html*" --reject "boot.iso" "${BOOT_LOCATION}${i}/" -P "${HTTPD_PATH}/httpboot/"
 done
 
 # Update grub.cfg to work with HTTP boot
