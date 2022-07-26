@@ -11,7 +11,7 @@ source /etc/os-release
 ARCH=$(uname -m)
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="ostree-ng-${TEST_UUID}"
-QUAY_REPO_URL="docker://quay.io/rhel-edge/edge-containers"
+QUAY_REPO_URL="quay.io/rhel-edge/edge-containers"
 QUAY_REPO_TAG=$(tr -dc a-z0-9 < /dev/urandom | head -c 4 ; echo '')
 # BIOS_GUEST_ADDRESS=192.168.100.50
 UEFI_GUEST_ADDRESS=192.168.100.51
@@ -32,6 +32,7 @@ ANSIBLE_USER="installeruser"
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
 BLUEPRINT_FILE=${TEMPDIR}/blueprint.toml
+QUAY_CONFIG=${TEMPDIR}/quay_config.toml
 COMPOSE_START=${TEMPDIR}/compose-start-${IMAGE_KEY}.json
 COMPOSE_INFO=${TEMPDIR}/compose-info-${IMAGE_KEY}.json
 
@@ -187,11 +188,17 @@ build_image() {
 
     # Start the compose.
     greenprint "🚀 Starting compose"
+    if [ $# -eq 2 ]; then
+        sudo composer-cli --json compose start-ostree --ref "$OSTREE_REF" "$blueprint_name" "$image_type" | tee "$COMPOSE_START"
+    fi
     if [ $# -eq 3 ]; then
         repo_url=$3
         sudo composer-cli --json compose start-ostree --ref "$OSTREE_REF" --url "$repo_url" "$blueprint_name" "$image_type" | tee "$COMPOSE_START"
-    else
-        sudo composer-cli --json compose start-ostree --ref "$OSTREE_REF" "$blueprint_name" "$image_type" | tee "$COMPOSE_START"
+    fi
+    if [ $# -eq 4 ]; then
+        image_repo_url=$3
+        registry_config=$4
+        sudo composer-cli --json compose start-ostree --ref "$OSTREE_REF" "$blueprint_name" "$image_type" "$image_repo_url" "$registry_config" | tee "$COMPOSE_START"
     fi
     COMPOSE_ID=$(jq -r '.body.build_id' "$COMPOSE_START")
 
@@ -343,30 +350,21 @@ greenprint "📋 Preparing blueprint"
 sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve container
 
+# Write the registry configuration.
+greenprint "📄 Perparing quay.io config to push image"
+tee "$QUAY_CONFIG" > /dev/null << EOF
+provider = "container"
+[settings]
+username = "$QUAY_USERNAME"
+password = "$QUAY_PASSWORD"
+EOF
+
 # Build container image.
-build_image container "${CONTAINER_IMAGE_TYPE}"
-
-# Download the image
-greenprint "📥 Downloading the image"
-sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
-
-# Clear container running env
-greenprint "🧹 Clearing container running env"
-# Remove any status containers if exist
-sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f
-# Remove all images
-sudo podman rmi -f -a
+build_image container "${CONTAINER_IMAGE_TYPE}" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}" "$QUAY_CONFIG"
 
 # Prepare rhel-edge container network
 greenprint "Prepare container network"
 sudo podman network inspect edge >/dev/null 2>&1 || sudo podman network create --driver=bridge --subnet=192.168.200.0/24 --gateway=192.168.200.254 edge
-
-# Deal with rhel-edge container
-greenprint "Uploading image to quay.io"
-IMAGE_FILENAME="${COMPOSE_ID}-${CONTAINER_FILENAME}"
-sudo skopeo copy --dest-creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "oci-archive:${IMAGE_FILENAME}" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
-# Clear image file
-sudo rm -f "$IMAGE_FILENAME"
 
 # Run stage repo in OCP4
 greenprint "Running stage repo in OCP4"
@@ -408,7 +406,7 @@ sudo composer-cli blueprints delete container > /dev/null
 
 # Remove tag from quay.io repo
 greenprint "Remove tag from quay.io repo"
-skopeo delete --creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
+skopeo delete --creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "docker://${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
 
 ########################################################
 ##
@@ -695,3 +693,4 @@ check_result
 clean_up
 
 exit 0
+
