@@ -11,7 +11,7 @@ source /etc/os-release
 ARCH=$(uname -m)
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="ostree-ng-${TEST_UUID}"
-QUAY_REPO_URL="quay.io/rhel-edge/edge-containers"
+QUAY_REPO_URL="docker://quay.io/rhel-edge/edge-containers"
 QUAY_REPO_TAG=$(tr -dc a-z0-9 < /dev/urandom | head -c 4 ; echo '')
 # BIOS_GUEST_ADDRESS=192.168.100.50
 UEFI_GUEST_ADDRESS=192.168.100.51
@@ -28,6 +28,8 @@ PROD_REPO_URL_2="${PROD_REPO_URL}/"
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
 ON_GCP="false"
 ANSIBLE_USER="installeruser"
+# Container image registry pushing feature
+CONTAINER_PUSHING_FEAT="false"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -51,6 +53,7 @@ case "${ID}-${VERSION_ID}" in
     "rhel-8.7")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
+        CONTAINER_PUSHING_FEAT="true"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -60,6 +63,7 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
         NEW_MKKSISO="true"
+        CONTAINER_PUSHING_FEAT="true"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -68,6 +72,7 @@ case "${ID}-${VERSION_ID}" in
         sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
         # for debugging on openstack
         # sudo dmidecode -s system-product-name | grep "OpenStack Compute" && ON_GCP="true"
+        CONTAINER_PUSHING_FEAT="true"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
@@ -77,6 +82,7 @@ case "${ID}-${VERSION_ID}" in
         # for debugging on openstack
         # sudo dmidecode -s system-product-name | grep "OpenStack Compute" && ON_GCP="true"
         NEW_MKKSISO="true"
+        CONTAINER_PUSHING_FEAT="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -350,17 +356,38 @@ greenprint "📋 Preparing blueprint"
 sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve container
 
-# Write the registry configuration.
-greenprint "📄 Perparing quay.io config to push image"
-tee "$QUAY_CONFIG" > /dev/null << EOF
+if [[ $CONTAINER_PUSHING_FEAT == "true" ]]; then
+    # Write the registry configuration.
+    greenprint "📄 Preparing quay.io config to push image"
+    tee "$QUAY_CONFIG" > /dev/null << EOF
 provider = "container"
 [settings]
 username = "$QUAY_USERNAME"
 password = "$QUAY_PASSWORD"
 EOF
+    # Omit the "docker://" prefix at QUAY_REPO_URL
+    QUAY_REPO_URL_AUX=$(echo ${QUAY_REPO_URL} | grep -oP '(quay.*)')
+    # Build container image.
+    build_image container "${CONTAINER_IMAGE_TYPE}" "${QUAY_REPO_URL_AUX}:${QUAY_REPO_TAG}" "$QUAY_CONFIG"
+else
+    build_image container "${CONTAINER_IMAGE_TYPE}"
+    # Download the image
+    greenprint "📥 Downloading the image"
+    sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
+    # Clear container running env
+    greenprint "🧹 Clearing container running env"
+    # Remove any status containers if exist
+    sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f
+    # Remove all images
+    sudo podman rmi -f -a
+    # Deal with rhel-edge container
+    greenprint "Uploading image to quay.io"
+    IMAGE_FILENAME="${COMPOSE_ID}-${CONTAINER_FILENAME}"
+    sudo skopeo copy --dest-creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "oci-archive:${IMAGE_FILENAME}" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
+    # Clear image file
+    sudo rm -f "$IMAGE_FILENAME"
 
-# Build container image.
-build_image container "${CONTAINER_IMAGE_TYPE}" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}" "$QUAY_CONFIG"
+fi
 
 # Prepare rhel-edge container network
 greenprint "Prepare container network"
@@ -404,9 +431,17 @@ greenprint "🧹 Clean up compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete container > /dev/null
 
-# Remove tag from quay.io repo
 greenprint "Remove tag from quay.io repo"
-skopeo delete --creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "docker://${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
+skopeo delete --creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
+
+# # Remove tag from quay.io repo
+# greenprint "Remove tag from quay.io repo"
+# if [[ $CONTAINER_PUSHING_FEAT == "true" ]]; then
+#     skopeo delete --creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "docker://${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
+# else
+#     # delete this one we do not need it we are just deleting the tag
+#     skopeo delete --creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
+# fi
 
 ########################################################
 ##
@@ -693,4 +728,3 @@ check_result
 clean_up
 
 exit 0
-
