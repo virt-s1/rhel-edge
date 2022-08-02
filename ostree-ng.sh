@@ -434,15 +434,6 @@ sudo composer-cli blueprints delete container > /dev/null
 greenprint "Remove tag from quay.io repo"
 skopeo delete --creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
 
-# # Remove tag from quay.io repo
-# greenprint "Remove tag from quay.io repo"
-# if [[ $CONTAINER_PUSHING_FEAT == "true" ]]; then
-#     skopeo delete --creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "docker://${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
-# else
-#     # delete this one we do not need it we are just deleting the tag
-#     skopeo delete --creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
-# fi
-
 ########################################################
 ##
 ## rhel-edge installer image building from container image
