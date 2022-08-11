@@ -24,7 +24,7 @@ KS_FILE=${HTTPD_PATH}/ks.cfg
 COMPOSE_START=${TEMPDIR}/compose-start-${IMAGE_KEY}.json
 COMPOSE_INFO=${TEMPDIR}/compose-info-${IMAGE_KEY}.json
 GRUB_CFG=${HTTPD_PATH}/httpboot/EFI/BOOT/grub.cfg
-
+EMBEDDED_CONTAINER="false"
 
 # Set os-variant and boot location used by virt-install.
 case "${ID}-${VERSION_ID}" in
@@ -35,6 +35,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
+        EMBEDDED_CONTAINER="false"
         ;;
     "rhel-8.7")
         OSTREE_REF="rhel/8/${ARCH}/edge"
@@ -43,6 +44,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.7.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="true"
+        EMBEDDED_CONTAINER="true"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -51,6 +53,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
+        EMBEDDED_CONTAINER="false"
         ;;
     "rhel-9.1")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -59,6 +62,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="true"
+        EMBEDDED_CONTAINER="true"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -66,6 +70,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="centos-stream8"
         CUT_DIRS=5
         ADD_SSSD="true"
+        EMBEDDED_CONTAINER="true"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
@@ -73,6 +78,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="centos-stream9"
         CUT_DIRS=6
         ADD_SSSD="true"
+        EMBEDDED_CONTAINER="true"
         ;;
     "fedora-36")
         IMAGE_TYPE=fedora-iot-commit
@@ -82,6 +88,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/36/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
+        EMBEDDED_CONTAINER="false"
         ;;
     "fedora-37")
         IMAGE_TYPE=fedora-iot-commit
@@ -100,6 +107,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
+        EMBEDDED_CONTAINER="false"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -282,7 +290,6 @@ description = "A base ostree image"
 version = "0.0.1"
 modules = []
 groups = []
-
 [[packages]]
 name = "python3"
 version = "*"
@@ -308,6 +315,14 @@ password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHB
 key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"
 home = "/home/${SSH_USER}/"
 groups = ["wheel"]
+EOF
+fi
+
+# RHEL 8.7 and 9.1 later support embeded container in commit
+if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[containers]]
+source = "quay.io/fedora/fedora:latest"
 EOF
 fi
 
@@ -432,15 +447,12 @@ description = "An upgrade ostree image"
 version = "0.0.2"
 modules = []
 groups = []
-
 [[packages]]
 name = "python3"
 version = "*"
-
 [[packages]]
 name = "wget"
 version = "*"
-
 [[customizations.user]]
 name = "${SSH_USER}"
 description = "Administrator account"
@@ -457,6 +469,14 @@ if [[ "${ADD_SSSD}" == "true" ]]; then
 [[packages]]
 name = "sssd"
 version = "*"
+EOF
+fi
+
+# RHEL 8.7 and 9.1 later support embeded container in commit
+if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[containers]]
+source = "quay.io/fedora/fedora:latest"
 EOF
 fi
 
@@ -525,7 +545,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+sudo ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="true" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up

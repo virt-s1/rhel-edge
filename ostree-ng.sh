@@ -334,11 +334,9 @@ description = "A base rhel-edge container image"
 version = "0.0.1"
 modules = []
 groups = []
-
 [[packages]]
 name = "python3"
 version = "*"
-
 [[customizations.user]]
 name = "admin"
 description = "Administrator account"
@@ -347,6 +345,14 @@ key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCk
 home = "/home/admin/"
 groups = ["wheel"]
 EOF
+
+# RHEL 8.7 and 9.1 later support embeded container in commit
+if [[ "${CONTAINER_PUSHING_FEAT}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[containers]]
+source = "quay.io/fedora/fedora:latest"
+EOF
+fi
 
 greenprint "📄 Which blueprint are we using"
 cat "$BLUEPRINT_FILE"
@@ -447,7 +453,6 @@ description = "A base rhel-edge installer image"
 version = "0.0.1"
 modules = []
 groups = []
-
 [[customizations.user]]
 name = "${ANSIBLE_USER}"
 description = "Added by installer blueprint"
@@ -607,18 +612,23 @@ description = "An upgrade ostree image"
 version = "0.0.2"
 modules = []
 groups = []
-
 [[packages]]
 name = "python3"
 version = "*"
-
 [[packages]]
 name = "wget"
 version = "*"
-
 [customizations.kernel]
 name = "kernel-rt"
 EOF
+
+# RHEL 8.7 and 9.1 later support embeded container in commit
+if [[ "${CONTAINER_PUSHING_FEAT}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[containers]]
+source = "quay.io/fedora/fedora:latest"
+EOF
+fi
 
 greenprint "📄 Which blueprint are we using"
 cat "$BLUEPRINT_FILE"
@@ -710,7 +720,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=rhel -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=rhel -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel:${OSTREE_REF}" check-ostree.yaml -e embedded_container="true" || RESULTS=0
 check_result
 
 # Final success clean up
