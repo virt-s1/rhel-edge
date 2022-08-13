@@ -112,8 +112,8 @@ jobs:
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
 
   fedora-36:
-    # Do not need check-compose
-    if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule == '0 16 * * *'
+    # Do not need check-compose and make "workflow_dispatch" work for this job
+    if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule != '0 16 * * *'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
