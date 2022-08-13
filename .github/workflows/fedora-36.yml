@@ -48,7 +48,7 @@ jobs:
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
             (endsWith(github.event.comment.body, '/test-f36') ||
             endsWith(github.event.comment.body, '/test-f36-virt')) }}
-    runs-on: [kite, x86_64, gcp, fedora-f36, large]
+    runs-on: [kite, x86_64, gcp, fedora-36, large]
     env:
       STATUS_NAME: iot-commit-f36
 
