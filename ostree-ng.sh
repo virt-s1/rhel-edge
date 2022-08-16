@@ -30,6 +30,8 @@ ON_GCP="false"
 ANSIBLE_USER="installeruser"
 # Container image registry pushing feature
 CONTAINER_PUSHING_FEAT="false"
+# Embedded container image into OSTree commits feature
+EMBEDDED_CONTAINER="false"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -54,6 +56,7 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         CONTAINER_PUSHING_FEAT="true"
+        EMBEDDED_CONTAINER="true"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -64,6 +67,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel9.0"
         NEW_MKKSISO="true"
         CONTAINER_PUSHING_FEAT="true"
+        EMBEDDED_CONTAINER="true"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -73,6 +77,7 @@ case "${ID}-${VERSION_ID}" in
         # for debugging on openstack
         # sudo dmidecode -s system-product-name | grep "OpenStack Compute" && ON_GCP="true"
         CONTAINER_PUSHING_FEAT="true"
+        EMBEDDED_CONTAINER="true"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
@@ -83,6 +88,7 @@ case "${ID}-${VERSION_ID}" in
         # sudo dmidecode -s system-product-name | grep "OpenStack Compute" && ON_GCP="true"
         NEW_MKKSISO="true"
         CONTAINER_PUSHING_FEAT="true"
+        EMBEDDED_CONTAINER="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -347,7 +353,7 @@ groups = ["wheel"]
 EOF
 
 # RHEL 8.7 and 9.1 later support embeded container in commit
-if [[ "${CONTAINER_PUSHING_FEAT}" == "true" ]]; then
+if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]
 source = "quay.io/fedora/fedora:latest"
@@ -720,7 +726,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=rhel -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel:${OSTREE_REF}" -e embedded_container="${CONTAINER_PUSHING_FEAT}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=rhel -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
