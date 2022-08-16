@@ -417,9 +417,6 @@
       register: result_podman_images
       when:
         - embedded_container == "true"
-        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.0', '>')) or
-          (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>') and ansible_facts ['distribution_version'] is version('9.0', '!=')) or
-          (ansible_facts['distribution'] == 'CentOS')
 
     - name: embded container should be listed by podman images
       block:
@@ -437,9 +434,6 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when:
         - embedded_container == "true"
-        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.0', '>')) or
-          (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>') and ansible_facts ['distribution_version'] is version('9.0', '!=')) or
-          (ansible_facts['distribution'] == 'CentOS')
 
     # case: check running container with podman
     - name: run ubi8 image with root
