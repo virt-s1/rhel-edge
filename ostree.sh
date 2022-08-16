@@ -35,7 +35,6 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
-        EMBEDDED_CONTAINER="false"
         ;;
     "rhel-8.7")
         OSTREE_REF="rhel/8/${ARCH}/edge"
@@ -53,7 +52,6 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
-        EMBEDDED_CONTAINER="false"
         ;;
     "rhel-9.1")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -88,7 +86,6 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/36/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
-        EMBEDDED_CONTAINER="false"
         ;;
     "fedora-37")
         IMAGE_TYPE=fedora-iot-commit
@@ -107,7 +104,6 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
-        EMBEDDED_CONTAINER="false"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -545,7 +541,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="true" check-ostree.yaml || RESULTS=0
+sudo ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
