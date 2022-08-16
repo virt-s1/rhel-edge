@@ -1,0 +1,92 @@
+---
+name: Run Edge Test on Fedora 37
+
+on:
+  issue_comment:
+    types:
+      - created
+
+jobs:
+  pr-info:
+    if: ${{ github.event.issue.pull_request &&
+            (endsWith(github.event.comment.body, '/test-f37') ||
+            endsWith(github.event.comment.body, '/test-f37-virt') ||
+            endsWith(github.event.comment.body, '/test-f37-ng') ||
+            endsWith(github.event.comment.body, '/test-f37-rebase')) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query author repository permissions
+        uses: octokit/request-action@v2.x
+        id: user_permission
+        with:
+          route: GET /repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}/permission
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # restrict running of tests to users with admin or write permission for the repository
+      # see https://docs.github.com/en/free-pro-team@latest/rest/reference/repos#get-repository-permissions-for-a-user
+      - name: Check if user does have correct permissions
+        if: contains('admin write', fromJson(steps.user_permission.outputs.data).permission)
+        id: check_user_perm
+        run: |
+          echo "User '${{ github.event.sender.login }}' has permission '${{ fromJson(steps.user_permission.outputs.data).permission }}' allowed values: 'admin', 'write'"
+          echo "::set-output name=allowed_user::true"
+      - name: Get information for pull request
+        uses: octokit/request-action@v2.x
+        id: pr-api
+        with:
+          route: GET /repos/${{ github.repository }}/pulls/${{ github.event.issue.number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    outputs:
+      allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
+      sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
+
+  iot-commit-f37:
+    needs: pr-info
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
+            (endsWith(github.event.comment.body, '/test-f37') ||
+            endsWith(github.event.comment.body, '/test-f37-virt')) }}
+    runs-on: [kite, x86_64, gcp, fedora-37, large]
+    env:
+      STATUS_NAME: iot-commit-f37
+
+    steps:
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.pr-info.outputs.sha }}
+          fetch-depth: 0
+
+      - name: run ostree.sh
+        run: ./ostree.sh
+        timeout-minutes: 60
+
+      - name: Set result status
+        if: always()
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: ${{ job.status }}
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v3
+        with:
+          name: iot-commit-f37
+          path: |
+            *.json
+            *.log
