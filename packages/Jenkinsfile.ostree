@@ -12,7 +12,7 @@ pipeline {
                     sh('printenv')
 
                     // Package NVR
-                    env.NVR=sh(returnStdout: true, script: "echo $CI_MESSAGE | jq '.info.request[0]' --raw-output | grep -ioE 'ostree.*.rpm\$' | sed 's/.src//'").trim()
+                    env.NVR=sh(returnStdout: true, script: "echo \$CI_MESSAGE | jq '.info.request[0]' --raw-output | grep -ioE 'ostree.*.rpm\$' | sed 's/.src//'").trim()
                     print env.NVR
 
                     // Build name
