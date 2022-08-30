@@ -15,6 +15,7 @@ QUAY_REPO_URL="docker://quay.io/rhel-edge/edge-containers"
 QUAY_REPO_TAG=$(tr -dc a-z0-9 < /dev/urandom | head -c 4 ; echo '')
 BIOS_GUEST_ADDRESS=192.168.100.50
 UEFI_GUEST_ADDRESS=192.168.100.51
+HTTP_GUEST_ADDRESS=192.168.100.52
 PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_OCP4_SERVER_NAME="edge-stage-server"
@@ -35,13 +36,20 @@ EMBEDDED_CONTAINER="false"
 # Workaround BZ#2108646
 BOOT_ARGS="uefi"
 ANSIBLE_OS_NAME="rhel"
+# Allocated VM RAM default value
+ALLOC_VM_RAM=3072
+# HTTP boot VM feature
+HTTP_BOOT_FEAT="false"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
 BLUEPRINT_FILE=${TEMPDIR}/blueprint.toml
 QUAY_CONFIG=${TEMPDIR}/quay_config.toml
+HTTPD_PATH="/var/www/html"
+KS_FILE=${HTTPD_PATH}/ks.cfg
 COMPOSE_START=${TEMPDIR}/compose-start-${IMAGE_KEY}.json
 COMPOSE_INFO=${TEMPDIR}/compose-info-${IMAGE_KEY}.json
+GRUB_CFG=${HTTPD_PATH}/httpboot/EFI/BOOT/grub.cfg
 
 # SSH setup.
 SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5)
@@ -66,6 +74,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel8-unknown"
         CONTAINER_PUSHING_FEAT="true"
         EMBEDDED_CONTAINER="true"
+        HTTP_BOOT_FEAT="true"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -84,6 +93,7 @@ case "${ID}-${VERSION_ID}" in
         NEW_MKKSISO="true"
         CONTAINER_PUSHING_FEAT="true"
         EMBEDDED_CONTAINER="true"
+        HTTP_BOOT_FEAT="true"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -380,6 +390,128 @@ setup_crc () {
     crc start
 }
 
+# Install edge installer vm through http boot
+install_edge_vm_http_boot() {
+    iso_filename=$1
+    greenprint "📋 Mount installer iso and copy content to webserver/httpboot"
+    sudo mkdir -p ${HTTPD_PATH}/httpboot
+    sudo mkdir -p /mnt/installer
+    sudo mount -o loop "${iso_filename}" /mnt/installer
+    sudo cp -R /mnt/installer/* ${HTTPD_PATH}/httpboot/
+    sudo chmod -R +r ${HTTPD_PATH}/httpboot/*
+    sudo umount --detach-loop --lazy /mnt/installer
+    # Remove mount dir
+    sudo rm -rf /mnt/installer
+    sudo rm -f "${iso_filename}"
+
+    # Create new kickstart file to work with HTTP boot
+    greenprint "📝 Create new ks.cfg file to work with HTTP boot"
+    sudo tee "${KS_FILE}" > /dev/null << STOPHERE
+    text
+    network --bootproto=dhcp --device=link --activate --onboot=on
+    zerombr
+    clearpart --all --initlabel --disklabel=msdos
+    autopart --nohome --noswap --type=plain
+    ostreesetup --osname=rhel --url=http://192.168.100.1/httpboot/ostree/repo --ref=${OSTREE_REF} --nogpg
+    user --name installeruser --password \$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl. --iscrypted --groups wheel --homedir /home/installeruser
+    sshkey --username installeruser "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"
+    poweroff
+    %post --log=/var/log/anaconda/post-install.log --erroronfail
+    # no sudo password for user admin and httpbootuser
+    echo -e 'admin\tALL=(ALL)\tNOPASSWD: ALL' >> /etc/sudoers
+    echo -e 'installeruser\tALL=(ALL)\tNOPASSWD: ALL' >> /etc/sudoers
+    # add remote prod edge repo
+    ostree remote delete rhel
+    ostree remote add --no-gpg-verify --no-sign-verify rhel ${PROD_REPO_URL}
+    %end
+STOPHERE
+
+    # Update grub.cfg to work with HTTP boot
+    greenprint "📝 Update grub.cfg to work with HTTP boot"
+    sudo tee -a "${GRUB_CFG}" > /dev/null << EOF
+menuentry 'Install Red Hat Enterprise Linux for Edge' --class fedora --class gnu-linux --class gnu --class os {
+        linuxefi /httpboot/images/pxeboot/vmlinuz inst.stage2=http://192.168.100.1/httpboot inst.ks=http://192.168.100.1/ks.cfg inst.text console=ttyS0,115200
+        initrdefi /httpboot/images/pxeboot/initrd.img
+}
+EOF
+
+    sudo sed -i 's/timeout=.*/timeout=5\ndefault="3"/' "${GRUB_CFG}"
+
+    # Ensure SELinux is happy with our new images.
+    greenprint "👿 Running restorecon on image directory"
+    sudo restorecon -Rv /var/lib/libvirt/images/
+
+    greenprint "📋 Create libvirt image disk"
+    LIBVIRT_HTTP_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-httpboot.qcow2
+    sudo qemu-img create -f qcow2 "${LIBVIRT_HTTP_IMAGE_PATH}" 20G
+
+    # Workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2124239
+    if [[ "${VERSION_ID}" == "8.7" ]]; then
+        ALLOC_VM_RAM=4096
+    fi
+
+    greenprint "📋 Install edge vm via http boot"
+    sudo virt-install --name="${IMAGE_KEY}-httpboot"\
+                      --disk path="${LIBVIRT_HTTP_IMAGE_PATH}",format=qcow2 \
+                      --ram "${ALLOC_VM_RAM}" \
+                      --vcpus 2 \
+                      --network network=integration,mac=34:49:22:B0:83:32 \
+                      --os-type linux \
+                      --os-variant "$OS_VARIANT" \
+                      --pxe \
+                      --boot "${BOOT_ARGS}" \
+                      --nographics \
+                      --noautoconsole \
+                      --wait=-1 \
+                      --noreboot
+
+    # Start VM.
+    greenprint "💻 Start HTTP BOOT VM"
+    sudo virsh start "${IMAGE_KEY}-httpboot"
+
+    # Check for ssh ready to go.
+    greenprint "🛃 Checking for SSH is ready to go"
+    for LOOP_COUNTER in $(seq 0 30); do
+        RESULTS="$(wait_for_ssh_up $HTTP_GUEST_ADDRESS)"
+        if [[ $RESULTS == 1 ]]; then
+            echo "SSH is ready now! 🥳"
+            break
+        fi
+        sleep 10
+    done
+
+    # Check image installation result
+    check_result
+
+    # Get ostree commit value.
+    greenprint "🕹 Get ostree install commit value"
+    INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
+
+    # Add instance IP address into /etc/ansible/hosts
+    tee "${TEMPDIR}"/inventory > /dev/null << EOF
+    [ostree_guest]
+    ${HTTP_GUEST_ADDRESS}
+
+    [ostree_guest:vars]
+    ansible_python_interpreter=/usr/bin/python3
+    ansible_user=admin
+    ansible_private_key_file=${SSH_KEY}
+    ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+EOF
+    # Test IoT/Edge OS
+    greenprint "📼 Run Edge tests on HTTPBOOT VM"
+    podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" check-ostree.yaml || RESULTS=0
+    check_result
+
+    greenprint "🧹 Clean up HTTPBOOT VM"
+    if [[ $(sudo virsh domstate "${IMAGE_KEY}-httpboot") == "running" ]]; then
+        sudo virsh destroy "${IMAGE_KEY}-httpboot"
+    fi
+    sudo virsh undefine "${IMAGE_KEY}-httpboot" --nvram
+    sudo virsh vol-delete --pool images "${IMAGE_KEY}-httpboot.qcow2"
+
+}
+
 ###########################################################
 ##
 ## Prepare ostree prod repo and configure stage repo
@@ -550,22 +682,31 @@ greenprint "📥 Downloading the image"
 sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
 ISO_FILENAME="${COMPOSE_ID}-${INSTALLER_FILENAME}"
 modksiso "${ISO_FILENAME}" "/var/lib/libvirt/images/${ISO_FILENAME}"
-sudo rm -f "${ISO_FILENAME}"
 
 # Clean compose and blueprints.
 greenprint "🧹 Clean up compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete installer > /dev/null
 
+##################################################################
+##
+## Install edge vm with edge-installer (http boot)
+##
+##################################################################
+
+if [[ "${HTTP_BOOT_FEAT}" == "true" ]]; then
+    install_edge_vm_http_boot "${ISO_FILENAME}"
+else
+    sudo rm -f "${ISO_FILENAME}"
+    greenprint "👿 Running restorecon on image directory"
+    sudo restorecon -Rv /var/lib/libvirt/images/
+fi
+
 ########################################################
 ##
 ## install rhel-edge image with installer(ISO)
 ##
 ########################################################
-
-# Ensure SELinux is happy with our new images.
-greenprint "👿 Running restorecon on image directory"
-sudo restorecon -Rv /var/lib/libvirt/images/
 
 # Create qcow2 file for virt install.
 greenprint "💾 Create qcow2 files for virt install"
