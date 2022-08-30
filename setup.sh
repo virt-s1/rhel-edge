@@ -70,15 +70,11 @@ case "${ID}-${VERSION_ID}" in
         sudo cp files/rhel-8-6-0-sha512.json /etc/osbuild-composer/repositories/rhel-86.json
         sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
     "rhel-9.1")
-        # Wordaround bug https://bugzilla.redhat.com/show_bug.cgi?id=2116221
-        sudo dnf install -y http://download.eng.bos.redhat.com/brewroot/vol/rhel-9/packages/aardvark-dns/1.1.0/2.el9/x86_64/aardvark-dns-1.1.0-2.el9.x86_64.rpm
         sudo cp files/rhel-8-7-0-sha512.json /etc/osbuild-composer/repositories/rhel-87.json
         sudo cp files/rhel-9-1-0.json /etc/osbuild-composer/repositories/rhel-91.json;;
     "centos-8")
         sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json;;
     "centos-9")
-        # Wordaround bug https://bugzilla.redhat.com/show_bug.cgi?id=2116221
-        sudo dnf install -y https://kojihub.stream.centos.org/kojifiles/packages/aardvark-dns/1.1.0/2.el9/x86_64/aardvark-dns-1.1.0-2.el9.x86_64.rpm
         sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json
         sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
     "fedora-36")
