@@ -130,57 +130,27 @@
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
 
-    # bios or uefi
-    - name: bios or uefi
-      stat:
-        path: /sys/firmware/efi
-      register: result_uefi
-
-    - set_fact:
-        device_name: /dev/vda2
-
-    - set_fact:
-        device_name: /dev/vda3
-      when: result_uefi.stat.exists
-
-    # Check if it is raw-image or simplified-installer, the disk are encrypted, and mount point starts with /dev/mapper/luks-
-    - name: check if it is simplified-installer or raw-image
+    - name: set mount point device name
       command: findmnt -r -o SOURCE -n /sysroot
-      register: result_encrypted
-      when: (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>=')) or
-            ansible_facts['distribution'] == 'CentOS'
+      register: result_sysroot_source
 
     - set_fact:
-        device_name: "{{ result_encrypted.stdout }}"
-      when:
-        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>=')) or
-          ansible_facts['distribution'] == 'CentOS'
-        - "'/dev/mapper/luks-' in result_encrypted.stdout"
+        device_name: "{{ result_sysroot_source.stdout }}"
 
-    # for RHEL 8.5, CS8, CS9, edge-simplified-installer and edge-raw-image does not support encryption
-    - name: check if it is simplified-installer or raw-image
-      command: df -h
-      register: result_df
-      when: ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.5', '<=')
+    # case: check pv format
+    - name: check pv format
+      shell: pvs --reportformat json | jq .report[0].pv[0].pv_fmt -r
+      become: yes
+      register: result_pv_fmt
+      when: "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
 
-    - set_fact:
-        device_name: /dev/vda4
-      when:
-        - ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.5', '<=')
-        - "'/dev/vda4' in result_df.stdout"
-
-    # case: check /sysroot moutn point
-    - name: check /sysroot mount point
-      command: findmnt -r -o SOURCE -n /sysroot
-      register: result_sysroot_mount_point
-
-    - name: "/sysroot should be mounted on {{ device_name }}"
+    - name: "pv format should be lvm2"
       block:
         - assert:
             that:
-              - result_sysroot_mount_point.stdout == "{{ device_name }}"
-            fail_msg: "/sysroot does not mount on {{ device_name }}"
-            success_msg: "/sysroot mounts on {{ device_name }}"
+              - result_pv_fmt.stdout == "lvm2"
+            fail_msg: "pv format is not lvm2"
+            success_msg: "pv format is lvm2"
       always:
         - set_fact:
             total_counter: "{{ total_counter | int + 1 }}"
@@ -188,6 +158,74 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
+      when: "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
+
+    # case: check pv size
+    - name: check pv size
+      shell: pvs --reportformat json | jq .report[0].pv[0].pv_size -r
+      become: yes
+      register: result_pv_size
+      when: "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
+
+    # simplified installer uses coreos-installer to grow fs to 19G
+    - name: "pv size should bigger than 19G"
+      block:
+        - assert:
+            that:
+              - "'19' in result_pv_size.stdout"
+            fail_msg: "pv size is not bigger than 19G"
+            success_msg: "pv size is bigger than 19G"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when:
+        - "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
+        - fdo_credential == "true"
+
+    # raw image does not have coreos-installer to grow fs to 19G
+    - name: "pv size should keep at 9G for raw image"
+      block:
+        - assert:
+            that:
+              - "'9' in result_pv_size.stdout"
+            fail_msg: "pv size does not keep at 9G"
+            success_msg: "pv size keeps at 9G"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when:
+        - "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
+        - fdo_credential == "false"
+
+    # case: check /sysroot lv size
+    - name: check sysroot lv size
+      shell: df -h | grep sysroot
+      register: result_sysroot_lv_size
+      when: "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
+
+    - name: "/sysroot lv size should be 9G"
+      block:
+        - assert:
+            that:
+              - "'9.0G' in result_sysroot_lv_size.stdout"
+            fail_msg: "pv size is not 9G"
+            success_msg: "pv size is 9G"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
 
     # case: check /sysroot mount status
     - name: check /sysroot mount status
