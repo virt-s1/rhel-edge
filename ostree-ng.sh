@@ -13,7 +13,7 @@ TEST_UUID=$(uuidgen)
 IMAGE_KEY="ostree-ng-${TEST_UUID}"
 QUAY_REPO_URL="docker://quay.io/rhel-edge/edge-containers"
 QUAY_REPO_TAG=$(tr -dc a-z0-9 < /dev/urandom | head -c 4 ; echo '')
-# BIOS_GUEST_ADDRESS=192.168.100.50
+BIOS_GUEST_ADDRESS=192.168.100.50
 UEFI_GUEST_ADDRESS=192.168.100.51
 PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
@@ -498,69 +498,67 @@ LIBVIRT_UEFI_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-uefi.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_BIOS_IMAGE_PATH}" 20G
 sudo qemu-img create -f qcow2 "${LIBVIRT_UEFI_IMAGE_PATH}" 20G
 
-#### Comment out BIOS installation test due to issue #155
-#### https://github.com/virt-s1/rhel-edge/issues/155
-# # Install ostree image via ISO on BIOS vm
-# greenprint "💿 Install ostree image via installer(ISO) on BIOS vm"
-# sudo virt-install  --name="${IMAGE_KEY}-bios" \
-#                    --disk path="${LIBVIRT_BIOS_IMAGE_PATH}",format=qcow2 \
-#                    --ram 3072 \
-#                    --vcpus 2 \
-#                    --network network=integration,mac=34:49:22:B0:83:30 \
-#                    --os-type linux \
-#                    --os-variant "${OS_VARIANT}" \
-#                    --cdrom "/var/lib/libvirt/images/${ISO_FILENAME}" \
-#                    --nographics \
-#                    --noautoconsole \
-#                    --wait=-1 \
-#                    --noreboot
+# Install ostree image via ISO on BIOS vm
+greenprint "💿 Install ostree image via installer(ISO) on BIOS vm"
+sudo virt-install  --name="${IMAGE_KEY}-bios" \
+                   --disk path="${LIBVIRT_BIOS_IMAGE_PATH}",format=qcow2 \
+                   --ram 3072 \
+                   --vcpus 2 \
+                   --network network=integration,mac=34:49:22:B0:83:30 \
+                   --os-type linux \
+                   --os-variant "${OS_VARIANT}" \
+                   --cdrom "/var/lib/libvirt/images/${ISO_FILENAME}" \
+                   --nographics \
+                   --noautoconsole \
+                   --wait=-1 \
+                   --noreboot
 
-# # Start VM.
-# greenprint "Start VM"
-# sudo virsh start "${IMAGE_KEY}-bios"
+# Start VM.
+greenprint "Start VM"
+sudo virsh start "${IMAGE_KEY}-bios"
 
-# # Check for ssh ready to go.
-# greenprint "🛃 Checking for SSH is ready to go"
-# for LOOP_COUNTER in $(seq 0 30); do
-#     RESULTS="$(wait_for_ssh_up $BIOS_GUEST_ADDRESS)"
-#     if [[ $RESULTS == 1 ]]; then
-#         echo "SSH is ready now! 🥳"
-#         break
-#     fi
-#     sleep 10
-# done
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for LOOP_COUNTER in $(seq 0 30); do
+    RESULTS="$(wait_for_ssh_up $BIOS_GUEST_ADDRESS)"
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
 
-# # Check image installation result
-# check_result
+# Check image installation result
+check_result
 
-# # Get ostree commit value.
-# greenprint "🕹 Get ostree install commit value"
-# INSTALL_HASH=$(curl "${PROD_REPO_URL_2}refs/heads/${OSTREE_REF}")
+# Get ostree commit value.
+greenprint "🕹 Get ostree install commit value"
+INSTALL_HASH=$(curl "${PROD_REPO_URL_2}refs/heads/${OSTREE_REF}")
 
-# # Run Edge test on BIOS VM
-# # Add instance IP address into /etc/ansible/hosts
-# # Run BIOS VM test with installeruser added by edge-installer bp as ansible user
-# sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
-# [ostree_guest]
-# ${BIOS_GUEST_ADDRESS}
-# [ostree_guest:vars]
-# ansible_python_interpreter=/usr/bin/python3
-# ansible_user=${ANSIBLE_USER}
-# ansible_private_key_file=${SSH_KEY}
-# ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-# EOF
+# Run Edge test on BIOS VM
+# Add instance IP address into /etc/ansible/hosts
+# Run BIOS VM test with installeruser added by edge-installer bp as ansible user
+sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
+[ostree_guest]
+${BIOS_GUEST_ADDRESS}
+[ostree_guest:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_user=${ANSIBLE_USER}
+ansible_private_key_file=${SSH_KEY}
+ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+EOF
 
-# # Test IoT/Edge OS
-# greenprint "📼 Run Edge tests on BIOS VM"
-# sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=rhel -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="rhel:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
-# check_result
+# Test IoT/Edge OS
+greenprint "📼 Run Edge tests on BIOS VM"
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=rhel -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="rhel:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+check_result
 
-# # Clean BIOS VM
-# if [[ $(sudo virsh domstate "${IMAGE_KEY}-bios") == "running" ]]; then
-#     sudo virsh destroy "${IMAGE_KEY}-bios"
-# fi
-# sudo virsh undefine "${IMAGE_KEY}-bios"
-# sudo sudo virsh vol-delete --pool images "${IMAGE_KEY}-bios.qcow2"
+# Clean BIOS VM
+if [[ $(sudo virsh domstate "${IMAGE_KEY}-bios") == "running" ]]; then
+    sudo virsh destroy "${IMAGE_KEY}-bios"
+fi
+sudo virsh undefine "${IMAGE_KEY}-bios"
+sudo sudo virsh vol-delete --pool images "${IMAGE_KEY}-bios.qcow2"
 
 # Install ostree image via ISO on UEFI vm
 greenprint "💿 Install ostree image via installer(ISO) on UEFI vm"
