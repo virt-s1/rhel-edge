@@ -4,6 +4,7 @@
   vars:
     workspace: "{{ lookup('env', 'WORKSPACE') }}"
     fdo_credential: "false"
+    embeded_container: "false"
     total_counter: "0"
     failed_counter: "0"
 
