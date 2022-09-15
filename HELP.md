@@ -33,11 +33,18 @@
 
 1. [ostree manual](https://ostreedev.github.io/ostree/)
 
+
+    * [ostree deployment](https://ostreedev.github.io/ostree/deployment/)
+    * [Boot Loader Specification](https://www.freedesktop.org/wiki/Specifications/BootLoaderSpec/)
+    * [Assembling a new deployment directory](https://ostreedev.github.io/ostree/atomic-upgrades/#assembling-a-new-deployment-directory)
+
+
 2. [ostree repository](https://github.com/ostreedev/ostree)
 
 3. [rpm-ostree manual](https://coreos.github.io/rpm-ostree/)
 
 4. [rpm-ostree repository](https://github.com/coreos/rpm-ostree)
+
 
 
 ## RHEL for Edge Test Plan
