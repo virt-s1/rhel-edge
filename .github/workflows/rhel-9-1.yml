@@ -14,6 +14,7 @@ jobs:
             endsWith(github.event.comment.body, '/test-rhel-9-1-ng') ||
             endsWith(github.event.comment.body, '/test-rhel-9-1-raw') ||
             endsWith(github.event.comment.body, '/test-rhel-9-1-simplified') ||
+            endsWith(github.event.comment.body, '/test-rhel-9-1-9to9') ||
             endsWith(github.event.comment.body, '/test-rhel-9-1-8to9')) }}
     runs-on: ubuntu-latest
     steps:
@@ -320,6 +321,66 @@ jobs:
 
       - name: run ostree-8-to-9.sh
         run: ./ostree-8-to-9.sh
+        timeout-minutes: 90
+
+      - name: Set non cancelled result status
+        if: ${{ !cancelled() }}
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: ${{ job.status }}
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set cancelled result status
+        if: ${{ cancelled() }}
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: error
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v3
+        if: ${{ always() }}
+        with:
+          name: edge-8to9-9.1
+          path: |
+            *.json
+            *.log
+
+  edge-9to9-91:
+    needs: pr-info
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
+            (endsWith(github.event.comment.body, '/test-rhel-9-1') ||
+            endsWith(github.event.comment.body, '/test-rhel-9-1-9to9')) }}
+    runs-on: [kite, x86_64, rhos-01, rhel-9-1, large]
+    env:
+      STATUS_NAME: edge-9to9-9.1
+
+    steps:
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.pr-info.outputs.sha }}
+          fetch-depth: 0
+
+      - name: run ostree-9-to-9.sh
+        run: ./ostree-9-to-9.sh
         timeout-minutes: 90
 
       - name: Set non cancelled result status
