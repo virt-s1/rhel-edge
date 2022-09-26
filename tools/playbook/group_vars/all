@@ -40,16 +40,19 @@ images:
   fedora-35: Fedora-Cloud-Base-35
   remote-35: Fedora-Cloud-Base-35
   fedora-36: edge-fedora-36
+  fedora-37: edge-fedora-37
   fedora-rawhide: edge-fedora-rawhide
 
 image_url:
   centos-stream-9: https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/images
   centos-stream-8: https://cloud.centos.org/centos/8-stream/x86_64/images
   fedora-36: https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/
+  fedora-37: https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/37/Cloud/x86_64/images/
   fedora-rawhide: https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/x86_64/images
 
 os_distro:
   centos-stream-9: centos
   centos-stream-8: centos
   fedora-36: fedora
+  fedora-37: fedora
   fedora-rawhide: fedora
