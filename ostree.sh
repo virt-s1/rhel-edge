@@ -91,7 +91,7 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_TYPE=fedora-iot-commit
         USER_IN_COMMIT="false"
         OSTREE_REF="fedora/37/${ARCH}/iot"
-        OS_VARIANT="fedora37"
+        OS_VARIANT="fedora-unknown"
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/37/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
@@ -100,7 +100,7 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_TYPE=fedora-iot-commit
         USER_IN_COMMIT="false"
         OSTREE_REF="fedora/38/${ARCH}/iot"
-        OS_VARIANT="fedora38"
+        OS_VARIANT="fedora-unknown"
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
@@ -150,6 +150,27 @@ sudo sed -i 's/timeout=60/timeout=10/' "${GRUB_CFG}"
 # SSH setup.
 SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5)
 SSH_KEY=key/ostree_key
+
+# Compare rpm package version
+function nvrGreaterOrEqual {
+    local rpm_name=$1
+    local min_version=$2
+
+    set +e
+
+    rpm_version=$(rpm -q --qf "%{version}" "${rpm_name}")
+    rpmdev-vercmp "${rpm_version}" "${min_version}" 1>&2
+    if [ "$?" != "12" ]; then
+        # 0 - rpm_version == min_version
+        # 11 - rpm_version > min_version
+        # 12 - rpm_version < min_version
+        set -e
+        return
+    fi
+
+    set -e
+    false
+}
 
 # Get the compose log.
 get_compose_log () {
@@ -201,14 +222,23 @@ build_image() {
     else
         sudo composer-cli --json compose start "$blueprint_name" $IMAGE_TYPE | tee "$COMPOSE_START"
     fi
-    COMPOSE_ID=$(jq -r '.body.build_id' "$COMPOSE_START")
+
+    if nvrGreaterOrEqual "weldr-client" "35.6"; then
+        COMPOSE_ID=$(jq -r '.[0].body.build_id' "$COMPOSE_START")
+    else
+        COMPOSE_ID=$(jq -r '.body.build_id' "$COMPOSE_START")
+    fi
 
     # Wait for the compose to finish.
     greenprint "⏱ Waiting for compose to finish: ${COMPOSE_ID}"
     while true; do
         sudo composer-cli --json compose info "${COMPOSE_ID}" | tee "$COMPOSE_INFO" > /dev/null
 
-        COMPOSE_STATUS=$(jq -r '.body.queue_status' "$COMPOSE_INFO")
+        if nvrGreaterOrEqual "weldr-client" "35.6"; then
+            COMPOSE_STATUS=$(jq -r '.[0].body.queue_status' "$COMPOSE_INFO")
+        else
+            COMPOSE_STATUS=$(jq -r '.body.queue_status' "$COMPOSE_INFO")
+        fi
 
         # Is the compose finished?
         if [[ $COMPOSE_STATUS != RUNNING ]] && [[ $COMPOSE_STATUS != WAITING ]]; then
