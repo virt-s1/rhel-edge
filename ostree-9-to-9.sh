@@ -357,7 +357,7 @@ sudo virt-install  --initrd-inject="${KS_FILE}" \
                    --os-type linux \
                    --os-variant "${OS_VARIANT}" \
                    --location "${BOOT_LOCATION}" \
-                   --boot uefi,loader_ro=yes,loader_type=pflash,nvram_template=/usr/share/edk2/ovmf/OVMF_VARS.fd,loader_secure=no \
+                   --boot firmware=efi,loader_secure=yes \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \
