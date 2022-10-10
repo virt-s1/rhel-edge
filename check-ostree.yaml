@@ -494,6 +494,7 @@
         - embedded_container == "true"
 
     # case: check running container with podman
+    # Do not run on CS due to issue https://bugzilla.redhat.com/show_bug.cgi?id=2123611
     - name: run ubi8 image with root
       command: podman run ubi8-minimal:latest cat /etc/redhat-release
       register: podman_result
@@ -502,7 +503,9 @@
       delay: 2
       until: podman_result is success
       ignore_errors: yes
+      when: ansible_facts['distribution'] != 'CentOS'
 
+    # Do not run on CS due to issue https://bugzilla.redhat.com/show_bug.cgi?id=2123611
     - name: run container test
       block:
         - assert:
@@ -518,10 +521,12 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
+      when: ansible_facts['distribution'] != 'CentOS'
 
     # case: check running container with podman (non-root)
     # workaround on RHEL 8.6 and 9.0 for issue https://bugzilla.redhat.com/show_bug.cgi?id=2078937
     # because the fix is not available on 8.6 and 9.0 yet
+    # Do not run on CS due to issue https://bugzilla.redhat.com/show_bug.cgi?id=2123611
     - name: run ubi8 image with non-root
       command: podman run ubi8:latest cat /etc/redhat-release
       register: podman_result
@@ -531,9 +536,9 @@
       ignore_errors: yes
       when: (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.0', '>')) or
             (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>') and ansible_facts ['distribution_version'] is version('9.0', '!=')) or
-            (ansible_facts['distribution'] == 'CentOS') or
             (ansible_facts['distribution'] == 'Fedora')
 
+    # Do not run on CS due to issue https://bugzilla.redhat.com/show_bug.cgi?id=2123611
     - name: run container test
       block:
         - assert:
@@ -551,7 +556,6 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when: (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.0', '>')) or
             (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>') and ansible_facts ['distribution_version'] is version('9.0', '!=')) or
-            (ansible_facts['distribution'] == 'CentOS') or
             (ansible_facts['distribution'] == 'Fedora')
 
     # case: check dnf package and it should not be installed
