@@ -225,8 +225,8 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when: "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
 
-    # case: check /sysroot mount status
-    - name: check /sysroot mount status
+    # case: check /sysroot rw mount status
+    - name: check /sysroot rw mount status
       shell: findmnt -r -o OPTIONS -n /sysroot | awk -F "," '{print $1}'
       register: result_sysroot_mount_status
 
@@ -244,6 +244,25 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
+      when: (ansible_facts['distribution'] == 'Fedora' and ansible_facts['distribution_version'] is version('37', '<')) or
+            (ansible_facts['distribution'] == 'CentOS') or (ansible_facts['distribution'] == 'RedHat')
+
+    # https://fedoraproject.org/wiki/Changes/Silverblue_Kinoite_readonly_sysroot
+    - name: /sysroot should be mount with ro permission since Fedora 37
+      block:
+        - assert:
+            that:
+              - result_sysroot_mount_status.stdout == "ro"
+            fail_msg: "/sysroot is not mounted with ro permission"
+            success_msg: "/sysroot is mounted with ro permission"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: ansible_facts['distribution'] == 'Fedora' and ansible_facts['distribution_version'] is version('37', '>=')
 
     # case: check /var mount point
     - name: check /var mount point
@@ -376,6 +395,8 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
+      when: (ansible_facts['distribution'] == 'Fedora' and ansible_facts['distribution_version'] is version('37', '<')) or
+            (ansible_facts['distribution'] == 'CentOS') or (ansible_facts['distribution'] == 'RedHat')
 
     # case: check dmesg error and failed log
     - name: check dmesg output
