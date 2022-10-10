@@ -464,7 +464,7 @@ sudo virt-install  --name="${IMAGE_KEY}-uefi"\
                    --network network=integration,mac=34:49:22:B0:83:31 \
                    --os-type linux \
                    --os-variant ${OS_VARIANT} \
-                   --boot uefi,loader_ro=yes,loader_type=pflash,nvram_template=/usr/share/edk2/ovmf/OVMF_VARS.fd,loader_secure=no \
+                   --boot firmware=efi,loader_secure=yes \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \
