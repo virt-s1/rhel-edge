@@ -436,7 +436,7 @@ sudo virt-install  --name="${IMAGE_KEY}"\
                    --os-type linux \
                    --os-variant ${OS_VARIANT} \
                    --pxe \
-                   --boot uefi,loader_ro=yes,loader_type=pflash,nvram_template=/usr/share/edk2/ovmf/OVMF_VARS.fd,loader_secure=no \
+                   --boot firmware=efi,loader_secure=yes \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \
