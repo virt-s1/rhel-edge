@@ -14,6 +14,11 @@
     - debug: var=ansible_facts['distribution_version']
     - debug: var=ansible_facts['distribution']
 
+    # check BIOS or UEFI
+    - name: check bios or uefi
+      stat:
+        path: /sys/firmware/efi
+
     # check secure boot status if it's enabled
     - name: check secure boot status
       command: mokutil --sb-state
