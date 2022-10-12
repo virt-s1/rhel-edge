@@ -25,6 +25,8 @@ COMPOSE_START=${TEMPDIR}/compose-start-${IMAGE_KEY}.json
 COMPOSE_INFO=${TEMPDIR}/compose-info-${IMAGE_KEY}.json
 GRUB_CFG=${HTTPD_PATH}/httpboot/EFI/BOOT/grub.cfg
 EMBEDDED_CONTAINER="false"
+# Workaround BZ#2108646
+BOOT_ARGS="uefi"
 
 # Set os-variant and boot location used by virt-install.
 case "${ID}-${VERSION_ID}" in
@@ -77,6 +79,7 @@ case "${ID}-${VERSION_ID}" in
         CUT_DIRS=6
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
+        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
     "fedora-36")
         IMAGE_TYPE=fedora-iot-commit
@@ -436,7 +439,7 @@ sudo virt-install  --name="${IMAGE_KEY}"\
                    --os-type linux \
                    --os-variant ${OS_VARIANT} \
                    --pxe \
-                   --boot firmware=efi,loader_secure=yes \
+                   --boot ${BOOT_ARGS} \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \

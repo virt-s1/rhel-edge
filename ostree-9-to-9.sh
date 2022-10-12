@@ -357,7 +357,7 @@ sudo virt-install  --initrd-inject="${KS_FILE}" \
                    --os-type linux \
                    --os-variant "${OS_VARIANT}" \
                    --location "${BOOT_LOCATION}" \
-                   --boot firmware=efi,loader_secure=yes \
+                   --boot uefi \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \

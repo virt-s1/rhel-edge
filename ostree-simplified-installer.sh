@@ -30,6 +30,8 @@ CONTAINER_FILENAME=container.tar
 INSTALLER_TYPE=edge-simplified-installer
 INSTALLER_FILENAME=simplified-installer.iso
 REF_PREFIX="rhel-edge"
+# Workaround BZ#2108646
+BOOT_ARGS="uefi"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -70,6 +72,7 @@ case "${ID}-${VERSION_ID}" in
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
+        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -390,7 +393,7 @@ sudo virt-install --name="${IMAGE_KEY}-httpboot"\
                   --os-type linux \
                   --os-variant "$OS_VARIANT" \
                   --pxe \
-                  --boot firmware=efi,loader_secure=yes \
+                  --boot "${BOOT_ARGS}" \
                   --nographics \
                   --noautoconsole \
                   --wait=-1 \
@@ -504,7 +507,7 @@ sudo virt-install  --name="${IMAGE_KEY}-fdosshkey"\
                    --os-type linux \
                    --os-variant ${OS_VARIANT} \
                    --cdrom "/var/lib/libvirt/images/${ISO_FILENAME}" \
-                   --boot firmware=efi,loader_secure=yes \
+                   --boot "${BOOT_ARGS}" \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \
@@ -617,7 +620,7 @@ sudo virt-install  --name="${IMAGE_KEY}-fdorootcert"\
                    --os-type linux \
                    --os-variant ${OS_VARIANT} \
                    --cdrom "/var/lib/libvirt/images/${ISO_FILENAME}" \
-                   --boot firmware=efi,loader_secure=yes \
+                   --boot "${BOOT_ARGS}" \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \

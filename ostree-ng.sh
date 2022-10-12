@@ -32,6 +32,8 @@ ANSIBLE_USER="installeruser"
 CONTAINER_PUSHING_FEAT="false"
 # Embedded container image into OSTree commits feature
 EMBEDDED_CONTAINER="false"
+# Workaround BZ#2108646
+BOOT_ARGS="uefi"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -89,6 +91,7 @@ case "${ID}-${VERSION_ID}" in
         NEW_MKKSISO="true"
         CONTAINER_PUSHING_FEAT="true"
         EMBEDDED_CONTAINER="true"
+        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -581,7 +584,7 @@ sudo virt-install  --name="${IMAGE_KEY}-uefi" \
                    --os-type linux \
                    --os-variant "${OS_VARIANT}" \
                    --cdrom "/var/lib/libvirt/images/${ISO_FILENAME}" \
-                   --boot firmware=efi,loader_secure=yes \
+                   --boot ${BOOT_ARGS} \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \
