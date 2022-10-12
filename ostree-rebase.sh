@@ -29,6 +29,9 @@ KS_FILE=${TEMPDIR}/ks.cfg
 SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5)
 SSH_KEY=key/ostree_key
 
+# Workaround BZ#2108646
+BOOT_ARGS="uefi"
+
 case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
@@ -65,6 +68,7 @@ case "${ID}-${VERSION_ID}" in
         PARENT_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
         BOOT_LOCATION="https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/os/"
+        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -361,7 +365,7 @@ sudo virt-install  --initrd-inject="${KS_FILE}" \
                    --os-type linux \
                    --os-variant "${OS_VARIANT}" \
                    --location "${BOOT_LOCATION}" \
-                   --boot firmware=efi,loader_secure=yes \
+                   --boot "${BOOT_ARGS}" \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \

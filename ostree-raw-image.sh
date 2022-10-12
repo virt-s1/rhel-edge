@@ -24,6 +24,8 @@ CONTAINER_TYPE=edge-container
 CONTAINER_FILENAME=container.tar
 RAW_TYPE=edge-raw-image
 RAW_FILENAME=image.raw.xz
+# Workaround BZ#2108646
+BOOT_ARGS="uefi"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -70,6 +72,7 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
         ADD_SSSD="true"
+        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -464,7 +467,7 @@ sudo virt-install  --name="${IMAGE_KEY}-uefi"\
                    --network network=integration,mac=34:49:22:B0:83:31 \
                    --os-type linux \
                    --os-variant ${OS_VARIANT} \
-                   --boot firmware=efi,loader_secure=yes \
+                   --boot ${BOOT_ARGS} \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \
