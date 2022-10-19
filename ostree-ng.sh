@@ -34,6 +34,7 @@ CONTAINER_PUSHING_FEAT="false"
 EMBEDDED_CONTAINER="false"
 # Workaround BZ#2108646
 BOOT_ARGS="uefi"
+ANSIBLE_OS_NAME="rhel"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -93,6 +94,13 @@ case "${ID}-${VERSION_ID}" in
         EMBEDDED_CONTAINER="true"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
+    "fedora-36")
+        CONTAINER_IMAGE_TYPE=fedora-iot-container
+        INSTALLER_IMAGE_TYPE=fedora-iot-installer
+        OSTREE_REF="fedora/36/${ARCH}/iot"
+        OS_VARIANT="fedora36"
+        ANSIBLE_OS_NAME="fedora"
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
@@ -148,8 +156,8 @@ poweroff
 echo -e 'admin\tALL=(ALL)\tNOPASSWD: ALL' >> /etc/sudoers
 echo -e 'installeruser\tALL=(ALL)\tNOPASSWD: ALL' >> /etc/sudoers
 # add remote prod edge repo
-ostree remote delete rhel
-ostree remote add --no-gpg-verify --no-sign-verify rhel ${PROD_REPO_URL}
+ostree remote delete ${ANSIBLE_OS_NAME}
+ostree remote add --no-gpg-verify --no-sign-verify ${ANSIBLE_OS_NAME} ${PROD_REPO_URL}
 %end
 EOFKS
 
@@ -564,7 +572,7 @@ EOF
 
 # Test IoT/Edge OS
 greenprint "📼 Run Edge tests on BIOS VM"
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=rhel -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="rhel:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Clean BIOS VM
@@ -627,9 +635,15 @@ version = "*"
 [[packages]]
 name = "wget"
 version = "*"
+EOF
+
+# ANSIBLE_OS_NAME is a check-ostree.yaml playbook variable defined as "rhel" just for RHEL and CS systems, otherwise is "fedora"
+if [[ "${ANSIBLE_OS_NAME}" == "rhel" ]]; then
+    tee "$BLUEPRINT_FILE" >> /dev/null << EOF
 [customizations.kernel]
 name = "kernel-rt"
 EOF
+fi
 
 # RHEL 8.7 and 9.1 later support embeded container in commit
 if [[ "${CONTAINER_PUSHING_FEAT}" == "true" ]]; then
@@ -729,10 +743,11 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=rhel -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" check-ostree.yaml || RESULTS=0
+sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
 clean_up
 
 exit 0
+
