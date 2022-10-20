@@ -97,6 +97,8 @@ case "${ID}-${VERSION_ID}" in
     "fedora-36")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
         INSTALLER_IMAGE_TYPE=fedora-iot-installer
+        sudo dnf install -y dmidecode
+        sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
         OSTREE_REF="fedora/36/${ARCH}/iot"
         OS_VARIANT="fedora36"
         ANSIBLE_OS_NAME="fedora"
@@ -639,7 +641,7 @@ EOF
 
 # ANSIBLE_OS_NAME is a check-ostree.yaml playbook variable defined as "rhel" just for RHEL and CS systems, otherwise is "fedora"
 if [[ "${ANSIBLE_OS_NAME}" == "rhel" ]]; then
-    tee "$BLUEPRINT_FILE" >> /dev/null << EOF
+    tee -a "$BLUEPRINT_FILE" >> /dev/null << EOF
 [customizations.kernel]
 name = "kernel-rt"
 EOF
