@@ -73,13 +73,24 @@ jobs:
         run: ./ostree.sh
         timeout-minutes: 60
 
-      - name: Set result status
-        if: always()
+      - name: Set non cancelled result status
+        if: ${{ !cancelled() }}
         uses: octokit/request-action@v2.x
         with:
           route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: ${{ job.status }}
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set cancelled result status
+        if: ${{ cancelled() }}
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: error
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
