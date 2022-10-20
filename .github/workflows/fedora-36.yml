@@ -131,7 +131,7 @@ jobs:
       - name: run ostree-ng.sh
         run: ./ostree-ng.sh
         env:
-          OCP4_TOKEN: ${{ secrets.OCP4_TOKEN }}
+          CRC_PULL_SECRET_FILE: ${{ secrets.CRC_PULL_SECRET_FILE }}
           QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
           QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
         timeout-minutes: 120
