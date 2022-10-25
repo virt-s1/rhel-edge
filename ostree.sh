@@ -334,6 +334,13 @@ version = "*"
 EOF
 fi
 
+# Ensure grafana-pcp is in the base blueprint
+tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[packages]]
+name = "grafana-pcp"
+version = "*"
+EOF
+
 # Fedora does not support user configuration in blueprint for fedora-iot-commit image
 if [[ "${USER_IN_COMMIT}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
@@ -463,6 +470,10 @@ done
 # Check image installation result
 check_result
 
+# Check whether grafana-pcp RPM is installed
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${GUEST_ADDRESS}" \
+    'rpm -q grafana-pcp'
+
 ##################################################
 ##
 ## ostree image/commit upgrade
@@ -500,6 +511,13 @@ name = "sssd"
 version = "*"
 EOF
 fi
+
+# Ensure grafana-pcp is in the upgrade blueprint
+tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[packages]]
+name = "grafana-pcp"
+version = "*"
+EOF
 
 # RHEL 8.7 and 9.1 later support embeded container in commit
 if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then

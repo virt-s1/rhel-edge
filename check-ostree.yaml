@@ -798,6 +798,20 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when: result_rollback is succeeded
 
+    # case: check if grafana-pcp is installed
+    - name: grafana-pcp should be installed
+      block:
+        - name: grafana-pcp should be installed
+          shell: rpm -q grafana-pcp
+          register: result_grafana_pcp_packages
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
     - assert:
         that:
           - failed_counter == "0"
