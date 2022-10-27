@@ -11,7 +11,7 @@ on:
 
 env:
   COMPOSE_URL_86: http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/updates/RHEL-8
-  COMPOSE_URL_87: http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8
+  COMPOSE_URL_87: http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/updates/RHEL-8
 
 jobs:
   check-compose:

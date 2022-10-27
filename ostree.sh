@@ -42,7 +42,7 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/8/${ARCH}/edge"
         USER_IN_COMMIT="true"
         OS_VARIANT="rhel8-unknown"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.7.0/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.7.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
@@ -59,7 +59,7 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/9/${ARCH}/edge"
         USER_IN_COMMIT="true"
         OS_VARIANT="rhel9.0"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
