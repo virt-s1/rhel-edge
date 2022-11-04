@@ -56,6 +56,12 @@
               enabled: true
               gpgcheck: false
               sslverify: false
+            crb:
+              name: rhel-appstream
+              baseurl: "{{ repos[os]['crb'] }}"
+              enabled: true
+              gpgcheck: false
+              sslverify: false
           packages:
             - python3
             - python3-dnf
