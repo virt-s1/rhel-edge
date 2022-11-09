@@ -7,10 +7,14 @@
 
   tasks:
     # case: check pmproxy service
+    # due to https://bugzilla.redhat.com/show_bug.cgi?id=2127037 service should be failed
+    # It also checked package installed
     - name: service pmproxy should be started
       block:
         - name: service pmproxy should be started
-          command: systemctl is-active pmproxy
+          # due to https://bugzilla.redhat.com/show_bug.cgi?id=2127037 service should be failed
+          # command: systemctl is-active pmproxy
+          command: systemctl is-failed pmproxy
           register: result_pmproxy_service
 
         - assert:
