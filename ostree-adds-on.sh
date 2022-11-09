@@ -35,11 +35,11 @@ CONTAINER_IMAGE_TYPE=edge-container
 CONTAINER_FILENAME=container.tar
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-9.1")
+    "rhel-9.2")
         PARENT_REF="rhel/9/${ARCH}/edge"
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OSTREE_REBASE_REF="rhel/9x/${ARCH}/edge"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/x86_64/os/"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
