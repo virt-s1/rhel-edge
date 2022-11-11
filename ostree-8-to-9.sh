@@ -40,7 +40,7 @@ case "${ID}-${VERSION_ID}" in
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8.6"
+        OS_VARIANT="rhel8-unknown"
         DISTRO="rhel-86"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
         ;;
