@@ -12,6 +12,7 @@ on:
 env:
   COMPOSE_URL_90: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/updates/RHEL-9
   COMPOSE_URL_91: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/updates/RHEL-9
+  COMPOSE_URL_92: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9
 
 jobs:
   check-compose:
@@ -83,15 +84,50 @@ jobs:
 
           echo "::set-output name=rhel91_compose::$COMPOSE_ID_91"
 
+      - name: Check RHEL 9.2 compose
+        id: check_compose_id_92
+        run: |
+          curl -s ${COMPOSE_URL_92}/latest-RHEL-9.2.0/STATUS --output STATUS_92
+          STATUS_92=$(cat STATUS_92)
+          if [[ "$STATUS_92" == "FINISHED" ]]; then
+              curl -s ${COMPOSE_URL_92}/latest-RHEL-9.2.0/COMPOSE_ID --output COMPOSE_ID_92
+              COMPOSE_ID_92=$(cat COMPOSE_ID_92)
+              TESTED_COMPOSE_92=( $( cat compose/compose.92 ) )
+              if [[ " ${TESTED_COMPOSE_92[*]} " =~ "$COMPOSE_ID_92" ]]; then
+                  COMPOSE_ID_92="false"
+              fi
+          else
+              COMPOSE_ID_92="false"
+          fi
+
+          if [[ "$COMPOSE_ID_92" != "false" ]]; then
+              OSBUILD_VERSION_92=$(curl -s "${COMPOSE_URL_92}/${COMPOSE_ID_92}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION_92=$(curl -s "${COMPOSE_URL_92}/${COMPOSE_ID_92}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION_92=$(curl -s "${COMPOSE_URL_92}/${COMPOSE_ID_92}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "osbuild_version_92=$OSBUILD_VERSION_92" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_92=$OSBUILD_COMPOSER_VERSION_92" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_92=$COMPOSER_CLI_VERSION_92" >> $GITHUB_OUTPUT
+          else
+              echo "osbuild_version_92=Null" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_92=Null" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_92=Null" >> $GITHUB_OUTPUT
+          fi
+
+          echo "rhel92_compose=$COMPOSE_ID_92" >> $GITHUB_OUTPUT
+
     outputs:
       rhel90_compose: ${{ steps.check_compose_id_90.outputs.rhel90_compose }}
       rhel91_compose: ${{ steps.check_compose_id_91.outputs.rhel91_compose }}
+      rhel92_compose: ${{ steps.check_compose_id_92.outputs.rhel92_compose }}
       osbuild_version_90: ${{ steps.check_compose_id_90.outputs.osbuild_version_90 }}
       osbuild_composer_version_90: ${{ steps.check_compose_id_90.outputs.osbuild_composer_version_90 }}
       composer_cli_version_90: ${{ steps.check_compose_id_90.outputs.composer_cli_version_90 }}
       osbuild_version_91: ${{ steps.check_compose_id_91.outputs.osbuild_version_91 }}
       osbuild_composer_version_91: ${{ steps.check_compose_id_91.outputs.osbuild_composer_version_91 }}
       composer_cli_version_91: ${{ steps.check_compose_id_91.outputs.composer_cli_version_91 }}
+      osbuild_version_92: ${{ steps.check_compose_id_92.outputs.osbuild_version_92 }}
+      osbuild_composer_version_92: ${{ steps.check_compose_id_92.outputs.osbuild_composer_version_92 }}
+      composer_cli_version_92: ${{ steps.check_compose_id_92.outputs.composer_cli_version_92 }}
 
   rhel-9-0:
     needs: check-compose
@@ -215,4 +251,66 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: RHEL Compose Test
           column-name: RHEL-9-1
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+
+  rhel-9-2:
+    needs: check-compose
+    if: ${{ needs.check-compose.outputs.rhel92_compose != 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Add new compose id in compose.92
+        run: |
+          compose_id="${{ needs.check-compose.outputs.rhel92_compose }}"
+          echo $compose_id >> compose/compose.92
+          cat compose/compose.92
+
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "${{ needs.check-compose.outputs.rhel92_compose }} - ${{ steps.date.outputs.date }}"
+          committer: cloudkitebot <henrywangxf1@gmail.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: cpr
+          branch-suffix: random
+          delete-branch: true
+          title: "${{ needs.check-compose.outputs.rhel92_compose }} - ${{ steps.date.outputs.date }}"
+          labels: auto-merge,RHEL-9.2.0
+          body: |
+            RHEL 9.2 compose ${{ needs.check-compose.outputs.rhel92_compose }}
+            - Date: ${{ steps.date.outputs.date }}
+            - Compose URL: "${{ env.COMPOSE_URL_92 }}/${{ needs.check-compose.outputs.rhel92_compose }}"
+            - Packages:
+                - ${{ needs.check-compose.outputs.osbuild_version_92 }}
+                - ${{ needs.check-compose.outputs.osbuild_composer_version_92 }}
+                - ${{ needs.check-compose.outputs.composer_cli_version_92 }}
+
+      - name: Enable Pull Request Automerge
+        if: steps.cpr.outputs.pull-request-operation == 'created'
+        uses: peter-evans/enable-pull-request-automerge@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: rebase
+
+      - name: Add a comment to trigger test workflow
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          token: ${{ secrets.PAT }}
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          body: /test-rhel-9-2
+
+      - name: Create a project card to track compose test result
+        uses: peter-evans/create-or-update-project-card@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          project-name: RHEL Compose Test
+          column-name: RHEL-9-2
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
