@@ -51,9 +51,13 @@ sudo mkdir -p /etc/osbuild-composer/repositories
 case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
+        OS_VARIANT="rhel8.6"
         ;;
     "rhel-8.7")
+        OSTREE_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8.7"
+        ;;
+    "rhel-8.8")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         ;;
@@ -63,7 +67,11 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "rhel-9.1")
         OSTREE_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9.0"
+        OS_VARIANT="rhel9.1"
+        ;;
+    "rhel-9.2")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"

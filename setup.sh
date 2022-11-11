@@ -66,6 +66,8 @@ case "${ID}-${VERSION_ID}" in
         sudo cp files/rhel-8-6-0.json /etc/osbuild-composer/repositories/rhel-86.json;;
     "rhel-8.7")
         sudo cp files/rhel-8-7-0.json /etc/osbuild-composer/repositories/rhel-87.json;;
+    "rhel-8.8")
+        sudo cp files/rhel-8-8-0.json /etc/osbuild-composer/repositories/rhel-88.json;;
     "rhel-9.0")
         sudo cp files/rhel-8-6-0-sha512.json /etc/osbuild-composer/repositories/rhel-86.json
         sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json;;
@@ -74,6 +76,7 @@ case "${ID}-${VERSION_ID}" in
         sudo cp files/rhel-9-0-0.json /etc/osbuild-composer/repositories/rhel-90.json
         sudo cp files/rhel-9-1-0.json /etc/osbuild-composer/repositories/rhel-91.json;;
     "rhel-9.2")
+        sudo cp files/rhel-8-8-0-sha512.json /etc/osbuild-composer/repositories/rhel-88.json
         sudo cp files/rhel-9-1-0.json /etc/osbuild-composer/repositories/rhel-91.json
         sudo cp files/rhel-9-2-0.json /etc/osbuild-composer/repositories/rhel-92.json;;
     "centos-8")
