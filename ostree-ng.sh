@@ -53,9 +53,15 @@ NEW_MKKSISO="false"
 case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
+        OS_VARIANT="rhel8.6"
         ;;
     "rhel-8.7")
+        OSTREE_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8.7"
+        CONTAINER_PUSHING_FEAT="true"
+        EMBEDDED_CONTAINER="true"
+        ;;
+    "rhel-8.8")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         CONTAINER_PUSHING_FEAT="true"
@@ -67,7 +73,14 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "rhel-9.1")
         OSTREE_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9.0"
+        OS_VARIANT="rhel9.1"
+        NEW_MKKSISO="true"
+        CONTAINER_PUSHING_FEAT="true"
+        EMBEDDED_CONTAINER="true"
+        ;;
+    "rhel-9.2")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
         NEW_MKKSISO="true"
         CONTAINER_PUSHING_FEAT="true"
         EMBEDDED_CONTAINER="true"

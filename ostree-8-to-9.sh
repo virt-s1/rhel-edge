@@ -40,16 +40,23 @@ case "${ID}-${VERSION_ID}" in
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
+        OS_VARIANT="rhel8.6"
         DISTRO="rhel-86"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
         ;;
     "rhel-9.1")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
+        OS_VARIANT="rhel8.7"
         DISTRO="rhel-87"
         BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.7.0/compose/BaseOS/x86_64/os/"
+        ;;
+    "rhel-9.2")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8-unknown"
+        DISTRO="rhel-88"
+        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.8.0/compose/BaseOS/x86_64/os/"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
