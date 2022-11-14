@@ -11,7 +11,7 @@
       openstack.cloud.keypair:
         cloud: rhos-01
         state: present
-        name: "rhel-edge"
+        name: "debugging"
         public_key_file: key/ostree_key.pub
 
     - name: "deploy RHEL instance"
