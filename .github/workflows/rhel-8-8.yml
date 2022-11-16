@@ -73,6 +73,8 @@ jobs:
 
       - name: run ostree.sh
         run: ./ostree.sh
+        env:
+          DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
         timeout-minutes: 60
 
       - name: Set non cancelled result status
@@ -137,6 +139,7 @@ jobs:
           OCP4_TOKEN: ${{ secrets.OCP4_TOKEN }}
           QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
           QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+          DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
         timeout-minutes: 120
 
       - name: Set non cancelled result status
@@ -200,6 +203,7 @@ jobs:
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+          DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
         timeout-minutes: 90
 
       - name: Set non cancelled result status
@@ -260,6 +264,8 @@ jobs:
 
       - name: run ostree-simplified-installer.sh
         run: ./ostree-simplified-installer.sh
+        env:
+          DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
         timeout-minutes: 120
 
       - name: Set non cancelled result status
@@ -320,6 +326,8 @@ jobs:
 
       - name: run ostree-rebase.sh
         run: ./ostree-rebase.sh
+        env:
+          DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
         timeout-minutes: 90
 
       - name: Set non cancelled result status

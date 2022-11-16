@@ -7,7 +7,7 @@ on:
     - cron: '0 0 * * 2,6'
 
 env:
-  COMPOSE_URL_92: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9
+  COMPOSE_URL_92: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/RHEL-9"
 
 jobs:
   check-compose:
@@ -69,7 +69,6 @@ jobs:
           body: |
             RHEL compose ${{ needs.check-compose.outputs.rhel92_compose }}
             - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: "${{ env.COMPOSE_URL_92 }}/${{ needs.check-compose.outputs.rhel92_compose }}"
             - fapolicyd package info:
                 - ${{ needs.check-compose.outputs.fapolicyd_version_92 }}
 
@@ -118,7 +117,6 @@ jobs:
           body: |
             RHEL compose ${{ needs.check-compose.outputs.rhel92_compose }}
             - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: "${{ env.COMPOSE_URL_92 }}/${{ needs.check-compose.outputs.rhel92_compose }}"
             - grafana and pcp package info:
                 - ${{ needs.check-compose.outputs.grafana_pcp_version_92 }}
                 - ${{ needs.check-compose.outputs.pcp_version_92 }}

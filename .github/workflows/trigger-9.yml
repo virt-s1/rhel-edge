@@ -10,9 +10,9 @@ on:
     - cron: '0 20 * * *'
 
 env:
-  COMPOSE_URL_90: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/updates/RHEL-9
-  COMPOSE_URL_91: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/updates/RHEL-9
-  COMPOSE_URL_92: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9
+  COMPOSE_URL_90: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
+  COMPOSE_URL_91: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
+  COMPOSE_URL_92: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/RHEL-9"
 
 jobs:
   check-compose:
@@ -162,7 +162,6 @@ jobs:
           body: |
             RHEL 9.0 compose ${{ needs.check-compose.outputs.rhel90_compose }}
             - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: "${{ env.COMPOSE_URL_90 }}/${{ needs.check-compose.outputs.rhel90_compose }}"
             - Packages:
                 - ${{ needs.check-compose.outputs.osbuild_version_90 }}
                 - ${{ needs.check-compose.outputs.osbuild_composer_version_90 }}
@@ -224,7 +223,6 @@ jobs:
           body: |
             RHEL 9.1 compose ${{ needs.check-compose.outputs.rhel91_compose }}
             - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: "${{ env.COMPOSE_URL_91 }}/${{ needs.check-compose.outputs.rhel91_compose }}"
             - Packages:
                 - ${{ needs.check-compose.outputs.osbuild_version_91 }}
                 - ${{ needs.check-compose.outputs.osbuild_composer_version_91 }}
@@ -286,7 +284,6 @@ jobs:
           body: |
             RHEL 9.2 compose ${{ needs.check-compose.outputs.rhel92_compose }}
             - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: "${{ env.COMPOSE_URL_92 }}/${{ needs.check-compose.outputs.rhel92_compose }}"
             - Packages:
                 - ${{ needs.check-compose.outputs.osbuild_version_92 }}
                 - ${{ needs.check-compose.outputs.osbuild_composer_version_92 }}

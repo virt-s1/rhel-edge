@@ -70,6 +70,7 @@ jobs:
         run: ./ostree-adds-on.sh
         env:
           USER_CASE: fapolicyd
+          DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
         timeout-minutes: 60
 
       - name: Set non cancelled result status
@@ -131,6 +132,7 @@ jobs:
         run: ./ostree-adds-on.sh
         env:
           USER_CASE: grafana-pcp
+          DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
         timeout-minutes: 60
 
       - name: Set non cancelled result status

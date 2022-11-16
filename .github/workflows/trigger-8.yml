@@ -10,9 +10,9 @@ on:
     - cron: '0 19 * * *'
 
 env:
-  COMPOSE_URL_86: http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/updates/RHEL-8
-  COMPOSE_URL_87: http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/updates/RHEL-8
-  COMPOSE_URL_88: http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8
+  COMPOSE_URL_86: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-8/nightly/updates/RHEL-8"
+  COMPOSE_URL_87: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-8/nightly/updates/RHEL-8"
+  COMPOSE_URL_88: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-8/nightly/RHEL-8"
 
 jobs:
   check-compose:
@@ -162,7 +162,6 @@ jobs:
           body: |
             RHEL 8.6 compose ${{ needs.check-compose.outputs.rhel86_compose }}
             - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: "${{ env.COMPOSE_URL_86 }}/${{ needs.check-compose.outputs.rhel86_compose }}"
             - Packages:
                 - ${{ needs.check-compose.outputs.osbuild_version_86 }}
                 - ${{ needs.check-compose.outputs.osbuild_composer_version_86 }}
@@ -224,7 +223,6 @@ jobs:
           body: |
             RHEL 8.7 compose ${{ needs.check-compose.outputs.rhel87_compose }}
             - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: "${{ env.COMPOSE_URL_87 }}/${{ needs.check-compose.outputs.rhel87_compose }}"
             - Packages:
                 - ${{ needs.check-compose.outputs.osbuild_version_87 }}
                 - ${{ needs.check-compose.outputs.osbuild_composer_version_87 }}
@@ -286,7 +284,6 @@ jobs:
           body: |
             RHEL 8.8 compose ${{ needs.check-compose.outputs.rhel88_compose }}
             - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: "${{ env.COMPOSE_URL_88 }}/${{ needs.check-compose.outputs.rhel88_compose }}"
             - Packages:
                 - ${{ needs.check-compose.outputs.osbuild_version_88 }}
                 - ${{ needs.check-compose.outputs.osbuild_composer_version_88 }}
