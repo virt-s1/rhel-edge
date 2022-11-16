@@ -40,7 +40,7 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OSTREE_REBASE_REF="rhel/91/${ARCH}/edge"
         DISTRO="rhel-90"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/rel-eng/updates/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/rel-eng/updates/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
         ;;
     "rhel-9.2")
         OS_VARIANT="rhel9-unknown"
@@ -48,7 +48,7 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OSTREE_REBASE_REF="rhel/92/${ARCH}/edge"
         DISTRO="rhel-91"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/rel-eng/updates/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/rel-eng/updates/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/x86_64/os/"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"

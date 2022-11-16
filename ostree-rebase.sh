@@ -37,37 +37,37 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/8/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
         ;;
     "rhel-8.7")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8.7"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.7.0/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.7.0/compose/BaseOS/x86_64/os/"
         ;;
     "rhel-8.8")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-8/nightly/RHEL-8/latest-RHEL-8.8.0/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/nightly/RHEL-8/latest-RHEL-8.8.0/compose/BaseOS/x86_64/os/"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/rel-eng/updates/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/rel-eng/updates/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
         ;;
     "rhel-9.1")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.1"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/x86_64/os/"
         ;;
     "rhel-9.2")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
-        BOOT_LOCATION="http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/x86_64/os/"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
