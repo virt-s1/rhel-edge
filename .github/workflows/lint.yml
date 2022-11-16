@@ -28,3 +28,14 @@ jobs:
         uses: ibiqlik/action-yamllint@v3
         with:
           config_file: .yamllint.yml
+
+  build-container:
+    name: "⛏ build container"
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build container
+        run: |
+          sudo apt-get install -y podman
+          podman build -t ansible-runner:latest -f tools/Dockerfile.ansible
