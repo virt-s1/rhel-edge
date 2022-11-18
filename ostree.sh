@@ -302,8 +302,6 @@ clean_up () {
     sudo virsh undefine "${IMAGE_KEY}" --nvram
     # Remove qcow2 file.
     sudo virsh vol-delete --pool images "${IMAGE_KEY}.qcow2"
-    # Remove extracted upgrade image-tar.
-    sudo rm -rf "$UPGRADE_PATH"
     # Remove "remote" repo.
     sudo rm -rf "${HTTPD_PATH}"/{httpboot,repo,compose.json,ks.cfg}
     # Remomve tmp dir.
@@ -557,6 +555,9 @@ sudo restorecon -Rv "${HTTPD_PATH}/repo" > /dev/null
 greenprint "Get ostree image commit value"
 UPGRADE_HASH=$(jq -r '."ostree-commit"' < "${UPGRADE_PATH}"/compose.json)
 
+# Remove upgrade repo
+sudo rm -rf "$UPGRADE_PATH"
+
 # Upgrade image/commit.
 greenprint "Upgrade ostree image/commit"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${GUEST_ADDRESS}" 'sudo rpm-ostree upgrade'
@@ -592,7 +593,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up

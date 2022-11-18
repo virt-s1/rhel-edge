@@ -194,17 +194,12 @@ clean_up () {
     fi
     sudo virsh undefine "${IMAGE_KEY}-uefi" --nvram
     # Remove qcow2 file.
-    sudo virsh vol-delete --pool images "${IMAGE_KEY}.qcow2"
+    sudo virsh vol-delete --pool images "${IMAGE_KEY}-uefi.qcow2"
 
     # Remove any status containers if exist
     sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f
     # Remove all images
     sudo podman rmi -f -a
-
-    # Remove raw file
-    sudo rm -f "${COMPOSE_ID}-image.raw"
-    # Remove qcow2 file
-    sudo rm -f "${IMAGE_KEY}.qcow2"
 
     # Remove prod repo
     sudo rm -rf "$PROD_REPO"
@@ -377,28 +372,34 @@ RAW_FILENAME="${COMPOSE_ID}-${RAW_FILENAME}"
 greenprint "Extracting and converting the raw image to a qcow2 file"
 sudo xz -d "${RAW_FILENAME}"
 sudo qemu-img convert -f raw "${COMPOSE_ID}-image.raw" -O qcow2 "${IMAGE_KEY}.qcow2"
+# Remove raw file
+sudo rm -f "${COMPOSE_ID}-image.raw"
 
 # Clean compose and blueprints.
 greenprint "🧹 Clean up raw blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete raw > /dev/null
 
-##################################################################
-##
-## Install and test edge vm with edge-raw-image (BIOS)
-##
-##################################################################
-# Prepare qcow2 file for BIOS
-sudo cp "${IMAGE_KEY}.qcow2" /var/lib/libvirt/images/
-LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}.qcow2
+# Prepare qcow2 file for tests
+sudo cp "${IMAGE_KEY}.qcow2" /var/lib/libvirt/images/"${IMAGE_KEY}-bios.qcow2"
+sudo cp "${IMAGE_KEY}.qcow2" /var/lib/libvirt/images/"${IMAGE_KEY}-uefi.qcow2"
+LIBVIRT_IMAGE_PATH_BIOS=/var/lib/libvirt/images/"${IMAGE_KEY}-bios.qcow2"
+LIBVIRT_IMAGE_PATH_UEFI=/var/lib/libvirt/images/"${IMAGE_KEY}-uefi.qcow2"
 
 # Ensure SELinux is happy with our new images.
 greenprint "👿 Running restorecon on image directory"
 sudo restorecon -Rv /var/lib/libvirt/images/
 
+# Remove qcow2 file
+sudo rm -f "${IMAGE_KEY}.qcow2"
+##################################################################
+##
+## Install and test edge vm with edge-raw-image (BIOS)
+##
+##################################################################
 greenprint "💿 Installing raw image on BIOS VM"
 sudo virt-install  --name="${IMAGE_KEY}-bios"\
-                   --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
+                   --disk path="${LIBVIRT_IMAGE_PATH_BIOS}",format=qcow2 \
                    --ram 3072 \
                    --vcpus 2 \
                    --network network=integration,mac=34:49:22:B0:83:30 \
@@ -447,7 +448,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Clean up BIOS VM
@@ -456,22 +457,16 @@ if [[ $(sudo virsh domstate "${IMAGE_KEY}-bios") == "running" ]]; then
     sudo virsh destroy "${IMAGE_KEY}-bios"
 fi
 sudo virsh undefine "${IMAGE_KEY}-bios"
-sudo virsh vol-delete --pool images "${IMAGE_KEY}.qcow2"
+sudo virsh vol-delete --pool images "${IMAGE_KEY}-bios.qcow2"
 
 ##################################################################
 ##
 ## Install and test edge vm with edge-raw-image (UEFI)
 ##
 ##################################################################
-# Prepare qcow2 file for UEFI
-sudo cp "${IMAGE_KEY}.qcow2" /var/lib/libvirt/images/
-# Ensure SELinux is happy with our new images.
-greenprint "👿 Running restorecon on image directory"
-sudo restorecon -Rv /var/lib/libvirt/images/
-
 greenprint "💿 Installing raw image on UEFI VM"
 sudo virt-install  --name="${IMAGE_KEY}-uefi"\
-                   --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
+                   --disk path="${LIBVIRT_IMAGE_PATH_UEFI}",format=qcow2 \
                    --ram 3072 \
                    --vcpus 2 \
                    --network network=integration,mac=34:49:22:B0:83:31 \
@@ -520,7 +515,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
 check_result
 
 ##################################################################
@@ -661,7 +656,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up

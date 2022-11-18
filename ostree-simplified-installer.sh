@@ -380,6 +380,11 @@ sudo mount -o loop "${ISO_FILENAME}" /mnt/installer
 sudo cp -R /mnt/installer/* ${HTTPD_PATH}/httpboot/
 sudo chmod -R +r ${HTTPD_PATH}/httpboot/*
 sudo umount --detach-loop --lazy /mnt/installer
+# Remove simplified installer ISO file
+sudo rm -rf "$ISO_FILENAME"
+# Remove mount dir
+sudo rm -rf /mnt/installer
+
 
 greenprint "📋 Update grub.cfg file for http boot"
 sudo sed -i 's/timeout=60/timeout=10/' "${GRUB_CFG}"
@@ -444,7 +449,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
 check_result
 
 # Clean up BIOS VM
@@ -454,11 +459,6 @@ if [[ $(sudo virsh domstate "${IMAGE_KEY}-httpboot") == "running" ]]; then
 fi
 sudo virsh undefine "${IMAGE_KEY}-httpboot" --nvram
 sudo virsh vol-delete --pool images "${IMAGE_KEY}-httpboot.qcow2"
-
-# Remove simplified installer ISO file
-sudo rm -rf "$ISO_FILENAME"
-# Remove mount dir
-sudo rm -rf /mnt/installer
 
 ####################################################################
 ##
@@ -558,7 +558,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
 check_result
 
 # Clean up VM
@@ -670,7 +670,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
 check_result
 
 ##################################################################
@@ -800,7 +800,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo ANSIBLE_STDOUT_CALLBACK=yaml ansible-playbook -v -i "${TEMPDIR}"/inventory -e os_name=redhat -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
 check_result
 
 # Clean up VM
