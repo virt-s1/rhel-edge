@@ -42,10 +42,6 @@ sudo localectl set-locale LANG=en_US.UTF-8
 
 # Install openshift client
 curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
-# Install ansible
-sudo dnf install -y --nogpgcheck ansible-core
-# To support stdout_callback = yaml
-sudo ansible-galaxy collection install community.general
 
 # Install required packages
 greenprint "Install required packages"
