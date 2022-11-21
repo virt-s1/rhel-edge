@@ -56,7 +56,7 @@ image_url:
   centos-stream-9: https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/images
   centos-stream-8: https://cloud.centos.org/centos/8-stream/x86_64/images
   fedora-36: https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/36/Cloud/x86_64/images/
-  fedora-37: https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/37/Cloud/x86_64/images/
+  fedora-37: https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/x86_64/images/
   fedora-rawhide: https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/x86_64/images
 
 os_distro:
