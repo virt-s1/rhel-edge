@@ -50,13 +50,6 @@ sudo ansible-galaxy collection install community.general
 # Install required packages
 greenprint "Install required packages"
 sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli podman skopeo wget firewalld lorax xorriso curl jq expect qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm virt-install rpmdevtools
-if [[ $ID == "centos" && $VERSION_ID == "8" ]]; then
-    # Workaround for https://bugzilla.redhat.com/show_bug.cgi?id=2065292
-    # Remove when podman-4.0.2-2.el8 is in Centos 8 repositories
-    greenprint "Updating libseccomp on Centos 8"
-    sudo dnf upgrade -y libseccomp
-fi
-sudo rpm -qa | grep -i osbuild
 
 # Customize repository
 sudo mkdir -p /etc/osbuild-composer/repositories
@@ -114,14 +107,6 @@ sudo systemctl enable --now osbuild-composer.socket
 # Start firewalld
 greenprint "Start firewalld"
 sudo systemctl enable --now firewalld
-
-# workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2057769
-if [[ "$VERSION_ID" == "9.0" || "$VERSION_ID" == "9.1" || "$VERSION_ID" == "9" ]]; then
-    if [[ -f "/usr/share/qemu/firmware/50-edk2-ovmf-amdsev.json" ]]; then
-        jq '.mapping += {"nvram-template": {"filename": "/usr/share/edk2/ovmf/OVMF_VARS.fd","format": "raw"}}' /usr/share/qemu/firmware/50-edk2-ovmf-amdsev.json | sudo tee /tmp/50-edk2-ovmf-amdsev.json
-        sudo mv /tmp/50-edk2-ovmf-amdsev.json /usr/share/qemu/firmware/50-edk2-ovmf-amdsev.json
-    fi
-fi
 
 # Start libvirtd and test it.
 greenprint "🚀 Starting libvirt daemon"
