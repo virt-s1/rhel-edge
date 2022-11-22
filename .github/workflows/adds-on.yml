@@ -28,7 +28,7 @@ jobs:
         id: check_user_perm
         run: |
           echo "User '${{ github.event.sender.login }}' has permission '${{ fromJson(steps.user_permission.outputs.data).permission }}' allowed values: 'admin', 'write'"
-          echo "::set-output name=allowed_user::true"
+          echo "allowed_user=true" >> $GITHUB_OUTPUT
       - name: Get information for pull request
         uses: octokit/request-action@v2.x
         id: pr-api
