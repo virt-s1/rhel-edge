@@ -40,16 +40,16 @@ jobs:
               OSBUILD_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*</a" | tr -d "></a")
               OSBUILD_COMPOSER_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*</a" | tr -d "></a")
               COMPOSER_CLI_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*</a" | tr -d "></a")
-              echo "::set-output name=osbuild_version_cs8::$OSBUILD_VERSION_CS8"
-              echo "::set-output name=osbuild_composer_version_cs8::$OSBUILD_COMPOSER_VERSION_CS8"
-              echo "::set-output name=composer_cli_version_cs8::$COMPOSER_CLI_VERSION_CS8"
+              echo "osbuild_version_cs8=$OSBUILD_VERSION_CS8" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_cs8=$OSBUILD_COMPOSER_VERSION_CS8" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_cs8=$COMPOSER_CLI_VERSION_CS8" >> $GITHUB_OUTPUT
           else
-              echo "::set-output name=osbuild_version_cs8::Null"
-              echo "::set-output name=osbuild_composer_version_cs8::Null"
-              echo "::set-output name=composer_cli_version_cs8::Null"
+              echo "osbuild_version_cs8=Null" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_cs8=Null" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_cs8=Null" >> $GITHUB_OUTPUT
           fi
 
-          echo "::set-output name=cs8_compose::$COMPOSE_ID_CS8"
+          echo "cs8_compose=$COMPOSE_ID_CS8" >> $GITHUB_OUTPUT
 
       - name: Check CentOS Stream 9 compose
         id: check_compose_id_cs9
@@ -71,16 +71,16 @@ jobs:
               OSBUILD_VERSION_CS9=$(curl -s "${COMPOSE_URL_CS9}/${COMPOSE_ID_CS9}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
               OSBUILD_COMPOSER_VERSION_CS9=$(curl -s "${COMPOSE_URL_CS9}/${COMPOSE_ID_CS9}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
               COMPOSER_CLI_VERSION_CS9=$(curl -s "${COMPOSE_URL_CS9}/${COMPOSE_ID_CS9}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
-              echo "::set-output name=osbuild_version_cs9::$OSBUILD_VERSION_CS9"
-              echo "::set-output name=osbuild_composer_version_cs9::$OSBUILD_COMPOSER_VERSION_CS9"
-              echo "::set-output name=composer_cli_version_cs9::$COMPOSER_CLI_VERSION_CS9"
+              echo "osbuild_version_cs9=$OSBUILD_VERSION_CS9" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_cs9=$OSBUILD_COMPOSER_VERSION_CS9" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_cs9=$COMPOSER_CLI_VERSION_CS9" >> $GITHUB_OUTPUT
           else
-              echo "::set-output name=osbuild_version_cs9::Null"
-              echo "::set-output name=osbuild_composer_version_cs9::Null"
-              echo "::set-output name=composer_cli_version_cs9::Null"
+              echo "osbuild_version_cs9=Null" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_cs9=Null" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_cs9=Null" >> $GITHUB_OUTPUT
           fi
 
-          echo "::set-output name=cs9_compose::$COMPOSE_ID_CS9"
+          echo "cs9_compose=$COMPOSE_ID_CS9" >> $GITHUB_OUTPUT
 
     outputs:
       cs8_compose: ${{ steps.check_compose_id_cs8.outputs.cs8_compose }}
@@ -107,7 +107,7 @@ jobs:
 
       - name: Get current date
         id: date
-        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
         id: cpr
@@ -169,7 +169,7 @@ jobs:
 
       - name: Get current date
         id: date
-        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
         id: cpr

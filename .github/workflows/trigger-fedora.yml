@@ -34,16 +34,16 @@ jobs:
               OSBUILD_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
               OSBUILD_COMPOSER_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
               COMPOSER_CLI_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
-              echo "::set-output name=osbuild_version::$OSBUILD_VERSION"
-              echo "::set-output name=osbuild_composer_version::$OSBUILD_COMPOSER_VERSION"
-              echo "::set-output name=composer_cli_version::$COMPOSER_CLI_VERSION"
+              echo "osbuild_version=$OSBUILD_VERSION" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version=$OSBUILD_COMPOSER_VERSION" >> $GITHUB_OUTPUT
+              echo "composer_cli_version=$COMPOSER_CLI_VERSION" >> $GITHUB_OUTPUT
           else
-              echo "::set-output name=osbuild_version::Null"
-              echo "::set-output name=osbuild_composer_version::Null"
-              echo "::set-output name=composer_cli_version::Null"
+              echo "osbuild_version=Null" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version=Null" >> $GITHUB_OUTPUT
+              echo "composer_cli_version=Null" >> $GITHUB_OUTPUT
           fi
 
-          echo "::set-output name=rawhide_compose::$COMPOSE_ID"
+          echo "rawhide_compose=$COMPOSE_ID" >> $GITHUB_OUTPUT
 
       - name: Check if fedora 37 compose is new
         id: check_compose_id_f37
@@ -61,16 +61,16 @@ jobs:
               OSBUILD_VERSION_F37=$(curl -s "${COMPOSE_URL_F37}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
               OSBUILD_COMPOSER_VERSION_F37=$(curl -s "${COMPOSE_URL_F37}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
               COMPOSER_CLI_VERSION_F37=$(curl -s "${COMPOSE_URL_F37}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
-              echo "::set-output name=osbuild_version_f37::$OSBUILD_VERSION_F37"
-              echo "::set-output name=osbuild_composer_version_f37::$OSBUILD_COMPOSER_VERSION_F37"
-              echo "::set-output name=composer_cli_version_f37::$COMPOSER_CLI_VERSION_F37"
+              echo "osbuild_version_f37=$OSBUILD_VERSION_F37" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_f37=$OSBUILD_COMPOSER_VERSION_F37" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_f37=$COMPOSER_CLI_VERSION_F37" >> $GITHUB_OUTPUT
           else
-              echo "::set-output name=osbuild_version_f37::Null"
-              echo "::set-output name=osbuild_composer_version_f37::Null"
-              echo "::set-output name=composer_cli_version_f37::Null"
+              echo "osbuild_version_f37=Null" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_f37=Null" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_f37=Null" >> $GITHUB_OUTPUT
           fi
 
-          echo "::set-output name=f37_compose::$COMPOSE_ID_F37"
+          echo "f37_compose=$COMPOSE_ID_F37" >> $GITHUB_OUTPUT
 
     outputs:
       rawhide_compose: ${{ steps.check_compose_id.outputs.rawhide_compose }}
@@ -97,7 +97,7 @@ jobs:
 
       - name: Get current date
         id: date
-        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
         id: cpr
@@ -159,7 +159,7 @@ jobs:
 
       - name: Get current date
         id: date
-        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
         id: cpr
@@ -222,11 +222,11 @@ jobs:
           OSBUILD_VERSION=$(curl -s "${COMPOSE_URL_F36}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
           OSBUILD_COMPOSER_VERSION=$(curl -s "${COMPOSE_URL_F36}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
           COMPOSER_CLI_VERSION=$(curl -s "${COMPOSE_URL_F36}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
-          echo "::set-output name=osbuild_version::$OSBUILD_VERSION"
-          echo "::set-output name=osbuild_composer_version::$OSBUILD_COMPOSER_VERSION"
-          echo "::set-output name=composer_cli_version::$COMPOSER_CLI_VERSION"
+          echo "osbuild_version=$OSBUILD_VERSION" >> $GITHUB_OUTPUT
+          echo "osbuild_composer_version=$OSBUILD_COMPOSER_VERSION" >> $GITHUB_OUTPUT
+          echo "composer_cli_version=$COMPOSER_CLI_VERSION" >> $GITHUB_OUTPUT
 
-          echo "::set-output name=fedora_compose::$COMPOSE_ID"
+          echo "fedora_compose=$COMPOSE_ID" >> $GITHUB_OUTPUT
 
       - name: Add new compose id in compose.fedora
         run: |
@@ -236,7 +236,7 @@ jobs:
 
       - name: Get current date
         id: date
-        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
         id: cpr
