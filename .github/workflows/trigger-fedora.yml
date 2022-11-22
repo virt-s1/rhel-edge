@@ -128,8 +128,8 @@ jobs:
           curl -s "${COMPOSE_URL_F37}/COMPOSE_ID" --output COMPOSE_ID_F37
           COMPOSE_ID_F37=$(cat COMPOSE_ID_F37)
 
-          OSBUILD_VERSION_F37=$(curl -s "${UPDATES_URL_F37}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
-          OSBUILD_COMPOSER_VERSION_F37=$(curl -s "${UPDATES_URL_F37}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+          OSBUILD_VERSION_F37=$(curl -s "${UPDATES_URL_F37}/Everything/x86_64/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+          OSBUILD_COMPOSER_VERSION_F37=$(curl -s "${UPDATES_URL_F37}/Everything/x86_64/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
           COMPOSER_CLI_VERSION_F37=$(curl -s "${COMPOSE_URL_F37}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
           echo "osbuild_version_f37=$OSBUILD_VERSION_F37" >> $GITHUB_OUTPUT
           echo "osbuild_composer_version_f37=$OSBUILD_COMPOSER_VERSION_F37" >> $GITHUB_OUTPUT
@@ -206,8 +206,8 @@ jobs:
           curl -s "${COMPOSE_URL_F36}/COMPOSE_ID" --output COMPOSE_ID
           COMPOSE_ID=$(cat COMPOSE_ID)
 
-          OSBUILD_VERSION=$(curl -s "${UPDATES_URL_F36}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
-          OSBUILD_COMPOSER_VERSION=$(curl -s "${UPDATES_URL_F36}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+          OSBUILD_VERSION=$(curl -s "${UPDATES_URL_F36}/Everything/x86_64/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+          OSBUILD_COMPOSER_VERSION=$(curl -s "${UPDATES_URL_F36}/Everything/x86_64/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
           COMPOSER_CLI_VERSION=$(curl -s "${COMPOSE_URL_F36}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
           echo "osbuild_version=$OSBUILD_VERSION" >> $GITHUB_OUTPUT
           echo "osbuild_composer_version=$OSBUILD_COMPOSER_VERSION" >> $GITHUB_OUTPUT
