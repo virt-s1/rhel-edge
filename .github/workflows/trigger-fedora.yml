@@ -10,7 +10,9 @@ on:
 env:
   COMPOSE_URL_rawhide: https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide
   COMPOSE_URL_F36: https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/36
-  COMPOSE_URL_F37: https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/37
+  UPDATES_URL_F36: https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/updates/36
+  COMPOSE_URL_F37: https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37
+  UPDATES_URL_F37: https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/updates/37
 
 jobs:
   check-compose:
@@ -45,42 +47,11 @@ jobs:
 
           echo "rawhide_compose=$COMPOSE_ID" >> $GITHUB_OUTPUT
 
-      - name: Check if fedora 37 compose is new
-        id: check_compose_id_f37
-        run: |
-          curl -s "${COMPOSE_URL_F37}/COMPOSE_ID" --output COMPOSE_ID_F37
-          COMPOSE_ID_F37=$(cat COMPOSE_ID_F37)
-          cat COMPOSE_ID_F37
-          TESTED_COMPOSE_F37=( $( cat compose/compose.f37 ) )
-          if [[ " ${TESTED_COMPOSE_F37[*]} " =~ "$COMPOSE_ID_F37" ]]; then
-              COMPOSE_ID_F37="false"
-          fi
-          echo "$COMPOSE_ID_F37"
-
-          if [[ "$COMPOSE_ID_F37" != "false" ]]; then
-              OSBUILD_VERSION_F37=$(curl -s "${COMPOSE_URL_F37}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
-              OSBUILD_COMPOSER_VERSION_F37=$(curl -s "${COMPOSE_URL_F37}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
-              COMPOSER_CLI_VERSION_F37=$(curl -s "${COMPOSE_URL_F37}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
-              echo "osbuild_version_f37=$OSBUILD_VERSION_F37" >> $GITHUB_OUTPUT
-              echo "osbuild_composer_version_f37=$OSBUILD_COMPOSER_VERSION_F37" >> $GITHUB_OUTPUT
-              echo "composer_cli_version_f37=$COMPOSER_CLI_VERSION_F37" >> $GITHUB_OUTPUT
-          else
-              echo "osbuild_version_f37=Null" >> $GITHUB_OUTPUT
-              echo "osbuild_composer_version_f37=Null" >> $GITHUB_OUTPUT
-              echo "composer_cli_version_f37=Null" >> $GITHUB_OUTPUT
-          fi
-
-          echo "f37_compose=$COMPOSE_ID_F37" >> $GITHUB_OUTPUT
-
     outputs:
       rawhide_compose: ${{ steps.check_compose_id.outputs.rawhide_compose }}
       osbuild_version: ${{ steps.check_compose_id.outputs.osbuild_version }}
       osbuild_composer_version: ${{ steps.check_compose_id.outputs.osbuild_composer_version }}
       composer_cli_version: ${{ steps.check_compose_id.outputs.composer_cli_version }}
-      f37_compose: ${{ steps.check_compose_id_f37.outputs.f37_compose }}
-      osbuild_version_f37: ${{ steps.check_compose_id_f37.outputs.osbuild_version_f37 }}
-      osbuild_composer_version_f37: ${{ steps.check_compose_id_f37.outputs.osbuild_composer_version_f37 }}
-      composer_cli_version_f37: ${{ steps.check_compose_id_f37.outputs.composer_cli_version_f37 }}
 
   fedora-rawhide:
     needs: check-compose
@@ -145,11 +116,26 @@ jobs:
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
 
   fedora-37:
-    needs: check-compose
-    if: ${{ needs.check-compose.outputs.f37_compose != 'false' }}
+    # Do not need check-compose and make "workflow_dispatch" work for this job
+    if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule != '0 4 * * *'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
+      - name: Get package version
+        id: package_version
+        run: |
+          curl -s "${COMPOSE_URL_F37}/COMPOSE_ID" --output COMPOSE_ID_F37
+          COMPOSE_ID_F37=$(cat COMPOSE_ID_F37)
+
+          OSBUILD_VERSION_F37=$(curl -s "${UPDATES_URL_F37}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+          OSBUILD_COMPOSER_VERSION_F37=$(curl -s "${UPDATES_URL_F37}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+          COMPOSER_CLI_VERSION_F37=$(curl -s "${COMPOSE_URL_F37}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+          echo "osbuild_version_f37=$OSBUILD_VERSION_F37" >> $GITHUB_OUTPUT
+          echo "osbuild_composer_version_f37=$OSBUILD_COMPOSER_VERSION_F37" >> $GITHUB_OUTPUT
+          echo "composer_cli_version_f37=$COMPOSER_CLI_VERSION_F37" >> $GITHUB_OUTPUT
+
+          echo "f37_compose=$COMPOSE_ID_F37" >> $GITHUB_OUTPUT
 
       - name: Add new compose id in compose.f37
         run: |
@@ -166,22 +152,23 @@ jobs:
         uses: peter-evans/create-pull-request@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "${{ needs.check-compose.outputs.f37_compose }} - ${{ steps.date.outputs.date }}"
+          commit-message: "Fedora 37 Daily Compose Test - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "${{ needs.check-compose.outputs.f37_compose }} - ${{ steps.date.outputs.date }}"
-          labels: auto-merge,fedora-37
+          title: " Fedora 37 Daily Compose Test- ${{ steps.date.outputs.date }}"
+          labels: DO_NOT_MERGE,fedora-37
           body: |
-            Fedora 37 compose ${{ needs.check-compose.outputs.f37_compose }}
+            Fedora 37 compose ${{ steps.package_version.outputs.f37_compose }}
             - Date: ${{ steps.date.outputs.date }}
             - Compose URL: ${{ env.COMPOSE_URL_F37 }}
+            - Updates URL: ${{ env.UPDATES_URL_F37 }}
             - Packages:
-                - ${{ needs.check-compose.outputs.osbuild_version_f37 }}
-                - ${{ needs.check-compose.outputs.osbuild_composer_version_f37 }}
-                - ${{ needs.check-compose.outputs.composer_cli_version_f37 }}
+                - ${{ steps.package_version.outputs.osbuild_version_f37 }}
+                - ${{ steps.package_version.outputs.osbuild_composer_version_f37 }}
+                - ${{ steps.package_version.outputs.composer_cli_version_f37 }}
 
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
@@ -219,8 +206,8 @@ jobs:
           curl -s "${COMPOSE_URL_F36}/COMPOSE_ID" --output COMPOSE_ID
           COMPOSE_ID=$(cat COMPOSE_ID)
 
-          OSBUILD_VERSION=$(curl -s "${COMPOSE_URL_F36}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
-          OSBUILD_COMPOSER_VERSION=$(curl -s "${COMPOSE_URL_F36}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+          OSBUILD_VERSION=$(curl -s "${UPDATES_URL_F36}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+          OSBUILD_COMPOSER_VERSION=$(curl -s "${UPDATES_URL_F36}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
           COMPOSER_CLI_VERSION=$(curl -s "${COMPOSE_URL_F36}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
           echo "osbuild_version=$OSBUILD_VERSION" >> $GITHUB_OUTPUT
           echo "osbuild_composer_version=$OSBUILD_COMPOSER_VERSION" >> $GITHUB_OUTPUT
@@ -243,18 +230,19 @@ jobs:
         uses: peter-evans/create-pull-request@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "${{ steps.package_version.outputs.fedora_compose }} - ${{ steps.date.outputs.date }}"
+          commit-message: "Fedora 36 Daily Compose Test - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "${{ steps.package_version.outputs.fedora_compose }} - ${{ steps.date.outputs.date }}"
+          title: "Fedora 36 Daily Compose Test - ${{ steps.date.outputs.date }}"
           labels: DO_NOT_MERGE,fedora-36
           body: |
             Fedora 36 compose ${{ steps.package_version.outputs.fedora_compose }}
             - Date: ${{ steps.date.outputs.date }}
             - Compose URL: ${{ env.COMPOSE_URL_F36 }}
+            - Updates URL: ${{ env.UPDATES_URL_F36 }}
             - Packages:
                 - ${{ steps.package_version.outputs.osbuild_version }}
                 - ${{ steps.package_version.outputs.osbuild_composer_version }}
