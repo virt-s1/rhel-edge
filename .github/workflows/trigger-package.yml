@@ -58,7 +58,7 @@ jobs:
           branch-suffix: random
           delete-branch: true
           title: "${{ github.event.client_payload.package_nvr }} - ${{ steps.date.outputs.date }}"
-          labels: DO_NOT_MERGE,RHEL-8.7.0
+          labels: DO_NOT_MERGE,RHEL-8.8.0
           body: |
             Package ${{ github.event.client_payload.package_nvr }}
             - Date: ${{ steps.date.outputs.date }}
@@ -68,7 +68,7 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-          body: /test-rhel-8-7
+          body: /test-rhel-8-8
 
       - name: Create a project card to track compose test result
         uses: peter-evans/create-or-update-project-card@v1
@@ -107,7 +107,7 @@ jobs:
           branch-suffix: random
           delete-branch: true
           title: "${{ github.event.client_payload.package_nvr }} - ${{ steps.date.outputs.date }}"
-          labels: DO_NOT_MERGE,RHEL-9.1.0
+          labels: DO_NOT_MERGE,RHEL-9.2.0
           body: |
             Package ${{ github.event.client_payload.package_nvr }}
             - Date: ${{ steps.date.outputs.date }}
@@ -117,7 +117,7 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-          body: /test-rhel-9-1
+          body: /test-rhel-9-2
 
       - name: Create a project card to track compose test result
         uses: peter-evans/create-or-update-project-card@v1
