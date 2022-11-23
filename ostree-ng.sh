@@ -116,6 +116,15 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="fedora36"
         ANSIBLE_OS_NAME="fedora"
         ;;
+    "fedora-37")
+        CONTAINER_IMAGE_TYPE=fedora-iot-container
+        INSTALLER_IMAGE_TYPE=fedora-iot-installer
+        sudo dnf install -y dmidecode
+        sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
+        OSTREE_REF="fedora/37/${ARCH}/iot"
+        OS_VARIANT="fedora-unknown"
+        ANSIBLE_OS_NAME="fedora"
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
@@ -129,6 +138,27 @@ fi
 # Colorful output.
 function greenprint {
     echo -e "\033[1;32m${1}\033[0m"
+}
+
+# Compare rpm package version
+function nvrGreaterOrEqual {
+    local rpm_name=$1
+    local min_version=$2
+
+    set +e
+
+    rpm_version=$(rpm -q --qf "%{version}" "${rpm_name}")
+    rpmdev-vercmp "${rpm_version}" "${min_version}" 1>&2
+    if [ "$?" != "12" ]; then
+        # 0 - rpm_version == min_version
+        # 11 - rpm_version > min_version
+        # 12 - rpm_version < min_version
+        set -e
+        return
+    fi
+
+    set -e
+    false
 }
 
 # modify existing kickstart by prepending and appending commands
@@ -238,14 +268,23 @@ build_image() {
         registry_config=$4
         sudo composer-cli --json compose start-ostree --ref "$OSTREE_REF" "$blueprint_name" "$image_type" "$image_repo_url" "$registry_config" | tee "$COMPOSE_START"
     fi
-    COMPOSE_ID=$(jq -r '.body.build_id' "$COMPOSE_START")
+
+    if nvrGreaterOrEqual "weldr-client" "35.6"; then
+        COMPOSE_ID=$(jq -r '.[0].body.build_id' "$COMPOSE_START")
+    else
+        COMPOSE_ID=$(jq -r '.body.build_id' "$COMPOSE_START")
+    fi
 
     # Wait for the compose to finish.
     greenprint "⏱ Waiting for compose to finish: ${COMPOSE_ID}"
     while true; do
         sudo composer-cli --json compose info "${COMPOSE_ID}" | tee "$COMPOSE_INFO" > /dev/null
 
-        COMPOSE_STATUS=$(jq -r '.body.queue_status' "$COMPOSE_INFO")
+        if nvrGreaterOrEqual "weldr-client" "35.6"; then
+            COMPOSE_STATUS=$(jq -r '.[0].body.queue_status' "$COMPOSE_INFO")
+        else
+            COMPOSE_STATUS=$(jq -r '.body.queue_status' "$COMPOSE_INFO")
+        fi
 
         # Is the compose finished?
         if [[ $COMPOSE_STATUS != RUNNING ]] && [[ $COMPOSE_STATUS != WAITING ]]; then
