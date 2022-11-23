@@ -64,7 +64,6 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="centos-stream8"
         DISTRO="centos-8"
         BOOT_LOCATION="http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/"
-        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"

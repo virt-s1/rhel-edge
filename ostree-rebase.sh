@@ -80,7 +80,6 @@ case "${ID}-${VERSION_ID}" in
         PARENT_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
         BOOT_LOCATION="https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/os/"
-        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"

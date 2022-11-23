@@ -105,7 +105,6 @@ case "${ID}-${VERSION_ID}" in
         NEW_MKKSISO="true"
         CONTAINER_PUSHING_FEAT="true"
         EMBEDDED_CONTAINER="true"
-        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
     "fedora-36")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
