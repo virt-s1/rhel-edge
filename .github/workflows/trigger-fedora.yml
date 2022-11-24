@@ -170,14 +170,6 @@ jobs:
                 - ${{ steps.package_version.outputs.osbuild_composer_version_f37 }}
                 - ${{ steps.package_version.outputs.composer_cli_version_f37 }}
 
-      - name: Enable Pull Request Automerge
-        if: steps.cpr.outputs.pull-request-operation == 'created'
-        uses: peter-evans/enable-pull-request-automerge@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
-          merge-method: rebase
-
       - name: Add a comment to trigger test workflow
         uses: peter-evans/create-or-update-comment@v1
         with:
