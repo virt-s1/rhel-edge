@@ -407,6 +407,7 @@ sudo virt-install --name="${IMAGE_KEY}-httpboot"\
                   --os-variant "$OS_VARIANT" \
                   --pxe \
                   --boot "${BOOT_ARGS}" \
+                  --tpm backend.type=emulator,backend.version=2.0,model=tpm-crb \
                   --nographics \
                   --noautoconsole \
                   --wait=-1 \
@@ -516,6 +517,7 @@ sudo virt-install  --name="${IMAGE_KEY}-fdosshkey"\
                    --os-variant ${OS_VARIANT} \
                    --cdrom "/var/lib/libvirt/images/${ISO_FILENAME}" \
                    --boot "${BOOT_ARGS}" \
+                   --tpm backend.type=emulator,backend.version=2.0,model=tpm-crb \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \
@@ -629,6 +631,7 @@ sudo virt-install  --name="${IMAGE_KEY}-fdorootcert"\
                    --os-variant ${OS_VARIANT} \
                    --cdrom "/var/lib/libvirt/images/${ISO_FILENAME}" \
                    --boot "${BOOT_ARGS}" \
+                   --tpm backend.type=emulator,backend.version=2.0,model=tpm-crb \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \
