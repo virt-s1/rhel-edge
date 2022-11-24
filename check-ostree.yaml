@@ -24,6 +24,13 @@
       command: mokutil --sb-state
       ignore_errors: yes
 
+    # check tpm device
+    - name: check tpm device
+      stat:
+        path: /dev/tpm0
+      ignore_errors: yes
+      when: fdo_credential == "true"
+
     # case: check rt kernel installed after upgrade
     - name: check installed kernel
       command: uname -r
