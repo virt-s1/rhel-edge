@@ -9,8 +9,14 @@ source /etc/os-release
 ARCH=$(uname -m)
 
 # Install fdo packages (This cannot be done in the setup.sh because fdo-admin-cli is not available on fedora)
-sudo dnf install -y fdo-admin-cli
+sudo dnf install -y fdo-admin-cli python3-pip
+# Install yq to modify service api server config yaml file
+sudo pip3 install yq
+# Start fdo-aio to have /etc/fdo/aio folder
 sudo systemctl enable --now fdo-aio
+# Prepare service api server config file
+sudo /usr/local/bin/yq -iy '.service_info.diskencryption_clevis |= [{disk_label: "/dev/vda4", reencrypt: true, binding: {pin: "tpm2", config: "{}"}}]' /etc/fdo/aio/configs/serviceinfo_api_server.yml
+sudo systemctl restart fdo-aio
 
 # Set up variables.
 TEST_UUID=$(uuidgen)

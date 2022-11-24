@@ -688,6 +688,11 @@
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
 
+    # Check FDO status and task status
+    - name: check fdo-client-linuxapp logs
+      command: journalctl -u fdo-client-linuxapp
+      register: result_fdo_client_linuxapp_journalctl
+
     # case: check rollback function if boot error found
     - name: install sanely failing health check unit to test red boot status behavior
       block:
@@ -806,6 +811,33 @@
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
       when: result_rollback is succeeded
+
+    # Check FDO status and task status
+    - name: check fdo-client-linuxapp logs
+      command: journalctl -u fdo-client-linuxapp
+      register: result_fdo_client_linuxapp_journalctl
+
+    # Check re-encryption status
+    - name: wait for FDO re-encryption
+      block:
+        - shell: cryptsetup luksDump /dev/vda4
+          register: result
+          until: not result.stdout_lines is search("cipher_null-ecb")
+          retries: 30
+          delay: 60
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: fdo_credential == "true"
+
+    # Check FDO status and task status
+    - name: check fdo-client-linuxapp logs
+      command: journalctl -u fdo-client-linuxapp
+      register: result_fdo_client_linuxapp_journalctl
 
     - assert:
         that:
