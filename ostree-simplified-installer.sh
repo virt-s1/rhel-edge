@@ -435,7 +435,7 @@ greenprint "🕹 Get ostree install commit value"
 INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
 
 # Add instance IP address into /etc/ansible/hosts
-sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
+tee "${TEMPDIR}"/inventory > /dev/null << EOF
 [ostree_guest]
 ${HTTP_GUEST_ADDRESS}
 
@@ -545,7 +545,7 @@ greenprint "🕹 Get ostree install commit value"
 INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
 
 # Add instance IP address into /etc/ansible/hosts
-sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
+tee "${TEMPDIR}"/inventory > /dev/null << EOF
 [ostree_guest]
 ${PUB_KEY_GUEST_ADDRESS}
 
@@ -659,7 +659,7 @@ greenprint "🕹 Get ostree install commit value"
 INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
 
 # Add instance IP address into /etc/ansible/hosts
-sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
+tee "${TEMPDIR}"/inventory > /dev/null << EOF
 [ostree_guest]
 ${ROOT_CERT_GUEST_ADDRESS}
 [ostree_guest:vars]
@@ -788,7 +788,7 @@ done
 check_result
 
 # Add instance IP address into /etc/ansible/hosts
-sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
+tee "${TEMPDIR}"/inventory > /dev/null << EOF
 [ostree_guest]
 ${ROOT_CERT_GUEST_ADDRESS}
 
