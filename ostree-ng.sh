@@ -125,6 +125,15 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="fedora-unknown"
         ANSIBLE_OS_NAME="fedora"
         ;;
+    "fedora-38")
+        CONTAINER_IMAGE_TYPE=fedora-iot-container
+        INSTALLER_IMAGE_TYPE=fedora-iot-installer
+        sudo dnf install -y dmidecode
+        sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
+        OSTREE_REF="fedora/38/${ARCH}/iot"
+        OS_VARIANT="fedora-unknown"
+        ANSIBLE_OS_NAME="fedora"
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
@@ -614,7 +623,7 @@ INSTALL_HASH=$(curl "${PROD_REPO_URL_2}refs/heads/${OSTREE_REF}")
 # Run Edge test on BIOS VM
 # Add instance IP address into /etc/ansible/hosts
 # Run BIOS VM test with installeruser added by edge-installer bp as ansible user
-sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
+tee "${TEMPDIR}"/inventory > /dev/null << EOF
 [ostree_guest]
 ${BIOS_GUEST_ADDRESS}
 [ostree_guest:vars]
@@ -786,7 +795,7 @@ check_result
 # Add instance IP address into /etc/ansible/hosts
 # Test user installeruser added by edge-installer bp
 # User installer still exists after upgrade but upgrade bp does not contain installeruer
-sudo tee "${TEMPDIR}"/inventory > /dev/null << EOF
+tee "${TEMPDIR}"/inventory > /dev/null << EOF
 [ostree_guest]
 ${UEFI_GUEST_ADDRESS}
 [ostree_guest:vars]
@@ -804,4 +813,3 @@ check_result
 clean_up
 
 exit 0
-
