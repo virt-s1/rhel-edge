@@ -465,9 +465,9 @@
       block:
         - assert:
             that:
-              - result_dmesg_error.stdout_lines | length == 1
+              - result_dmesg_error.stdout_lines | length <= 3
               # - "'pcieport 0000:00:01.6: pciehp: Failed to check link status' in result_dmesg_error.stdout"
-              - "'RAS: Correctable Errors collector initialized' in result_dmesg_error.stdout"
+              - "'RAS: Correctable Errors collector initialized' in result_dmesg_error.stdout or 'systemd[1]: bpf-lsm: Failed to load BPF object: No such process' in result_dmesg_error.stdout"
             fail_msg: "more or less error and failed log"
             success_msg: "everything works as expected"
       always:
