@@ -99,21 +99,12 @@ case "${ID}-${VERSION_ID}" in
         EMBEDDED_CONTAINER="true"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
-    "fedora-36")
-        IMAGE_TYPE=fedora-iot-commit
-        USER_IN_COMMIT="false"
-        OSTREE_REF="fedora/36/${ARCH}/iot"
-        OS_VARIANT="fedora36"
-        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/36/Everything/x86_64/os/"
-        CUT_DIRS=8
-        ADD_SSSD="false"
-        ;;
     "fedora-37")
         IMAGE_TYPE=fedora-iot-commit
         USER_IN_COMMIT="false"
         OSTREE_REF="fedora/37/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
-        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/37/Everything/x86_64/os/"
+        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
         ;;
