@@ -1,6 +1,0 @@
----
-- name: remove openstack instance
-  openstack.cloud.server:
-    cloud: rhos-01
-    name: "{{ instance_name }}"
-    state: absent
