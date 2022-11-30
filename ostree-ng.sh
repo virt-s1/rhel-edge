@@ -107,15 +107,6 @@ case "${ID}-${VERSION_ID}" in
         EMBEDDED_CONTAINER="true"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
-    "fedora-36")
-        CONTAINER_IMAGE_TYPE=fedora-iot-container
-        INSTALLER_IMAGE_TYPE=fedora-iot-installer
-        sudo dnf install -y dmidecode
-        sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
-        OSTREE_REF="fedora/36/${ARCH}/iot"
-        OS_VARIANT="fedora36"
-        ANSIBLE_OS_NAME="fedora"
-        ;;
     "fedora-37")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
         INSTALLER_IMAGE_TYPE=fedora-iot-installer
