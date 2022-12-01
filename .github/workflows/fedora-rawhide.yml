@@ -43,11 +43,29 @@ jobs:
       allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
       sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
 
-  iot-commit-rawhide:
+  pre-iot-commit-rawhide:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
             (endsWith(github.event.comment.body, '/test-rawhide') ||
             endsWith(github.event.comment.body, '/test-rawhide-virt')) }}
+    runs-on: ubuntu-latest
+    env:
+      STATUS_NAME: iot-commit-rawhide
+
+    steps:
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Runner has been deploying...'
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  iot-commit-rawhide:
+    needs: [pr-info, pre-iot-commit-rawhide]
     runs-on: [kite, x86_64, gcp, fedora-rawhide, large]
     env:
       STATUS_NAME: iot-commit-rawhide
@@ -59,6 +77,7 @@ jobs:
           route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: pending
+          description: 'Test has been running...'
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -102,11 +121,29 @@ jobs:
             *.json
             *.log
 
-  iot-installer-rawhide:
+  pre-iot-installer-rawhide:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
             (endsWith(github.event.comment.body, '/test-rawhide') ||
             endsWith(github.event.comment.body, '/test-rawhide-ng')) }}
+    runs-on: ubuntu-latest
+    env:
+      STATUS_NAME: iot-installer-rawhide
+
+    steps:
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Runner has been deploying...'
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  iot-installer-rawhide:
+    needs: [pr-info, pre-iot-installer-rawhide]
     runs-on: [kite, x86_64, gcp, fedora-rawhide, large]
     env:
       STATUS_NAME: iot-installer-rawhide
@@ -118,6 +155,7 @@ jobs:
           route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: pending
+          description: 'Test has been running...'
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -165,11 +203,29 @@ jobs:
             *.json
             *.log
 
-  iot-raw-image-rawhide:
+  pre-iot-raw-image-rawhide:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
             (endsWith(github.event.comment.body, '/test-rawhide') ||
             endsWith(github.event.comment.body, '/test-rawhide-raw')) }}
+    runs-on: ubuntu-latest
+    env:
+      STATUS_NAME: iot-raw-image-rawhide
+
+    steps:
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Runner has been deploying...'
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  iot-raw-image-rawhide:
+    needs: [pr-info, pre-iot-raw-image-rawhide]
     runs-on: [kite, x86_64, gcp, fedora-rawhide, large]
     env:
       STATUS_NAME: iot-raw-image-rawhide
@@ -181,6 +237,7 @@ jobs:
           route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: pending
+          description: 'Test has been running...'
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
