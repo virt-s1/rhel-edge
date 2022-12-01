@@ -43,11 +43,29 @@ jobs:
       allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
       sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
 
-  iot-commit-f37:
+  pre-iot-commit-f37:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
             (endsWith(github.event.comment.body, '/test-f37') ||
             endsWith(github.event.comment.body, '/test-f37-virt')) }}
+    runs-on: ubuntu-latest
+    env:
+      STATUS_NAME: iot-commit-f37
+
+    steps:
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Runner has been deploying...'
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  iot-commit-f37:
+    needs: [pr-info, pre-iot-commit-f37]
     runs-on: [kite, x86_64, gcp, fedora-37, large]
     env:
       STATUS_NAME: iot-commit-f37
@@ -59,6 +77,7 @@ jobs:
           route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: pending
+          description: 'Test has been running...'
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -102,11 +121,29 @@ jobs:
             *.json
             *.log
 
-  iot-installer-f37:
+  pre-iot-installer-f37:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
             (endsWith(github.event.comment.body, '/test-f37') ||
             endsWith(github.event.comment.body, '/test-f37-ng')) }}
+    runs-on: ubuntu-latest
+    env:
+      STATUS_NAME: iot-installer-f37
+
+    steps:
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Runner has been deploying...'
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  iot-installer-f37:
+    needs: [pr-info, pre-iot-installer-f37]
     runs-on: [kite, x86_64, gcp, fedora-37, large]
     env:
       STATUS_NAME: iot-installer-f37
@@ -118,6 +155,7 @@ jobs:
           route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: pending
+          description: 'Test has been running...'
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -165,11 +203,29 @@ jobs:
             *.json
             *.log
 
-  iot-raw-image-f37:
+  pre-iot-raw-image-f37:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
             (endsWith(github.event.comment.body, '/test-f37') ||
             endsWith(github.event.comment.body, '/test-f37-raw')) }}
+    runs-on: ubuntu-latest
+    env:
+      STATUS_NAME: iot-raw-image-f37
+
+    steps:
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Runner has been deploying...'
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  iot-raw-image-f37:
+    needs: [pr-info, pre-iot-raw-image-f37]
     runs-on: [kite, x86_64, gcp, fedora-37, large]
     env:
       STATUS_NAME: iot-raw-image-f37
@@ -181,6 +237,7 @@ jobs:
           route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: pending
+          description: 'Test has been running...'
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
