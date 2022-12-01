@@ -41,10 +41,28 @@ jobs:
       allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
       sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
 
-  fapolicyd:
+  pre-fapolicyd:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
             endsWith(github.event.comment.body, '/test-fapolicyd-rhel-9-2') }}
+    runs-on: ubuntu-latest
+    env:
+      STATUS_NAME: fapolicyd-9.2
+
+    steps:
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Runner has been deploying...'
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  fapolicyd:
+    needs: pre-fapolicyd
     runs-on: [kite, x86_64, rhos-01, rhel-9-2, large]
     env:
       STATUS_NAME: fapolicyd-9.2
@@ -56,6 +74,7 @@ jobs:
           route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: pending
+          description: 'Test has been running...'
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -103,10 +122,28 @@ jobs:
             *.json
             *.log
 
-  grafana-pcp:
+  pre-grafana-pcp:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
             endsWith(github.event.comment.body, '/test-grafana-pcp-rhel-9-2') }}
+    runs-on: ubuntu-latest
+    env:
+      STATUS_NAME: grafana-pcp-9.2
+
+    steps:
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Runner has been deploying...'
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  grafana-pcp:
+    needs: pre-grafana-pcp
     runs-on: [kite, x86_64, rhos-01, rhel-9-2, large]
     env:
       STATUS_NAME: grafana-pcp-9.2
@@ -118,6 +155,7 @@ jobs:
           route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: pending
+          description: 'Test has been running...'
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
