@@ -62,7 +62,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   fapolicyd:
-    needs: pre-fapolicyd
+    needs: [pr-info, pre-fapolicyd]
     runs-on: [kite, x86_64, rhos-01, rhel-9-2, large]
     env:
       STATUS_NAME: fapolicyd-9.2
@@ -143,7 +143,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   grafana-pcp:
-    needs: pre-grafana-pcp
+    needs: [pr-info, pre-grafana-pcp]
     runs-on: [kite, x86_64, rhos-01, rhel-9-2, large]
     env:
       STATUS_NAME: grafana-pcp-9.2
