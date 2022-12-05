@@ -535,6 +535,15 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when: ansible_facts['distribution'] != 'CentOS' or ansible_facts ['distribution_version'] is version('8', '!=')
 
+    # debug podman root mode failure
+    - name: debug podman root mode failure
+      command: podman run --log-level debug ubi8-minimal:latest cat /etc/redhat-release
+      become: yes
+      ignore_errors: yes
+      when:
+        - ansible_facts['distribution'] != 'CentOS' or ansible_facts ['distribution_version'] is version('8', '!=')
+        - podman_result is failed
+
     # case: check running container with podman (non-root)
     # workaround on RHEL 8.6 and 9.0 for issue https://bugzilla.redhat.com/show_bug.cgi?id=2078937
     # because the fix is not available on 8.6 and 9.0 yet
@@ -571,6 +580,17 @@
             (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>') and ansible_facts ['distribution_version'] is version('9.0', '!=')) or
             (ansible_facts['distribution'] == 'CentOS' and ansible_facts ['distribution_version'] is version('8', '!=')) or
             (ansible_facts['distribution'] == 'Fedora')
+
+    # debug podman user mode failure
+    - name: debug podman user mode failure
+      command: podman run --log-level debug ubi8:latest cat /etc/redhat-release
+      ignore_errors: yes
+      when:
+        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.0', '>')) or
+          (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>') and ansible_facts ['distribution_version'] is version('9.0', '!=')) or
+          (ansible_facts['distribution'] == 'CentOS' and ansible_facts ['distribution_version'] is version('8', '!=')) or
+          (ansible_facts['distribution'] == 'Fedora')
+        - podman_result is failed
 
     # case: check dnf package and it should not be installed
     # https://github.com/osbuild/osbuild-composer/blob/master/internal/distro/rhel8/distro.go#L642

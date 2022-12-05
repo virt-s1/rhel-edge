@@ -468,7 +468,7 @@ fi
 
 # Prepare rhel-edge container network
 greenprint "Prepare container network"
-sudo podman network inspect edge >/dev/null 2>&1 || sudo podman network create --driver=bridge --subnet=192.168.200.0/24 --gateway=192.168.200.254 edge
+sudo podman --log-level debug network inspect edge >/dev/null 2>&1 || sudo podman --log-level debug network create --driver=bridge --subnet=192.168.200.0/24 --gateway=192.168.200.254 edge
 
 # Run stage repo in OCP4
 greenprint "Running stage repo in OCP4"
