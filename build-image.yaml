@@ -1,0 +1,190 @@
+---
+- hosts: builder
+  become: no
+  vars:
+    upgrade: "false"
+    image_type: ""
+    repo_url: ""
+
+  tasks:
+    - name: install required packages
+      dnf:
+        name:
+          - osbuild-composer
+          - weldr-client
+          - jq
+          - curl
+          - skopeo
+        state: latest
+      become: yes
+
+    # composer-cli output format changed since weldr-client 35.6
+    - name: check weldr-client version
+      shell: rpm -qa | grep weldr-client | awk -F '-' '{print $3}'
+      register: package_result
+
+    - set_fact:
+        weldr_client_version: "{{ package_result.stdout }}"
+
+    - name: create /etc/osbuild-composer/repositories folder
+      file:
+        path: /etc/osbuild-composer/repositories
+        state: directory
+      become: yes
+
+    - name: copy rhel-88.json to /etc/osbuild-composer/repositories
+      copy:
+        src: "{{ playbook_dir }}/files/rhel-8-8-0.json"
+        dest: /etc/osbuild-composer/repositories/rhel-88.json
+      become: yes
+      when: ansible_facts['distribution_version'] == "8.8"
+
+    - name: copy rhel-92.json to /etc/osbuild-composer/repositories
+      copy:
+        src: "{{ playbook_dir }}/files/rhel-9-2-0.json"
+        dest: /etc/osbuild-composer/repositories/rhel-92.json
+      become: yes
+      when: ansible_facts['distribution_version'] == "9.2"
+
+    - name: copy rhel-88.json to /etc/osbuild-composer/repositories for rebase test
+      copy:
+        src: "{{ playbook_dir }}/files/rhel-8-8-0-sha512.json"
+        dest: /etc/osbuild-composer/repositories/rhel-88.json
+      become: yes
+      when: ansible_facts['distribution_version'] == "9.2"
+
+    - name: copy rhel-91.json to /etc/osbuild-composer/repositories for upgrade test
+      copy:
+        src: "{{ playbook_dir }}/files/rhel-9-1-0.json"
+        dest: /etc/osbuild-composer/repositories/rhel-91.json
+      become: yes
+      when: ansible_facts['distribution_version'] == "9.2"
+
+    - name: copy centos-stream-8.json to /etc/osbuild-composer/repositories
+      copy:
+        src: "{{ playbook_dir }}/files/centos-stream-8.json"
+        dest: /etc/osbuild-composer/repositories/centos-8.json
+      become: yes
+      when: ansible_facts['distribution_version'] == "8"
+
+    - name: copy centos-stream-8.json to /etc/osbuild-composer/repositories for rebase test
+      copy:
+        src: "{{ playbook_dir }}/files/centos-stream-8.json"
+        dest: /etc/osbuild-composer/repositories/centos-8.json
+      become: yes
+      when: ansible_facts['distribution_version'] == "9"
+
+    - name: copy centos-stream-9.json to /etc/osbuild-composer/repositories
+      copy:
+        src: "{{ playbook_dir }}/files/centos-stream-9.json"
+        dest: /etc/osbuild-composer/repositories/centos-9.json
+      become: yes
+      when: ansible_facts['distribution_version'] == "9"
+
+    - name: start osbuild-composer.socket
+      systemd:
+        name: osbuild-composer.socket
+        state: started
+      become: yes
+
+    - name: get current date and time
+      command: date +'%Y-%m-%d %H:%M:%S'
+      register: date_result
+
+    - set_fact:
+        start_time: "{{ date_result.stdout }}"
+
+    - name: copy blueprint.toml to builder
+      copy:
+        src: /tmp/blueprint.toml
+        dest: /tmp/blueprint.toml
+
+    - name: push blueprint
+      command: composer-cli blueprints push /tmp/blueprint.toml
+      become: yes
+
+    - name: get blueprint name
+      command: composer-cli blueprints list
+      become: yes
+      register: bp_name_result
+
+    - set_fact:
+        bp_name: "{{ bp_name_result.stdout }}"
+
+    - name: depsolve blueprint
+      command: "composer-cli blueprints depsolve {{ bp_name }}"
+      become: yes
+
+    - name: start image building
+      shell: "composer-cli --json compose start-ostree --ref {{ ostree_ref }} {{ bp_name }} {{ image_type }} | tee /tmp/{{ image_type }}-compose-start"
+      become: yes
+      when: upgrade == "false"
+
+    - name: start image building
+      shell: "composer-cli --json compose start-ostree --ref {{ ostree_ref }} --url {{ repo_url }} {{ bp_name }} {{ image_type }} | tee /tmp/{{ image_type }}-compose-start"
+      become: yes
+      when: upgrade == "true"
+
+    - name: get compose uuid for new weldr-client
+      command: jq -r '.[0].body.build_id' "/tmp/{{ image_type }}-compose-start"
+      register: compose_uuid_result
+      when: weldr_client_version is version('35.6', '>=')
+
+    - set_fact:
+        compose_uuid: "{{ compose_uuid_result.stdout }}"
+      when: weldr_client_version is version('35.6', '>=')
+
+    - name: get compose uuid for old weldr-client
+      command: jq -r '.body.build_id' "/tmp/{{ image_type }}-compose-start"
+      register: compose_uuid_result
+      when: weldr_client_version is version('35.6', '<')
+
+    - set_fact:
+        compose_uuid: "{{ compose_uuid_result.stdout }}"
+      when: weldr_client_version is version('35.6', '<')
+
+    - name: collect image building log no matter success or fail
+      block:
+        - name: wait until image building finished
+          command: composer-cli compose status
+          become: yes
+          register: compose_status
+          retries: 60
+          delay: 30
+          until: "'FINISHED' in compose_status.stdout"
+      always:
+        - name: show worker log
+          command: "journalctl -a --no-pager --since '{{ start_time }}' -u osbuild-worker@1.service"
+          become: yes
+
+        - name: collect compose log
+          shell: "composer-cli compose log {{ compose_uuid }} | tee /tmp/osbuild-{{ ansible_facts['distribution'] }}-{{ ansible_facts['distribution_version'] }}-{{ compose_uuid }}.log > /dev/null"
+          become: yes
+
+        - name: fetch log file back
+          fetch:
+            src: "/tmp/osbuild-{{ ansible_facts['distribution'] }}-{{ ansible_facts['distribution_version'] }}-{{ compose_uuid }}.log"
+            dest: "/tmp/osbuild-{{ ansible_facts['distribution'] }}-{{ ansible_facts['distribution_version'] }}-{{ compose_uuid }}.log"
+            flat: yes
+
+    - name: download ostree image
+      command: "composer-cli compose image {{ compose_uuid }}"
+      args:
+        chdir: /tmp/
+      become: yes
+
+    - name: grant read permission to image file
+      file:
+        path: "/tmp/{{ compose_uuid }}-commit.tar"
+        owner: admin
+        group: admin
+        mode: '0644'
+      become: yes
+
+    - name: remove image
+      command: "composer-cli compose delete {{ compose_uuid }}"
+      become: yes
+
+    - name: remove blueprint
+      command: "composer-cli blueprints delete {{ bp_name }}"
+      become: yes

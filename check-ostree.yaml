@@ -14,6 +14,7 @@
     - debug: var=ansible_all_ipv4_addresses
     - debug: var=ansible_facts['distribution_version']
     - debug: var=ansible_facts['distribution']
+    - debug: var=ansible_facts['architecture']
 
     # check BIOS or UEFI
     - name: check bios or uefi
@@ -444,6 +445,27 @@
       when:
         - ansible_facts['distribution'] == "RedHat" or ansible_facts['distribution'] == 'CentOS'
         - "'rt' not in result_kernel.stdout"
+        - ansible_facts['architecture'] == "x86_64"
+
+    - name: no more error or failed log on aarch64
+      block:
+        - assert:
+            that:
+              - result_dmesg_error.stdout_lines | length <= 3
+              # - "'NUMA: Failed to initialise from firmware' in result_dmesg_error.stdout or result_dmesg_error.stdout == ''"
+            fail_msg: "more or less error and failed log"
+            success_msg: "everything works as expected"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when:
+        - ansible_facts['distribution'] == "RedHat" or ansible_facts['distribution'] == 'CentOS'
+        - "'rt' not in result_kernel.stdout"
+        - ansible_facts['architecture'] == "aarch64"
 
     - name: no any error or fail log
       block:
@@ -463,6 +485,7 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when:
         - "'rt' in result_kernel.stdout"
+        - ansible_facts['architecture'] == "x86_64"
 
     - name: no more error or failed log
       block:
@@ -483,6 +506,7 @@
       when:
         - ansible_facts['distribution'] == "Fedora"
         - "'rt' not in result_kernel.stdout"
+        - ansible_facts['architecture'] == "x86_64"
 
     - name: check embeded container image with podman
       command: podman images

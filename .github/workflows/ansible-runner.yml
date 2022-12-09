@@ -18,8 +18,8 @@ jobs:
       - name: Build container
         run: |
           sudo apt-get install -y podman
-          podman build -t ansible-runner:latest -f tools/Dockerfile.ansible
-          podman push --creds "$QUAY_USERNAME":"$QUAY_PASSWORD" ansible-runner:latest quay.io/rhel-edge/ansible-runner:latest
+          podman build -t ansible-runner:x86_64 -f tools/Dockerfile.ansible.x86_64
+          podman push --creds "$QUAY_USERNAME":"$QUAY_PASSWORD" ansible-runner:x86_64 quay.io/rhel-edge/ansible-runner:x86_64
         env:
           QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
           QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
