@@ -5,6 +5,7 @@
     workspace: "{{ lookup('env', 'WORKSPACE') }}"
     fdo_credential: "false"
     embedded_container: "false"
+    sysroot_ro: "false"
     total_counter: "0"
     failed_counter: "0"
 
@@ -237,8 +238,8 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when: "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
 
-    # case: check /sysroot rw mount status
-    - name: check /sysroot rw mount status
+    # case: check /sysroot mount status
+    - name: check /sysroot mount status
       shell: findmnt -r -o OPTIONS -n /sysroot | awk -F "," '{print $1}'
       register: result_sysroot_mount_status
 
@@ -256,8 +257,7 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: (ansible_facts['distribution'] == 'Fedora' and ansible_facts['distribution_version'] is version('37', '<')) or
-            (ansible_facts['distribution'] == 'CentOS') or (ansible_facts['distribution'] == 'RedHat')
+      when: sysroot_ro == "false" or (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '<') and ansible_facts ['distribution_version'] is version('8.8', '!='))
 
     # https://fedoraproject.org/wiki/Changes/Silverblue_Kinoite_readonly_sysroot
     - name: /sysroot should be mount with ro permission since Fedora 37
@@ -274,7 +274,9 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: ansible_facts['distribution'] == 'Fedora' and ansible_facts['distribution_version'] is version('37', '>=')
+      when: sysroot_ro == "true" and ((ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>=')) or
+            (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.8', '>=') and ansible_facts ['distribution_version'] is version('9.0', '!=') and ansible_facts ['distribution_version'] is version('9.1', '!=')) or
+            (ansible_facts['distribution'] == 'CentOS') or (ansible_facts['distribution'] == 'Fedora'))
 
     # case: check /var mount point
     - name: check /var mount point
@@ -407,8 +409,7 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: (ansible_facts['distribution'] == 'Fedora' and ansible_facts['distribution_version'] is version('37', '<')) or
-            (ansible_facts['distribution'] == 'CentOS') or (ansible_facts['distribution'] == 'RedHat')
+      when: sysroot_ro == "false" or (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '<') and ansible_facts ['distribution_version'] is version('8.8', '!='))
 
     # case: check dmesg error and failed log
     - name: check dmesg output
