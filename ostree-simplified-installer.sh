@@ -58,35 +58,43 @@ case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
+        IMAGE_NAME="disk.img.xz"
         ;;
     "rhel-8.7")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8.7"
+        IMAGE_NAME="disk.img.xz"
         ;;
     "rhel-8.8")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
+        IMAGE_NAME="image.raw.xz"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
+        IMAGE_NAME="disk.img.xz"
         ;;
     "rhel-9.1")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.1"
+        IMAGE_NAME="disk.img.xz"
         ;;
     "rhel-9.2")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
+        IMAGE_NAME="image.raw.xz"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos-stream8"
+        IMAGE_NAME="image.raw.xz"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
+        IMAGE_NAME="image.raw.xz"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -397,7 +405,7 @@ sudo sed -i 's/timeout=60/timeout=10/' "${GRUB_CFG}"
 sudo sed -i 's/coreos.inst.install_dev=\/dev\/sda/coreos.inst.install_dev=\/dev\/vda/' "${GRUB_CFG}"
 sudo sed -i 's/linux \/images\/pxeboot\/vmlinuz/linuxefi \/httpboot\/images\/pxeboot\/vmlinuz/' "${GRUB_CFG}"
 sudo sed -i 's/initrd \/images\/pxeboot\/initrd.img/initrdefi \/httpboot\/images\/pxeboot\/initrd.img/' "${GRUB_CFG}"
-sudo sed -i 's/coreos.inst.image_file=\/run\/media\/iso\/disk.img.xz/coreos.inst.image_url=http:\/\/192.168.100.1\/httpboot\/disk.img.xz/' "${GRUB_CFG}"
+sudo sed -i "s/coreos.inst.image_file=\/run\/media\/iso\/${IMAGE_NAME}/coreos.inst.image_url=http:\/\/192.168.100.1\/httpboot\/${IMAGE_NAME}/" "${GRUB_CFG}"
 
 greenprint "📋 Create libvirt image disk"
 LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-httpboot.qcow2
