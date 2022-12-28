@@ -449,7 +449,9 @@
       block:
         - assert:
             that:
-              - result_dmesg_error.stdout_lines | length <= 1
+              # Work around for issue https://github.com/virt-s1/rhel-edge/issues/1402
+              - result_dmesg_error.stdout_lines | length <= 2
+              # - result_dmesg_error.stdout_lines | length <= 1
             fail_msg: "no any error fail log or only have one log"
             success_msg: "everything works as expected"
       always:
