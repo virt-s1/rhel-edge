@@ -258,7 +258,9 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: sysroot_ro == "false" or (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '<') and ansible_facts ['distribution_version'] is version('8.8', '!='))
+      when:
+        - ansible_facts['distribution'] != 'Fedora'
+        - sysroot_ro == "false" or (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '<') and ansible_facts ['distribution_version'] is version('8.8', '!='))
 
     # https://fedoraproject.org/wiki/Changes/Silverblue_Kinoite_readonly_sysroot
     - name: /sysroot should be mount with ro permission since Fedora 37
@@ -275,9 +277,9 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: sysroot_ro == "true" and ((ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>=')) or
+      when: (ansible_facts['distribution'] == 'Fedora') or (sysroot_ro == "true" and ((ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>=')) or
             (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.8', '>=') and ansible_facts ['distribution_version'] is version('9.0', '!=') and ansible_facts ['distribution_version'] is version('9.1', '!=')) or
-            (ansible_facts['distribution'] == 'CentOS') or (ansible_facts['distribution'] == 'Fedora'))
+            (ansible_facts['distribution'] == 'CentOS')))
 
     # case: check /var mount point
     - name: check /var mount point
@@ -410,7 +412,9 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: sysroot_ro == "false" or (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '<') and ansible_facts ['distribution_version'] is version('8.8', '!='))
+      when:
+        - ansible_facts['distribution'] != 'Fedora'
+        - sysroot_ro == "false" or (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '<') and ansible_facts ['distribution_version'] is version('8.8', '!='))
 
     # case: check dmesg error and failed log
     - name: check dmesg output
@@ -451,8 +455,9 @@
       block:
         - assert:
             that:
+              # Fedora has one NUMA failed and two bpf-lsm failed logs
               - result_dmesg_error.stdout_lines | length <= 3
-              # - "'NUMA: Failed to initialise from firmware' in result_dmesg_error.stdout or result_dmesg_error.stdout == ''"
+              - "'NUMA: Failed to initialise from firmware' in result_dmesg_error.stdout or 'systemd[1]: bpf-lsm: Failed to link program; assuming BPF LSM is not available' in result_dmesg_error.stdout or result_dmesg_error.stdout == ''"
             fail_msg: "more or less error and failed log"
             success_msg: "everything works as expected"
       always:
@@ -463,8 +468,6 @@
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
       when:
-        - ansible_facts['distribution'] == "RedHat" or ansible_facts['distribution'] == 'CentOS'
-        - "'rt' not in result_kernel.stdout"
         - ansible_facts['architecture'] == "aarch64"
 
     - name: no any error or fail log

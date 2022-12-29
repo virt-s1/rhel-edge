@@ -38,4 +38,4 @@ jobs:
       - name: Build container
         run: |
           sudo apt-get install -y podman
-          podman build -t ansible-runner:latest -f tools/Dockerfile.ansible
+          podman build -t ansible-runner:latest -f tools/Dockerfile.ansible.x86_64

@@ -15,16 +15,16 @@ packages:
 yum_repos:
   baseos:
     name: rhel-baseos
-    baseurl: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/aarch64/os/
+    baseurl: http://REPLACE_ME_HERE/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/aarch64/os/
     enabled: true
     gpgcheck: false
   appstream:
     name: rhel-baseos
-    baseurl: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/AppStream/aarch64/os/
+    baseurl: http://REPLACE_ME_HERE/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/AppStream/aarch64/os/
     enabled: true
     gpgcheck: false
   crb:
     name: rhel-crb
-    baseurl: http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/CRB/aarch64/os/
+    baseurl: http://REPLACE_ME_HERE/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/CRB/aarch64/os/
     enabled: true
     gpgcheck: false

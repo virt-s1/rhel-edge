@@ -70,13 +70,16 @@ clean_up () {
 # Variables before case
 BOOT_ARGS="uefi"
 EMBEDDED_CONTAINER="true"
+# Prepare cloud-init data
+CLOUD_INIT_DIR=$(mktemp -d)
+cp tools/meta-data "$CLOUD_INIT_DIR"
 
 # Set useful things according to different distros.
 case "$TEST_OS" in
     "rhel-8-8")
         IMAGE_TYPE="edge-commit"
         sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-8-0.json
-        cp tools/user-data.88 tools/user-data
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" tools/user-data.88 | sudo tee "${CLOUD_INIT_DIR}/user-data"
         OS_VARIANT="rhel8-unknown"
         OSTREE_REF="rhel/8/${ARCH}/edge"
         GUEST_IMAGE_URL="http://${DOWNLOAD_NODE}/rhel-8/nightly/RHEL-8/latest-RHEL-8.8.0/compose/BaseOS/aarch64/images"
@@ -89,7 +92,7 @@ case "$TEST_OS" in
         sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-8-0-sha512.json
         sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-1-0.json
         sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-2-0.json
-        cp tools/user-data.92 tools/user-data
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" tools/user-data.92 | sudo tee "${CLOUD_INIT_DIR}/user-data"
         OS_VARIANT="rhel9-unknown"
         OSTREE_REF="rhel/9/${ARCH}/edge"
         GUEST_IMAGE_URL="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/aarch64/images"
@@ -99,6 +102,7 @@ case "$TEST_OS" in
         ;;
     "centos-stream-8")
         IMAGE_TYPE="edge-commit"
+        cp tools/user-data "$CLOUD_INIT_DIR"
         OS_VARIANT="centos-stream8"
         OSTREE_REF="centos/8/${ARCH}/edge"
         GUEST_IMAGE_URL="https://cloud.centos.org/centos/8-stream/aarch64/images"
@@ -109,6 +113,7 @@ case "$TEST_OS" in
         ;;
     "centos-stream-9")
         IMAGE_TYPE="edge-commit"
+        cp tools/user-data "$CLOUD_INIT_DIR"
         OS_VARIANT="centos-stream9"
         OSTREE_REF="centos/9/${ARCH}/edge"
         GUEST_IMAGE_URL="https://odcs.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/aarch64/images"
@@ -119,7 +124,8 @@ case "$TEST_OS" in
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
     "fedora-37")
-        IMAGE_TYPE="fedora-iot-commit"
+        IMAGE_TYPE="iot-commit"
+        cp tools/user-data "$CLOUD_INIT_DIR"
         OS_VARIANT="fedora-unknown"
         OSTREE_REF="fedora/37/${ARCH}/iot"
         GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/aarch64/images"
@@ -129,7 +135,8 @@ case "$TEST_OS" in
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Everything/aarch64/os/"
         ;;
     "fedora-38")
-        IMAGE_TYPE="fedora-iot-commit"
+        IMAGE_TYPE="iot-commit"
+        cp tools/user-data "$CLOUD_INIT_DIR"
         OS_VARIANT="fedora-unknown"
         OSTREE_REF="fedora/38/${ARCH}/iot"
         GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/aarch64/images"
@@ -161,10 +168,6 @@ PROD_REPO_URL="http://${PROD_REPO_ADDRESS}/${TEST_OS}-commit/repo/"
 sudo curl --no-progress-meter -o "${GUEST_IMAGE_PATH}" "${GUEST_IMAGE_URL}/${GUEST_IMAGE_NAME}"
 # Extend to 15G for image building required
 sudo qemu-img resize "${GUEST_IMAGE_PATH}" 15G
-
-# Prepare cloud-init data
-CLOUD_INIT_DIR=$(mktemp -d)
-cp tools/meta-data tools/user-data "$CLOUD_INIT_DIR"
 
 # Set up a cloud-init ISO.
 greenprint "💿 Creating a cloud-init ISO"
@@ -253,7 +256,7 @@ name = "sssd"
 version = "*"
 EOF
 
-# Fedora does not support user configuration in blueprint for fedora-iot-commit image
+# Fedora does not support user configuration in blueprint for iot-commit image
 if [[ "${USER_IN_COMMIT}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.user]]
@@ -289,10 +292,10 @@ EOF
 podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e image_type="$IMAGE_TYPE" -e ostree_ref="$OSTREE_REF" build-image.yaml || RESULTS=0
 
 # Copy image back from builder VM.
-scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i "$SSH_KEY" "${SSH_USER}@${BUILDER_VM_IP}:/tmp/*-commit.tar" "${TEMPDIR}/edge-commit.tar"
+scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i "$SSH_KEY" "${SSH_USER}@${BUILDER_VM_IP}:/home/admin/*-commit.tar" "${TEMPDIR}/edge-commit.tar"
 
 # Remove image in builder VM
-ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${BUILDER_VM_IP}" 'rm -f /tmp/*.tar'
+ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${BUILDER_VM_IP}" 'rm -f /home/admin/*.tar'
 
 # Remove cloud-init ISO.
 sudo rm -f "$CLOUD_INIT_PATH"
@@ -325,7 +328,7 @@ echo -e '${SSH_USER}\tALL=(ALL)\tNOPASSWD: ALL' >> /etc/sudoers
 %end
 STOPHERE
 
-# Fedora does not support user configuration in blueprint for fedora-iot-commit image
+# Fedora does not support user configuration in blueprint for iot-commit image
 if [[ "${USER_IN_COMMIT}" == "true" ]]; then
     sudo sed -i '/^user\|^sshkey/d' "${KS_FILE}"
 fi
@@ -420,7 +423,7 @@ name = "sssd"
 version = "*"
 EOF
 
-# Fedora does not support user configuration in blueprint for fedora-iot-commit image
+# Fedora does not support user configuration in blueprint for iot-commit image
 if [[ "${USER_IN_COMMIT}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.user]]
@@ -456,10 +459,10 @@ EOF
 podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e image_type="$IMAGE_TYPE" -e upgrade="true" -e ostree_ref="$OSTREE_REF" -e repo_url="$PROD_REPO_URL" build-image.yaml || RESULTS=0
 
 # Copy image back from builder VM.
-scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i "$SSH_KEY" "${SSH_USER}@${BUILDER_VM_IP}:/tmp/*-commit.tar" "${TEMPDIR}/edge-commit.tar"
+scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i "$SSH_KEY" "${SSH_USER}@${BUILDER_VM_IP}:/home/admin/*-commit.tar" "${TEMPDIR}/edge-commit.tar"
 
 # Remove image in builder VM
-ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${BUILDER_VM_IP}" 'rm -f /tmp/*.tar'
+ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${BUILDER_VM_IP}" 'rm -f /home/admin/*.tar'
 
 # Extract upgrade repo
 UPGRADE_PATH="${TEMPDIR}/upgrade"

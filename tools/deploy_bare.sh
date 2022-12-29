@@ -39,7 +39,7 @@ sudo localectl set-locale LANG=en_US.UTF-8
 
 # Install required packages
 greenprint "Install required packages"
-sudo dnf install -y --nogpgcheck httpd xorriso podman wget firewalld curl jq qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm virt-install ostree rpm-ostree
+sudo dnf install -y --nogpgcheck httpd xorriso podman wget firewalld curl jq lorax qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm virt-install ostree rpm-ostree
 
 # Start httpd server as prod ostree repo
 greenprint "Start httpd service"
@@ -103,3 +103,7 @@ LV_ROOT_NAME=$(df | grep "/$" | awk '{print $1}')
 sudo lvextend -l +100%FREE "$LV_ROOT_NAME"
 sudo xfs_growfs -d "$LV_ROOT_NAME"
 df -h
+
+# Prepare rhel-edge container network
+greenprint "Prepare container network"
+sudo podman network inspect edge >/dev/null 2>&1 || sudo podman network create --driver=bridge --subnet=192.168.200.0/24 --gateway=192.168.200.254 edge

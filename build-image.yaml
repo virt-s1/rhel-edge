@@ -5,6 +5,7 @@
     upgrade: "false"
     image_type: ""
     repo_url: ""
+    quay_repo: ""
 
   tasks:
     - name: install required packages
@@ -115,12 +116,38 @@
       command: "composer-cli blueprints depsolve {{ bp_name }}"
       become: yes
 
-    - name: start image building
+    - name: start commit image or fedora container image building
       shell: "composer-cli --json compose start-ostree --ref {{ ostree_ref }} {{ bp_name }} {{ image_type }} | tee /tmp/{{ image_type }}-compose-start"
       become: yes
-      when: upgrade == "false"
+      when:
+        - image_type == "edge-commit" or image_type == "iot-commit" or ((image_type == "edge-container" or image_type == "iot-container") and quay_repo == "")
+        - upgrade == "false"
 
-    - name: start image building
+    - name: copy quay_config.toml to builder
+      copy:
+        src: /tmp/quay_config.toml
+        dest: /tmp/quay_config.toml
+      when:
+        - image_type == "edge-container"
+        - quay_repo != ""
+        - upgrade == "false"
+
+    - name: start container image building with auto-upload enabled
+      shell: "composer-cli --json compose start-ostree --ref {{ ostree_ref }} {{ bp_name }} {{ image_type }} {{ quay_repo }} /tmp/quay_config.toml | tee /tmp/{{ image_type }}-compose-start"
+      become: yes
+      when:
+        - image_type == "edge-container"
+        - quay_repo != ""
+        - upgrade == "false"
+
+    - name: start installer image building
+      shell: "composer-cli --json compose start-ostree --ref {{ ostree_ref }} --url {{ repo_url }} {{ bp_name }} {{ image_type }} | tee /tmp/{{ image_type }}-compose-start"
+      become: yes
+      when:
+        - image_type == "edge-installer" or image_type == "iot-installer"
+        - upgrade == "false"
+
+    - name: start upgrade image building
       shell: "composer-cli --json compose start-ostree --ref {{ ostree_ref }} --url {{ repo_url }} {{ bp_name }} {{ image_type }} | tee /tmp/{{ image_type }}-compose-start"
       become: yes
       when: upgrade == "true"
@@ -150,7 +177,7 @@
           become: yes
           register: compose_status
           retries: 60
-          delay: 30
+          delay: 50
           until: "'FINISHED' in compose_status.stdout"
       always:
         - name: show worker log
@@ -170,16 +197,39 @@
     - name: download ostree image
       command: "composer-cli compose image {{ compose_uuid }}"
       args:
-        chdir: /tmp/
+        chdir: /home/admin
       become: yes
+      when: quay_repo == ""
 
-    - name: grant read permission to image file
+    - name: grant read permission to commit image file
       file:
-        path: "/tmp/{{ compose_uuid }}-commit.tar"
+        path: "/home/admin/{{ compose_uuid }}-commit.tar"
         owner: admin
         group: admin
         mode: '0644'
       become: yes
+      when: image_type == "edge-commit" or image_type == "iot-commit"
+
+    - name: grant read permission to container image file
+      file:
+        path: "/home/admin/{{ compose_uuid }}-container.tar"
+        owner: admin
+        group: admin
+        mode: '0644'
+      become: yes
+      when:
+        - quay_repo == ""
+        - image_type == "edge-container" or image_type == "iot-container"
+
+    - name: grant read permission to installer image file
+      file:
+        path: "/home/admin/{{ compose_uuid }}-installer.iso"
+        owner: admin
+        group: admin
+        mode: '0644'
+      become: yes
+      when:
+        - image_type == "edge-installer" or image_type == "iot-installer"
 
     - name: remove image
       command: "composer-cli compose delete {{ compose_uuid }}"
