@@ -3,9 +3,9 @@ name: CentOS Stream compose trigger
 
 on:
   workflow_dispatch:
-  # schedule:
-  #   - cron: '0 3 * * *'
-  #   - cron: '0 15 * * *'
+  schedule:
+    - cron: '0 3 * * *'
+    - cron: '0 15 * * *'
 
 env:
   COMPOSE_URL_CS8: https://composes.centos.org
