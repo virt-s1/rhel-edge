@@ -71,8 +71,8 @@ RHEL-Edge CI details can be found from [CI doc](CI.md)
 
 Test suites in scenario:
 
-1. [`ostree.sh`](ostree.sh) and [`edge-commit-arm.sh`](edge-commit-arm.sh): edge-commit/iot-commit(tar) image type test on RHEL 8.x, RHEL 9.x, CentOS Stream 8,  CentOS Stream 9, and Fedora
-2. [`ostree-ng.sh`](ostree-ng.sh) and [`edge-installer-arm.sh`](edge-installer-arm.sh): edge-container/iot-container and edge-installer/iot-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, CentOS Stream 9 and Fedora
+1. [`ostree.sh`](ostree.sh) and [`commit-arm.sh`](commit-arm.sh): edge-commit/iot-commit(tar) image type test on RHEL 8.x, RHEL 9.x, CentOS Stream 8,  CentOS Stream 9, and Fedora
+2. [`ostree-ng.sh`](ostree-ng.sh) and [`installer-arm.sh`](installer-arm.sh): edge-container/iot-container and edge-installer/iot-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, CentOS Stream 9 and Fedora
 3. [`ostree-raw-image.sh`](ostree-raw-image.sh): edge-raw-image(raw) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, CentOS Stream 9, and Fedora
 4. [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh): edge-simplified-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
 5. [`ostree-rebase.sh`](ostree-rebase.sh): Different ostree ref rebase test on RHEL 8.x and CentOS Stream 8
@@ -108,8 +108,9 @@ To run RHEL for Edge test on ARM server, bare metal ARM server is required.
 
 #### For ARM
 
-    $ DOWNLOAD_NODE="hello-world.com" ./edge-commit-arm.sh
-    $ DOWNLOAD_NODE="hello-world.com" QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./edge-installer-arm.sh
+    $ tools/deploy_arm_bare.sh
+    $ DOWNLOAD_NODE="hello-world.com" ./commit-arm.sh
+    $ DOWNLOAD_NODE="hello-world.com" QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./installer-arm.sh
 
 ### Test Configuration
 
