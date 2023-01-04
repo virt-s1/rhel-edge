@@ -455,8 +455,12 @@
       block:
         - assert:
             that:
-              # Fedora has one NUMA failed and two bpf-lsm failed logs
-              - result_dmesg_error.stdout_lines | length <= 3
+              # Fedora has 5 failed logs:
+              # NUMA: Failed to initialise from firmware
+              # 2 * systemd[1]: bpf-lsm: Failed to link program; assuming BPF LSM is not available
+              # systemd-gpt-auto-generator[581]: Failed to dissect: Permission denied
+              # systemd[572]: /usr/lib/systemd/system-generators/systemd-gpt-auto-generator failed with exit status 1.
+              - result_dmesg_error.stdout_lines | length <= 5
               - "'NUMA: Failed to initialise from firmware' in result_dmesg_error.stdout or 'systemd[1]: bpf-lsm: Failed to link program; assuming BPF LSM is not available' in result_dmesg_error.stdout or result_dmesg_error.stdout == ''"
             fail_msg: "more or less error and failed log"
             success_msg: "everything works as expected"
@@ -769,7 +773,7 @@
     # case: check persistent log in Edge system
     - name: check journald has persistent logging
       block:
-        - name: lsit boots
+        - name: list boots
           shell: journalctl --list-boots
           register: result_list_boots
 
