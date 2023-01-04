@@ -140,11 +140,11 @@
         - quay_repo != ""
         - upgrade == "false"
 
-    - name: start installer image building
+    - name: start installer or raw image building
       shell: "composer-cli --json compose start-ostree --ref {{ ostree_ref }} --url {{ repo_url }} {{ bp_name }} {{ image_type }} | tee /tmp/{{ image_type }}-compose-start"
       become: yes
       when:
-        - image_type == "edge-installer" or image_type == "iot-installer"
+        - image_type == "edge-installer" or image_type == "iot-installer" or image_type == "edge-raw-image" or image_type == "iot-raw-image"
         - upgrade == "false"
 
     - name: start upgrade image building
@@ -230,6 +230,16 @@
       become: yes
       when:
         - image_type == "edge-installer" or image_type == "iot-installer"
+
+    - name: grant read permission to raw image file
+      file:
+        path: "/home/admin/{{ compose_uuid }}-image.raw.xz"
+        owner: admin
+        group: admin
+        mode: '0644'
+      become: yes
+      when:
+        - image_type == "edge-raw-image" or image_type == "iot-raw-image"
 
     - name: remove image
       command: "composer-cli compose delete {{ compose_uuid }}"

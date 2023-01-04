@@ -73,18 +73,23 @@ Test suites in scenario:
 
 1. [`ostree.sh`](ostree.sh) and [`commit-arm.sh`](commit-arm.sh): edge-commit/iot-commit(tar) image type test on RHEL 8.x, RHEL 9.x, CentOS Stream 8,  CentOS Stream 9, and Fedora
 2. [`ostree-ng.sh`](ostree-ng.sh) and [`installer-arm.sh`](installer-arm.sh): edge-container/iot-container and edge-installer/iot-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, CentOS Stream 9 and Fedora
-3. [`ostree-raw-image.sh`](ostree-raw-image.sh): edge-raw-image(raw) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, CentOS Stream 9, and Fedora
+3. [`ostree-raw-image.sh`](ostree-raw-image.sh) and [`raw-arm.sh`](raw-arm.sh): edge-raw-image/iot-raw-image(raw) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, CentOS Stream 9, and Fedora
 4. [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh): edge-simplified-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
 5. [`ostree-rebase.sh`](ostree-rebase.sh): Different ostree ref rebase test on RHEL 8.x and CentOS Stream 8
 6. [`ostree-8-to-9.sh`](ostree-8-to-9.sh): RHEL 8/CentOS Stream 8 Edge system upgrade to RHEL 9/CentOS Stream 9 Edge system test
+6. [`ostree-9-to-9.sh`](ostree-9-to-9.sh): RHEL 9/CentOS Stream 9 Edge system upgrade and rebase to RHEL 9/CentOS Stream 9 Edge system test
 
 ### Test environment
+
+#### For x86_64
 
 You can run RHEL for Edge test on any x86_64 machine, like server, laptop, or VM, but KVM has to be enabled. Otherwise QEMU will be used and the test will take a really long time.
 
     $ls -l /dev/kvm
 
-To run RHEL for Edge test on ARM server, bare metal ARM server is required.
+#### for ARM
+
+To run RHEL for Edge test on ARM server, a bare metal ARM server is required.
 
 #### Supported OS
 
@@ -105,12 +110,14 @@ To run RHEL for Edge test on ARM server, bare metal ARM server is required.
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-simplified-installer.sh
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-rebase.sh
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-8-to-9.sh
+    $ DOWNLOAD_NODE="hello-world.com" ./ostree-9-to-9.sh
 
 #### For ARM
 
     $ tools/deploy_arm_bare.sh
     $ DOWNLOAD_NODE="hello-world.com" ./commit-arm.sh
     $ DOWNLOAD_NODE="hello-world.com" QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./installer-arm.sh
+    $ DOWNLOAD_NODE="hello-world.com" DOCKERHUB_USERNAME=rhel-edge DOCKERHUB_PASSWORD=123456 ./raw-arm.sh
 
 ### Test Configuration
 
