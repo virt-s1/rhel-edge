@@ -27,6 +27,7 @@ GRUB_CFG=${HTTPD_PATH}/httpboot/EFI/BOOT/grub.cfg
 EMBEDDED_CONTAINER="false"
 # Workaround BZ#2108646
 BOOT_ARGS="uefi"
+FIREWALL_FEATURE="false"
 
 # Set os-variant and boot location used by virt-install.
 case "${ID}-${VERSION_ID}" in
@@ -55,6 +56,7 @@ case "${ID}-${VERSION_ID}" in
         CUT_DIRS=8
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
+        FIREWALL_FEATURE="true"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -81,6 +83,7 @@ case "${ID}-${VERSION_ID}" in
         CUT_DIRS=8
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
+        FIREWALL_FEATURE="true"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -89,6 +92,7 @@ case "${ID}-${VERSION_ID}" in
         CUT_DIRS=5
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
+        FIREWALL_FEATURE="true"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
@@ -98,6 +102,7 @@ case "${ID}-${VERSION_ID}" in
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
+        FIREWALL_FEATURE="true"
         ;;
     "fedora-37")
         IMAGE_TYPE=fedora-iot-commit
@@ -107,6 +112,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
+        FIREWALL_FEATURE="true"
         ;;
     "fedora-38")
         IMAGE_TYPE=fedora-iot-commit
@@ -116,6 +122,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
+        FIREWALL_FEATURE="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -516,6 +523,17 @@ source = "quay.io/fedora/fedora:latest"
 EOF
 fi
 
+if [[ "${FIREWALL_FEATURE}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[customizations.firewall.zones]]
+name = "trusted"
+sources = ["192.168.100.51"]
+[[customizations.firewall.zones]]
+name = "work"
+sources = ["192.168.100.52"]
+EOF
+fi
+
 # Build upgrade image.
 build_image "$BLUEPRINT_FILE" upgrade
 
@@ -584,7 +602,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e firewall_feature="${FIREWALL_FEATURE}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
