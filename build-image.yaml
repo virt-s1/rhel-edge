@@ -88,6 +88,47 @@
         state: started
       become: yes
 
+    - name: check fdo-admin-cli
+      shell: rpm -qa | grep fdo-admin-cli
+      register: fdo_installed
+      ignore_errors: True
+      check_mode: False
+      changed_when: False
+
+    - block:
+        - name: install fdo-admin-cli and pip
+          dnf:
+            name:
+              - fdo-admin-cli
+              - python3-pip
+            state: latest
+          become: yes
+
+        - name: install yq
+          pip:
+            name: yq
+          become: yes
+
+        - name: start fdo service
+          systemd:
+            name: fdo-aio
+            state: started
+          become: yes
+
+        - name: config re-encrypt
+          command: '/usr/local/bin/yq -iy ".service_info.diskencryption_clevis |= [{disk_label: \"/dev/vda3\", reencrypt: true, binding: {pin: \"tpm2\", config: \"{}\"}}]" /etc/fdo/aio/configs/serviceinfo_api_server.yml'
+          become: yes
+
+        - name: restart fdo service
+          systemd:
+            name: fdo-aio
+            state: restarted
+          become: yes
+
+      when:
+        - fdo_installed.rc == 1
+        - image_type == "edge-simplified-installer" or image_type == "iot-simplified-installer"
+
     - name: get current date and time
       command: date +'%Y-%m-%d %H:%M:%S'
       register: date_result
@@ -144,7 +185,7 @@
       shell: "composer-cli --json compose start-ostree --ref {{ ostree_ref }} --url {{ repo_url }} {{ bp_name }} {{ image_type }} | tee /tmp/{{ image_type }}-compose-start"
       become: yes
       when:
-        - image_type == "edge-installer" or image_type == "iot-installer" or image_type == "edge-raw-image" or image_type == "iot-raw-image"
+        - image_type == "edge-installer" or image_type == "iot-installer" or image_type == "edge-raw-image" or image_type == "iot-raw-image" or image_type == "edge-simplified-installer" or image_type == "iot-simplified-installer"
         - upgrade == "false"
 
     - name: start upgrade image building
@@ -240,6 +281,16 @@
       become: yes
       when:
         - image_type == "edge-raw-image" or image_type == "iot-raw-image"
+
+    - name: grant read permission to simplified installer image file
+      file:
+        path: "/home/admin/{{ compose_uuid }}-simplified-installer.iso"
+        owner: admin
+        group: admin
+        mode: '0644'
+      become: yes
+      when:
+        - image_type == "edge-simplified-installer" or image_type == "iot-simplified-installer"
 
     - name: remove image
       command: "composer-cli compose delete {{ compose_uuid }}"

@@ -14,7 +14,7 @@ RHEL for Edge test from QE is more like an integration test. The test flow align
 
 2. RHEL for Edge image installation
 
-    - `edge-commit/iot-commit`: Setup HTTP server to serve as ostree repo, and install with kickstart
+    - `edge-commit/iot-commit`: Setup HTTP server to serve as ostree repo, and HTTP boot to install with kickstart
     - `edge-container/iot-container`: Setup prod ostree repo, `edge-container/iot-container` as stage repo, and install with kickstart from prod ostree repo
     - `edge-installer/iot-installer`: Install from `edge-installer/iot-installer` ISO
     - `edge-raw-image/iot-raw-image`: Boot from raw image with KVM
@@ -74,7 +74,7 @@ Test suites in scenario:
 1. [`ostree.sh`](ostree.sh) and [`commit-arm.sh`](commit-arm.sh): edge-commit/iot-commit(tar) image type test on RHEL 8.x, RHEL 9.x, CentOS Stream 8,  CentOS Stream 9, and Fedora
 2. [`ostree-ng.sh`](ostree-ng.sh) and [`installer-arm.sh`](installer-arm.sh): edge-container/iot-container and edge-installer/iot-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, CentOS Stream 9 and Fedora
 3. [`ostree-raw-image.sh`](ostree-raw-image.sh) and [`raw-arm.sh`](raw-arm.sh): edge-raw-image/iot-raw-image(raw) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, CentOS Stream 9, and Fedora
-4. [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh): edge-simplified-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
+4. [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh) and [`simplified-arm.sh`](simplified-arm.sh): edge-simplified-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
 5. [`ostree-rebase.sh`](ostree-rebase.sh): Different ostree ref rebase test on RHEL 8.x and CentOS Stream 8
 6. [`ostree-8-to-9.sh`](ostree-8-to-9.sh): RHEL 8/CentOS Stream 8 Edge system upgrade to RHEL 9/CentOS Stream 9 Edge system test
 6. [`ostree-9-to-9.sh`](ostree-9-to-9.sh): RHEL 9/CentOS Stream 9 Edge system upgrade and rebase to RHEL 9/CentOS Stream 9 Edge system test
@@ -118,6 +118,7 @@ To run RHEL for Edge test on ARM server, a bare metal ARM server is required.
     $ DOWNLOAD_NODE="hello-world.com" ./commit-arm.sh
     $ DOWNLOAD_NODE="hello-world.com" QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./installer-arm.sh
     $ DOWNLOAD_NODE="hello-world.com" DOCKERHUB_USERNAME=rhel-edge DOCKERHUB_PASSWORD=123456 ./raw-arm.sh
+    $ DOWNLOAD_NODE="hello-world.com" ./simplified-arm.sh
 
 ### Test Configuration
 
