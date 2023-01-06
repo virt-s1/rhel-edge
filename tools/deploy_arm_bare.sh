@@ -38,8 +38,9 @@ sudo dnf install -y glibc-langpack-en
 sudo localectl set-locale LANG=en_US.UTF-8
 
 # Install required packages
+# openssl is required by simplified install test
 greenprint "Install required packages"
-sudo dnf install -y --nogpgcheck httpd xorriso podman wget firewalld curl jq lorax qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm virt-install ostree rpm-ostree
+sudo dnf install -y --nogpgcheck httpd xorriso podman wget firewalld curl jq lorax qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm virt-install ostree rpm-ostree openssl
 
 # Start httpd server as prod ostree repo
 greenprint "Start httpd service"
@@ -56,6 +57,7 @@ sudo virsh list --all > /dev/null
 
 # Set a customized dnsmasq configuration for libvirt so we always get the
 # same address on bootup.
+# code 00024 comes from https://www.mail-archive.com/edk2-devel@lists.01.org/msg14683.html
 greenprint "💡 Setup libvirt network"
 sudo tee /tmp/integration.xml > /dev/null << EOF
 <network xmlns:dnsmasq='http://libvirt.org/schemas/network/dnsmasq/1.0'>
@@ -74,9 +76,9 @@ sudo tee /tmp/integration.xml > /dev/null << EOF
     </dhcp>
   </ip>
   <dnsmasq:options>
-    <dnsmasq:option value='dhcp-vendorclass=set:efi-http,HTTPClient:Arch:00016'/>
+    <dnsmasq:option value='dhcp-vendorclass=set:efi-http,HTTPClient:Arch:00024'/>
     <dnsmasq:option value='dhcp-option-force=tag:efi-http,60,HTTPClient'/>
-    <dnsmasq:option value='dhcp-boot=tag:efi-http,&quot;http://192.168.100.1/httpboot/EFI/BOOT/BOOTX64.EFI&quot;'/>
+    <dnsmasq:option value='dhcp-boot=tag:efi-http,&quot;http://192.168.100.1/httpboot/EFI/BOOT/BOOTAA64.EFI&quot;'/>
   </dnsmasq:options>
 </network>
 EOF
