@@ -112,7 +112,6 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
-        FIREWALL_FEATURE="true"
         ;;
     "fedora-38")
         IMAGE_TYPE=fedora-iot-commit
@@ -122,7 +121,6 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
-        FIREWALL_FEATURE="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
