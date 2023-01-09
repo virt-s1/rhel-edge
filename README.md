@@ -115,10 +115,12 @@ To run RHEL for Edge test on ARM server, a bare metal ARM server is required.
 #### For ARM
 
     $ tools/deploy_arm_bare.sh
-    $ DOWNLOAD_NODE="hello-world.com" ./commit-arm.sh
-    $ DOWNLOAD_NODE="hello-world.com" QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./installer-arm.sh
-    $ DOWNLOAD_NODE="hello-world.com" DOCKERHUB_USERNAME=rhel-edge DOCKERHUB_PASSWORD=123456 ./raw-arm.sh
-    $ DOWNLOAD_NODE="hello-world.com" ./simplified-arm.sh
+    $ DOWNLOAD_NODE="hello-world.com" ./commit-arm.sh <test os>
+    $ DOWNLOAD_NODE="hello-world.com" QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./installer-arm.sh <test os>
+    $ DOWNLOAD_NODE="hello-world.com" DOCKERHUB_USERNAME=rhel-edge DOCKERHUB_PASSWORD=123456 ./raw-arm.sh <test os>
+    $ DOWNLOAD_NODE="hello-world.com" ./simplified-arm.sh <test os>
+
+    <test os> can be one of "rhel-8-8", "rhel-9-2", "centos-stream-8", "centos-stream-9", "fedora-37", "fedora-38"
 
 ### Test Configuration
 
