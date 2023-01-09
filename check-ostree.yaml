@@ -34,6 +34,16 @@
       ignore_errors: yes
       when: fdo_credential == "true"
 
+    - name: check partition size
+      command: df -h
+      ignore_errors: yes
+      become: yes
+
+    - name: check disk partition table
+      command: fdisk -l
+      ignore_errors: yes
+      become: yes
+
     # case: check rt kernel installed after upgrade
     - name: check installed kernel
       command: uname -r
@@ -878,7 +888,7 @@
       command: journalctl -u fdo-client-linuxapp
       register: result_fdo_client_linuxapp_journalctl
 
-    # Check re-encryption status
+    # Check re-encryption status on x86_64
     - name: wait for FDO re-encryption
       block:
         - shell: cryptsetup luksDump /dev/vda4
@@ -893,7 +903,29 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: fdo_credential == "true"
+      when:
+        - fdo_credential == "true"
+        - ansible_facts['architecture'] == "x86_64"
+
+    # Check re-encryption status on aarch64
+    - name: wait for FDO re-encryption
+      block:
+        - shell: cryptsetup luksDump /dev/vda3
+          register: result
+          become: yes
+          until: not result.stdout_lines is search("cipher_null-ecb")
+          retries: 30
+          delay: 60
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when:
+        - fdo_credential == "true"
+        - ansible_facts['architecture'] == "aarch64"
 
     # Check FDO status and task status
     - name: check fdo-client-linuxapp logs
