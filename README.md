@@ -19,6 +19,7 @@ RHEL for Edge test from QE is more like an integration test. The test flow align
     - `edge-installer/iot-installer`: Install from `edge-installer/iot-installer` ISO
     - `edge-raw-image/iot-raw-image`: Boot from raw image with KVM
     - `edge-simplified-installer`: Install from `edge-simplified-installer` ISO
+    - `minimal-raw`: Boot from RPM based raw image with KVM
 
 3. RHEL for Edge system upgrade
 
@@ -82,6 +83,7 @@ Test suites in scenario:
 5. [`ostree-rebase.sh`](ostree-rebase.sh) and [`arm-rebase.sh`](arm-rebase.sh): Different ostree ref rebase test on RHEL 8.x and CentOS Stream 8
 6. [`ostree-8-to-9.sh`](ostree-8-to-9.sh): RHEL 8/CentOS Stream 8 Edge system upgrade to RHEL 9/CentOS Stream 9 Edge system test
 6. [`ostree-9-to-9.sh`](ostree-9-to-9.sh): RHEL 9/CentOS Stream 9 Edge system upgrade and rebase to RHEL 9/CentOS Stream 9 Edge system test
+7. [`minimal-raw.sh`](minimal-raw.sh): RPM based system test (Not ostree)
 
 ### Test environment
 
@@ -115,6 +117,7 @@ To run RHEL for Edge test on ARM server, a bare metal ARM server is required.
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-rebase.sh
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-8-to-9.sh
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-9-to-9.sh
+    $ DOWNLOAD_NODE="hello-world.com" ./minimal-raw.sh
 
 #### For ARM
 
