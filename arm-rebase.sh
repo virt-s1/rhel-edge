@@ -166,7 +166,7 @@ sudo qemu-img resize "${GUEST_IMAGE_PATH}" 15G
 
 # Set up a cloud-init ISO.
 greenprint "💿 Creating a cloud-init ISO"
-CLOUD_INIT_PATH="${LIBVIRT_IMAGE_PATH}/seed-commit.iso"
+CLOUD_INIT_PATH="${LIBVIRT_IMAGE_PATH}/seed-rebase.iso"
 rm -f "$CLOUD_INIT_PATH"
 pushd "$CLOUD_INIT_DIR"
     sudo mkisofs -o $CLOUD_INIT_PATH -V cidata \
