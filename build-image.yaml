@@ -3,9 +3,11 @@
   become: no
   vars:
     upgrade: "false"
+    rebase: "false"
     image_type: ""
     repo_url: ""
     quay_repo: ""
+    parent_ref: ""
 
   tasks:
     - name: install required packages
@@ -163,6 +165,7 @@
       when:
         - image_type == "edge-commit" or image_type == "iot-commit" or ((image_type == "edge-container" or image_type == "iot-container") and quay_repo == "")
         - upgrade == "false"
+        - rebase == "false"
 
     - name: copy quay_config.toml to builder
       copy:
@@ -192,6 +195,11 @@
       shell: "composer-cli --json compose start-ostree --ref {{ ostree_ref }} --url {{ repo_url }} {{ bp_name }} {{ image_type }} | tee /tmp/{{ image_type }}-compose-start"
       become: yes
       when: upgrade == "true"
+
+    - name: start rebase image building
+      shell: "composer-cli --json compose start-ostree --ref {{ ostree_ref }} --parent {{ parent_ref }} --url {{ repo_url }} {{ bp_name }} {{ image_type }} | tee /tmp/{{ image_type }}-compose-start"
+      become: yes
+      when: rebase == "true"
 
     - name: get compose uuid for new weldr-client
       command: jq -r '.[0].body.build_id' "/tmp/{{ image_type }}-compose-start"

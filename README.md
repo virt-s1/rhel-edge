@@ -23,7 +23,7 @@ RHEL for Edge test from QE is more like an integration test. The test flow align
 3. RHEL for Edge system upgrade
 
     - Upgrade with the same OSTree ref
-    - Upgrade to a new OSTree ref
+    - Rebase to a new OSTree ref
     - Upgrade from RHEL 8 to RHEL 9 or from CentOS Stream 8 to CentOS Stream 9
 
 3. Checkings after installation/upgrade.
@@ -53,6 +53,10 @@ Considering Upstream CI environment and test duration, the Upstream CI only cove
 
 [Fedora rawhide report dashboard](https://github.com/virt-s1/rhel-edge/projects/2)
 
+[Package greenboot, fido-device-onboard, rust-coreos-installer, rpm-ostree, ostree report](https://github.com/virt-s1/rhel-edge/projects/3)
+
+[Customer case test report](https://github.com/virt-s1/rhel-edge/projects/4)
+
 ### CI for this repository
 
 CI for this repository is to test `test code`. It's triggered by PR in this repository. Any changes for `test code` has to be pass all tests of CI before they are merged into master.
@@ -75,7 +79,7 @@ Test suites in scenario:
 2. [`ostree-ng.sh`](ostree-ng.sh) and [`installer-arm.sh`](installer-arm.sh): edge-container/iot-container and edge-installer/iot-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, CentOS Stream 9 and Fedora
 3. [`ostree-raw-image.sh`](ostree-raw-image.sh) and [`raw-arm.sh`](raw-arm.sh): edge-raw-image/iot-raw-image(raw) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, CentOS Stream 9, and Fedora
 4. [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh) and [`simplified-arm.sh`](simplified-arm.sh): edge-simplified-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
-5. [`ostree-rebase.sh`](ostree-rebase.sh): Different ostree ref rebase test on RHEL 8.x and CentOS Stream 8
+5. [`ostree-rebase.sh`](ostree-rebase.sh) and [`rebase-arm.sh`](rebase-arm.sh): Different ostree ref rebase test on RHEL 8.x and CentOS Stream 8
 6. [`ostree-8-to-9.sh`](ostree-8-to-9.sh): RHEL 8/CentOS Stream 8 Edge system upgrade to RHEL 9/CentOS Stream 9 Edge system test
 6. [`ostree-9-to-9.sh`](ostree-9-to-9.sh): RHEL 9/CentOS Stream 9 Edge system upgrade and rebase to RHEL 9/CentOS Stream 9 Edge system test
 
@@ -119,6 +123,7 @@ To run RHEL for Edge test on ARM server, a bare metal ARM server is required.
     $ DOWNLOAD_NODE="hello-world.com" QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./installer-arm.sh <test os>
     $ DOWNLOAD_NODE="hello-world.com" DOCKERHUB_USERNAME=rhel-edge DOCKERHUB_PASSWORD=123456 ./raw-arm.sh <test os>
     $ DOWNLOAD_NODE="hello-world.com" ./simplified-arm.sh <test os>
+    $ DOWNLOAD_NODE="hello-world.com" ./rebase-arm.sh <test os>
 
     <test os> can be one of "rhel-8-8", "rhel-9-2", "centos-stream-8", "centos-stream-9", "fedora-37", "fedora-38"
 
