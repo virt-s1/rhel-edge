@@ -446,8 +446,9 @@
       block:
         - assert:
             that:
-              - result_dmesg_error.stdout_lines | length <= 2
-              - "'pcieport 0000:00:01.6: Failed to check link status' in result_dmesg_error.stdout or 'Error: Driver \\'pcspkr\\' is already registered, aborting' in result_dmesg_error.stdout or result_dmesg_error.stdout == ''"
+              # Work around for issue https://github.com/virt-s1/rhel-edge/issues/1402
+              - result_dmesg_error.stdout_lines | length <= 3
+              - "'pcieport 0000:00:01.6: Failed to check link status' in result_dmesg_error.stdout or 'Error: Driver \\'pcspkr\\' is already registered, aborting' in result_dmesg_error.stdout or 'KD_FONT_OP_GET failed while trying to get the font metadata: Invalid argument' in result_dmesg_error.stdout or 'sys-module-fuse.device: Failed to enqueue SYSTEMD_WANTS= job, ignoring: Unit sys-fs-fuse-connections.mount not found' in result_dmesg_error.stdout or result_dmesg_error.stdout == ''"
             fail_msg: "more or less error and failed log"
             success_msg: "everything works as expected"
       always:
@@ -490,8 +491,8 @@
         - assert:
             that:
               # Work around for issue https://github.com/virt-s1/rhel-edge/issues/1402
-              - result_dmesg_error.stdout_lines | length <= 2
-              # - result_dmesg_error.stdout_lines | length <= 1
+              # Work around for issue https://github.com/virt-s1/rhel-edge/issues/1893
+              - result_dmesg_error.stdout_lines | length <= 3
             fail_msg: "no any error fail log or only have one log"
             success_msg: "everything works as expected"
       always:
