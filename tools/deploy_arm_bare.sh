@@ -55,11 +55,35 @@ greenprint "🚀 Starting libvirt daemon"
 sudo systemctl start libvirtd
 sudo virsh list --all > /dev/null
 
-# Set a customized dnsmasq configuration for libvirt so we always get the
-# same address on bootup.
-# code 00024 comes from https://www.mail-archive.com/edk2-devel@lists.01.org/msg14683.html
+# Set a customized dnsmasq configuration for libvirt so we always get the same address on bootup.
 greenprint "💡 Setup libvirt network"
-sudo tee /tmp/integration.xml > /dev/null << EOF
+if [ "$ARCH" == "aarch64" ]; then
+    # code 00024 comes from https://www.mail-archive.com/edk2-devel@lists.01.org/msg14683.html
+    sudo tee /tmp/integration.xml > /dev/null << EOF
+<network xmlns:dnsmasq='http://libvirt.org/schemas/network/dnsmasq/1.0'>
+<name>integration</name>
+<uuid>1c8fe98c-b53a-4ca4-bbdb-deb0f26b3579</uuid>
+<forward mode='nat'>
+    <nat>
+    <port start='1024' end='65535'/>
+    </nat>
+</forward>
+<bridge name='integration' zone='trusted' stp='on' delay='0'/>
+<mac address='52:54:00:36:46:ef'/>
+<ip address='192.168.100.1' netmask='255.255.255.0'>
+    <dhcp>
+    <range start='192.168.100.2' end='192.168.100.254'/>
+    </dhcp>
+</ip>
+<dnsmasq:options>
+    <dnsmasq:option value='dhcp-vendorclass=set:efi-http,HTTPClient:Arch:00024'/>
+    <dnsmasq:option value='dhcp-option-force=tag:efi-http,60,HTTPClient'/>
+    <dnsmasq:option value='dhcp-boot=tag:efi-http,&quot;http://192.168.100.1/httpboot/EFI/BOOT/BOOTAA64.EFI&quot;'/>
+</dnsmasq:options>
+</network>
+EOF
+else
+    sudo tee /tmp/integration.xml > /dev/null << EOF
 <network xmlns:dnsmasq='http://libvirt.org/schemas/network/dnsmasq/1.0'>
   <name>integration</name>
   <uuid>1c8fe98c-b53a-4ca4-bbdb-deb0f26b3579</uuid>
@@ -73,15 +97,19 @@ sudo tee /tmp/integration.xml > /dev/null << EOF
   <ip address='192.168.100.1' netmask='255.255.255.0'>
     <dhcp>
       <range start='192.168.100.2' end='192.168.100.254'/>
+      <host mac='34:49:22:B0:83:30' name='vm-1' ip='192.168.100.50'/>
+      <host mac='34:49:22:B0:83:31' name='vm-2' ip='192.168.100.51'/>
+      <host mac='34:49:22:B0:83:32' name='vm-3' ip='192.168.100.52'/>
     </dhcp>
   </ip>
   <dnsmasq:options>
-    <dnsmasq:option value='dhcp-vendorclass=set:efi-http,HTTPClient:Arch:00024'/>
+    <dnsmasq:option value='dhcp-vendorclass=set:efi-http,HTTPClient:Arch:00016'/>
     <dnsmasq:option value='dhcp-option-force=tag:efi-http,60,HTTPClient'/>
-    <dnsmasq:option value='dhcp-boot=tag:efi-http,&quot;http://192.168.100.1/httpboot/EFI/BOOT/BOOTAA64.EFI&quot;'/>
+    <dnsmasq:option value='dhcp-boot=tag:efi-http,&quot;http://192.168.100.1/httpboot/EFI/BOOT/BOOTX64.EFI&quot;'/>
   </dnsmasq:options>
 </network>
 EOF
+fi
 if ! sudo virsh net-info integration > /dev/null 2>&1; then
     sudo virsh net-define /tmp/integration.xml
 fi
@@ -100,11 +128,14 @@ polkit.addRule(function(action, subject) {
 });
 EOF
 
-# Extend the logical volume "/", because "/" partition only has 15G in beaker
-LV_ROOT_NAME=$(df | grep "/$" | awk '{print $1}')
-sudo lvextend -l +100%FREE "$LV_ROOT_NAME"
-sudo xfs_growfs -d "$LV_ROOT_NAME"
-df -h
+# For bare metal server only
+if [ "$(systemd-detect-virt)" == "none" ]; then
+    # Extend the logical volume "/", because "/" partition only has 15G in beaker
+    LV_ROOT_NAME=$(df | grep "/$" | awk '{print $1}')
+    sudo lvextend -l +100%FREE "$LV_ROOT_NAME"
+    sudo xfs_growfs -d "$LV_ROOT_NAME"
+    df -h
+fi
 
 # Prepare rhel-edge container network
 greenprint "Prepare container network"
