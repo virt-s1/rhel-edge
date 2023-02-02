@@ -37,10 +37,24 @@
 
     - name: copy rhel-88.json to /etc/osbuild-composer/repositories
       copy:
+        src: "{{ playbook_dir }}/files/rhel-8-7-0.json"
+        dest: /etc/osbuild-composer/repositories/rhel-87.json
+      become: yes
+      when: ansible_facts['distribution_version'] == "8.7"
+
+    - name: copy rhel-88.json to /etc/osbuild-composer/repositories
+      copy:
         src: "{{ playbook_dir }}/files/rhel-8-8-0.json"
         dest: /etc/osbuild-composer/repositories/rhel-88.json
       become: yes
       when: ansible_facts['distribution_version'] == "8.8"
+
+    - name: copy rhel-92.json to /etc/osbuild-composer/repositories
+      copy:
+        src: "{{ playbook_dir }}/files/rhel-9-1-0.json"
+        dest: /etc/osbuild-composer/repositories/rhel-91.json
+      become: yes
+      when: ansible_facts['distribution_version'] == "9.1"
 
     - name: copy rhel-92.json to /etc/osbuild-composer/repositories
       copy:
