@@ -2,13 +2,13 @@
 - hosts: ostree_guest
   become: no
   vars:
-    workspace: "{{ lookup('env', 'WORKSPACE') }}"
     fdo_credential: "false"
     embedded_container: "false"
     sysroot_ro: "false"
     total_counter: "0"
     failed_counter: "0"
     firewall_feature: "false"
+    ignition: "false"
 
   tasks:
     # current target host's IP address
@@ -376,6 +376,56 @@
       set_fact:
         commit_log: "{{ deploy_commit[:11] }}"
 
+    # Ignition test only
+    # Ignition test running by user core, otherwise by user admin
+    - name: check hello.service added by ignition
+      command: systemctl list-unit-files hello.service
+      register: result_hello_service
+      changed_when: no
+      ignore_errors: yes
+      when: ignition == "true"
+
+    - name: hello.service should be added by ignition
+      block:
+        - assert:
+            that:
+              - result_hello_service.rc == 0
+            fail_msg: "hello.service does not exist"
+            success_msg: "hello.service has been added by ignition"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: ignition == "true"
+
+    # Ignition test only
+    # Ignition test running by user core, otherwise by user admin
+    - name: check log_trace.conf for fdo-client-linuxapp.service updated by ignition
+      command: grep -Fxq "Environment=LOG_LEVEL=trace" /etc/systemd/system/fdo-client-linuxapp.service.d/log_trace.conf
+      register: result_log_trace
+      changed_when: no
+      ignore_errors: yes
+      when: ignition == "true"
+
+    - name: Environment=LOG_LEVEL=trace should be added by ignition
+      block:
+        - assert:
+            that:
+              - result_log_trace.rc == 0
+            fail_msg: "Config Environment=LOG_LEVEL=trace does not exist"
+            success_msg: "Environment=LOG_LEVEL=trace has been added by ignition"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: ignition == "true"
+
     # case: check wget installed after upgrade
     - name: check installed package
       shell: rpm -qa | sort
@@ -400,7 +450,7 @@
     - name: save installed package to log file
       copy:
         content: "{{ result_packages.stdout }}"
-        dest: "{{ workspace }}/{{ commit_log }}.installed.ostree.log"
+        dest: "/tmp/{{ commit_log }}.installed.ostree.log"
       delegate_to: localhost
 
     # case: check ostree-remount mount log
@@ -435,11 +485,13 @@
     - name: save dmesg output to log file
       copy:
         content: "{{ result_dmesg.stdout }}"
-        dest: "{{ workspace }}/{{ commit_log }}.dmesg.ostree.log"
+        dest: "/tmp/{{ commit_log }}.dmesg.ostree.log"
       delegate_to: localhost
 
+    # Ignore ignition first attempt error log, it'll be successful at the second attempt
+    # e.g. ignition[630]: GET error: Get "http://192.168.100.1/ignition/config.ign": dial tcp 192.168.100.1:80: connect: network is unreachable
     - name: check dmesg error and fail log
-      shell: dmesg --notime | grep -i "error\|fail" | grep -v "skipped" | grep -v "failover" || true
+      shell: dmesg --notime | grep -i "error\|fail" | grep -v "skipped" | grep -v "failover" | grep -v "ignition" || true
       register: result_dmesg_error
 
     - name: no more error or failed log
