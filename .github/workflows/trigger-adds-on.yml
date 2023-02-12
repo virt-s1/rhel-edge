@@ -13,7 +13,7 @@ jobs:
   check-compose:
     # Do not run this job on any fork repos
     if: github.repository == 'virt-s1/rhel-edge'
-    runs-on: [kite, x86_64, rhos-01, fedora-36, small]
+    runs-on: [kite, x86_64, rhos-01, fedora-37, small]
     steps:
       - uses: actions/checkout@v3
 

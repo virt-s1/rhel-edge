@@ -115,6 +115,16 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_RAW="true"
         REF_PREFIX="fedora-iot"
         ;;
+    "fedora-39")
+        CONTAINER_TYPE=fedora-iot-container
+        RAW_TYPE=iot-raw-image
+        OSTREE_REF="fedora/39/${ARCH}/iot"
+        OS_VARIANT="fedora-unknown"
+        ADD_SSSD="false"
+        ANSIBLE_OS_NAME="fedora-iot"
+        USER_IN_RAW="true"
+        REF_PREFIX="fedora-iot"
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;

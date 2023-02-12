@@ -135,6 +135,15 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="fedora-unknown"
         ANSIBLE_OS_NAME="fedora"
         ;;
+    "fedora-39")
+        CONTAINER_IMAGE_TYPE=fedora-iot-container
+        INSTALLER_IMAGE_TYPE=fedora-iot-installer
+        sudo dnf install -y dmidecode
+        sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
+        OSTREE_REF="fedora/39/${ARCH}/iot"
+        OS_VARIANT="fedora-unknown"
+        ANSIBLE_OS_NAME="fedora"
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
