@@ -26,6 +26,7 @@
       fedora-rawhide: kite-image-fedora-rawhide
       fedora-36: kite-image-fedora-36
       fedora-37: kite-image-fedora-37
+      fedora-38: kite-image-fedora-38
 
   tasks:
     - set_fact:

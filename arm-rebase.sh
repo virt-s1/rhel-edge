@@ -136,6 +136,16 @@ case "$TEST_OS" in
         OS_VARIANT="fedora-unknown"
         OSTREE_REF="fedora/38/${ARCH}/iot"
         OSTREE_REBASE_REF="fedora/xx/${ARCH}/iot"
+        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/38/Cloud/aarch64/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-38-.*.qcow2<" | tr -d '><')
+        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/38/Everything/aarch64/os/"
+        ;;
+    "fedora-39")
+        IMAGE_TYPE="iot-commit"
+        cp tools/user-data "$CLOUD_INIT_DIR"
+        OS_VARIANT="fedora-unknown"
+        OSTREE_REF="fedora/39/${ARCH}/iot"
+        OSTREE_REBASE_REF="fedora/xx/${ARCH}/iot"
         GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/aarch64/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Rawhide-.*.qcow2<" | tr -d '><')
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/aarch64/os/"

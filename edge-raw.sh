@@ -196,6 +196,19 @@ case "$TEST_OS" in
         OSTREE_REF="fedora/38/${ARCH}/iot"
         CONTAINER_IMAGE_TYPE=iot-container
         RAW_IMAGE_TYPE=iot-raw-image
+        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/38/Cloud/${ARCH}/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-38-.*.qcow2<" | tr -d '><')
+        ANSIBLE_OS_NAME="fedora-iot"
+        REF_PREFIX="fedora-iot"
+        USER_IN_RAW="true"
+        SYSROOT_RO="true"
+        ;;
+    "fedora-39")
+        OS_VARIANT="fedora-unknown"
+        cp tools/user-data "$CLOUD_INIT_DIR"
+        OSTREE_REF="fedora/39/${ARCH}/iot"
+        CONTAINER_IMAGE_TYPE=iot-container
+        RAW_IMAGE_TYPE=iot-raw-image
         GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/${ARCH}/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Rawhide-.*.qcow2<" | tr -d '><')
         ANSIBLE_OS_NAME="fedora-iot"
@@ -538,7 +551,7 @@ if [ $# -eq 2 ] && [ "$1" != "$2" ]; then
             UPGRADE_OSTREE_REF="fedora/38/${ARCH}/iot"
             CONTAINER_IMAGE_TYPE=iot-container
             RAW_IMAGE_TYPE=iot-raw-image
-            GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/${ARCH}/images"
+            GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/38/Cloud/${ARCH}/images"
             GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Rawhide-.*.qcow2<" | tr -d '><')
             SYSROOT_RO="true"
             ;;

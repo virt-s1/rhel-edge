@@ -139,11 +139,11 @@ case "$TEST_OS" in
         cp tools/user-data "$CLOUD_INIT_DIR"
         OS_VARIANT="fedora-unknown"
         OSTREE_REF="fedora/38/${ARCH}/iot"
-        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/aarch64/images"
+        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/38/Cloud/aarch64/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Rawhide-.*.qcow2<" | tr -d '><')
         USER_IN_COMMIT="false"
         EMBEDDED_CONTAINER="false"
-        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/aarch64/os/"
+        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/38/Everything/aarch64/os/"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
