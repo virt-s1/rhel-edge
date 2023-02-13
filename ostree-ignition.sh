@@ -12,7 +12,7 @@ ARCH=$(uname -m)
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="ostree-installer-${TEST_UUID}"
 SIMPLIFIED_GUEST_ADDRESS=192.168.100.50
-RAW_GUEST_ADDRESS=192.168.100.51
+# RAW_GUEST_ADDRESS=192.168.100.51
 PROD_REPO_URL=http://192.168.100.1/repo
 PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
@@ -23,8 +23,8 @@ CONTAINER_TYPE=edge-container
 CONTAINER_FILENAME=container.tar
 INSTALLER_TYPE=edge-simplified-installer
 INSTALLER_FILENAME=simplified-installer.iso
-RAW_TYPE=edge-raw-image
-RAW_FILENAME=image.raw.xz
+# RAW_TYPE=edge-raw-image
+# RAW_FILENAME=image.raw.xz
 REF_PREFIX="rhel-edge"
 # Workaround BZ#2108646
 BOOT_ARGS="uefi"
@@ -328,7 +328,7 @@ passwd:
         - $SSH_KEY_PUB
 EOF
 butane --pretty --strict "${TEMPDIR}/config.bu" > "${TEMPDIR}/config.ign"
-IGNITION_B64=$(cat "${TEMPDIR}/config.ign" | base64)
+# IGNITION_B64=$(cat "${TEMPDIR}/config.ign" | base64)
 
 IGNITION_CONFIG_SAMPLE_PATH="${IGNITION_SERVER_FOLDER}/sample.ign"
 sudo tee "$IGNITION_CONFIG_SAMPLE_PATH" > /dev/null << EOF
