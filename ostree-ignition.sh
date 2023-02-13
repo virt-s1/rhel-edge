@@ -416,8 +416,15 @@ greenprint "🖥 Create simplified qcow2 file for virt install"
 SIMPLIFIED_LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-simplified.qcow2
 sudo qemu-img create -f qcow2 "${SIMPLIFIED_LIBVIRT_IMAGE_PATH}" 20G
 
+
+# Create a disk to simulate USB device to test USB installation
+# New growfs service dealing with LVM in simplified installer breaks USB installation
+LIBVIRT_FAKE_USB_PATH=/var/lib/libvirt/images/usb.qcow2
+sudo qemu-img create -f qcow2 "${LIBVIRT_FAKE_USB_PATH}" 16G
+
 greenprint "💿 Install ostree image via installer(ISO) on UEFI VM"
 sudo virt-install  --name="${IMAGE_KEY}-simplified"\
+                   --disk path="${LIBVIRT_FAKE_USB_PATH}",format=qcow2 \
                    --disk path="${SIMPLIFIED_LIBVIRT_IMAGE_PATH}",format=qcow2 \
                    --ram 2048 \
                    --vcpus 2 \
@@ -763,7 +770,7 @@ sudo virsh vol-delete --pool images "$IMAGE_KEY-simplified.qcow2"
 #sudo virsh undefine "${IMAGE_KEY}-raw" --nvram
 #sudo virsh vol-delete --pool images "$IMAGE_KEY-raw.qcow2"
 
-## Final success clean up
-#clean_up
+# Final success clean up
+clean_up
 
-#exit 0
+exit 0
