@@ -538,14 +538,14 @@ jobs:
             *.json
             *.log
 
-  pre-edge-ignition:
+  pre-edge-ignition-92:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
             (endsWith(github.event.comment.body, '/test-rhel-9-2') ||
             endsWith(github.event.comment.body, '/test-rhel-9-2-ignition')) }}
     runs-on: ubuntu-latest
     env:
-      STATUS_NAME: edge-ignition
+      STATUS_NAME: edge-ignition-9.2
 
     steps:
       - name: Create in-progress status
@@ -559,11 +559,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  edge-ignition:
-    needs: [pr-info, pre-edge-ignition]
+  edge-ignition-92:
+    needs: [pr-info, pre-edge-ignition-92]
     runs-on: [kite, x86_64, rhos-01, rhel-9-2, large]
     env:
-      STATUS_NAME: edge-ignition
+      STATUS_NAME: edge-ignition-9.2
 
     steps:
       - name: Create in-progress status
@@ -614,7 +614,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
-          name: edge-ignition
+          name: edge-ignition-9.2
           path: |
             *.json
             *.log
