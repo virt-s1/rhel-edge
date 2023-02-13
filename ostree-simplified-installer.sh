@@ -59,42 +59,50 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         IMAGE_NAME="disk.img.xz"
+        USB_INSTALLATION="true"
         ;;
     "rhel-8.7")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8.7"
         IMAGE_NAME="disk.img.xz"
+        USB_INSTALLATION="false"
         ;;
     "rhel-8.8")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         IMAGE_NAME="image.raw.xz"
+        USB_INSTALLATION="false"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
         IMAGE_NAME="disk.img.xz"
+        USB_INSTALLATION="true"
         ;;
     "rhel-9.1")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.1"
         IMAGE_NAME="disk.img.xz"
+        USB_INSTALLATION="false"
         ;;
     "rhel-9.2")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
         IMAGE_NAME="image.raw.xz"
+        USB_INSTALLATION="true"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos-stream8"
         IMAGE_NAME="image.raw.xz"
+        USB_INSTALLATION="false"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         IMAGE_NAME="image.raw.xz"
+        USB_INSTALLATION="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -520,10 +528,20 @@ sudo composer-cli blueprints delete fdosshkey > /dev/null
 greenprint "🖥 Create qcow2 file for virt install"
 LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-keyhash.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
+USB_DISK_ARG=""
+
+# Create a disk to simulate USB device to test USB installation
+# New growfs service dealing with LVM in simplified installer breaks USB installation
+if [ "$USB_INSTALLATION" == "true" ]; then
+    LIBVIRT_FAKE_USB_PATH=/var/lib/libvirt/images/usb.qcow2
+    sudo qemu-img create -f qcow2 "${LIBVIRT_FAKE_USB_PATH}" 16G
+    USB_DISK_ARG="--disk path=${LIBVIRT_FAKE_USB_PATH},format=qcow2"
+fi
 
 greenprint "💿 Install ostree image via installer(ISO) on UEFI VM"
 sudo virt-install  --name="${IMAGE_KEY}-fdosshkey"\
                    --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
+                   "$USB_DISK_ARG" \
                    --ram 3072 \
                    --vcpus 2 \
                    --network network=integration,mac=34:49:22:B0:83:31 \
