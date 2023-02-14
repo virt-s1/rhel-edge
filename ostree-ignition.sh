@@ -383,7 +383,7 @@ modules = []
 groups = []
 
 [customizations]
-installation_device = "/dev/vda"
+installation_device = "/dev/vdb"
 
 [customizations.ignition.firstboot]
 url = "${IGNITION_SERVER_URL}/config.ign"
@@ -438,6 +438,11 @@ sudo virt-install  --name="${IMAGE_KEY}-simplified"\
                    --noautoconsole \
                    --wait=-1 \
                    --noreboot
+
+# Let's detach USB disk before start VM
+greenprint "💻 Detach USB disk before start VM"
+sudo virsh detach-disk --domain "${IMAGE_KEY}-simplified" --target "$LIBVIRT_FAKE_USB_PATH" --persistent --config
+sudo virsh vol-delete --pool images usb.qcow2
 
 # Start VM.
 greenprint "💻 Start simplified installer VM"
