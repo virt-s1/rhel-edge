@@ -447,12 +447,6 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when: checking_stage == "2"
 
-    - name: save installed package to log file
-      copy:
-        content: "{{ result_packages.stdout }}"
-        dest: "/tmp/{{ commit_log }}.installed.ostree.log"
-      delegate_to: localhost
-
     # case: check ostree-remount mount log
     - name: check ostree-remount mount log
       command: journalctl -u ostree-remount
@@ -480,13 +474,6 @@
     # case: check dmesg error and failed log
     - name: check dmesg output
       command: dmesg
-      register: result_dmesg
-
-    - name: save dmesg output to log file
-      copy:
-        content: "{{ result_dmesg.stdout }}"
-        dest: "/tmp/{{ commit_log }}.dmesg.ostree.log"
-      delegate_to: localhost
 
     # Ignore ignition first attempt error log, it'll be successful at the second attempt
     # e.g. ignition[630]: GET error: Get "http://192.168.100.1/ignition/config.ign": dial tcp 192.168.100.1:80: connect: network is unreachable
