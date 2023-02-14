@@ -1,0 +1,9 @@
+FROM ubi8/ubi
+ARG repofile
+ADD $repofile /etc/yum.repos.d/
+RUN dnf -y install fdo-manufacturing-server
+ARG config
+ADD $config /etc/fdo/
+CMD ["/usr/libexec/fdo/fdo-manufacturing-server"]
+EXPOSE 8080
+

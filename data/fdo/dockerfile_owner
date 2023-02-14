@@ -1,0 +1,12 @@
+FROM ubi8/ubi
+ARG repofile
+ADD $repofile /etc/yum.repos.d/
+RUN dnf -y install fdo-owner-onboarding-server
+ARG config_owner
+ADD $config_owner /etc/fdo/
+ARG config_serviceinfo
+ADD $config_serviceinfo /etc/fdo/
+ARG start_service
+ADD $start_service /etc/fdo/
+CMD ["/etc/fdo/start_owner_service.sh"]
+EXPOSE 8081

@@ -1,0 +1,8 @@
+FROM ubi8/ubi
+ARG repofile
+ADD $repofile /etc/yum.repos.d/
+RUN dnf -y install fdo-rendezvous-server
+ARG config
+ADD $config /etc/fdo/
+CMD ["/usr/libexec/fdo/fdo-rendezvous-server"]
+EXPOSE 8082
