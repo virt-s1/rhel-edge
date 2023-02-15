@@ -77,6 +77,8 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "fedora-38")
         ;;
+    "fedora-39")
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
