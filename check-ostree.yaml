@@ -17,6 +17,11 @@
     - debug: var=ansible_facts['distribution']
     - debug: var=ansible_facts['architecture']
 
+    - name: Check status of 'custom.service'
+      systemd:
+        name: custom.service
+      register: result_custom_service
+        
     # check BIOS or UEFI
     - name: check bios or uefi
       stat:
@@ -80,6 +85,39 @@
         - name: wait until the file /etc/device-credentials is present before continuing
           wait_for:
             path: /etc/device-credentials
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: fdo_credential == "true"
+
+    - name: Check that the testuser FDO user is present
+      block:
+        - getent:
+            database: passwd
+            key: testuser
+            fail_key: true
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: fdo_credential == "true"
+
+    - name: Check that testuser's ssh keys are present
+      block:
+        - lineinfile:
+            path: /home/testuser/.ssh/authorized_keys
+            line: "testkey1"
+            state: present
+          check_mode: yes
+          register: presence
+          failed_when: (presence is changed) or (presence is failed)
       always:
         - set_fact:
             total_counter: "{{ total_counter | int + 1 }}"

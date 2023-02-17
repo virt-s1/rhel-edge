@@ -8,16 +8,6 @@ set -euox pipefail
 source /etc/os-release
 ARCH=$(uname -m)
 
-# Install fdo packages (This cannot be done in the setup.sh because fdo-admin-cli is not available on fedora)
-sudo dnf install -y fdo-admin-cli python3-pip
-# Install yq to modify service api server config yaml file
-sudo pip3 install yq
-# Start fdo-aio to have /etc/fdo/aio folder
-sudo systemctl enable --now fdo-aio
-# Prepare service api server config file
-sudo /usr/local/bin/yq -iy '.service_info.diskencryption_clevis |= [{disk_label: "/dev/vda4", reencrypt: true, binding: {pin: "tpm2", config: "{}"}}]' /etc/fdo/aio/configs/serviceinfo_api_server.yml
-sudo systemctl restart fdo-aio
-
 # Set up variables.
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="ostree-installer-${TEST_UUID}"
@@ -29,8 +19,6 @@ PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
 FDO_SERVER_ADDRESS=192.168.100.1
-DIUN_PUB_KEY_HASH=sha256:$(openssl x509 -fingerprint -sha256 -noout -in /etc/fdo/aio/keys/diun_cert.pem | cut -d"=" -f2 | sed 's/://g')
-DIUN_PUB_KEY_ROOT_CERTS=$(cat /etc/fdo/aio/keys/diun_cert.pem)
 CONTAINER_TYPE=edge-container
 CONTAINER_FILENAME=container.tar
 INSTALLER_TYPE=edge-simplified-installer
@@ -225,10 +213,51 @@ check_result () {
         greenprint "💚 Success"
     else
         greenprint "❌ Failed"
-        clean_up
+        #clean_up
         exit 1
     fi
 }
+######################################################################
+##
+## Configure FDO Servers
+##
+######################################################################
+# Generate keys
+greenprint "🔧 Generate FDO key and cert"
+CONTAINER_IMAGE="${CONTAINER_IMAGE:-quay.io/fido-fdo/admin-cli}"
+mkdir -p keys
+for i in "diun" "manufacturer" "device-ca" "owner"; do podman run -v "$PWD"/keys:/keys:z "$CONTAINER_IMAGE" generate-key-and-cert "$i"; done
+echo "sha256:$(openssl x509 -fingerprint -sha256 -noout -in keys/diun_cert.pem | cut -d"=" -f2 | sed 's/://g')" > keys/diun_pub_key_hash
+DIUN_PUB_KEY_HASH=sha256:$(openssl x509 -fingerprint -sha256 -noout -in ./keys/diun_cert.pem | cut -d"=" -f2 | sed 's/://g')
+DIUN_PUB_KEY_ROOT_CERTS=$(cat ./keys/diun_cert.pem)
+
+# Prepare FDO config files
+greenprint "🔧 Prepare FDO config files"
+sudo mkdir -p /etc/fdo/keys
+sudo cp keys/* /etc/fdo/keys/
+sudo cp data/fdo/manufacturing-server.yml /etc/fdo/
+sudo cp data/fdo/owner-onboarding-server.yml /etc/fdo/
+sudo cp data/fdo/rendezvous-server.yml /etc/fdo/
+sudo cp data/fdo/serviceinfo-api-server.yml /etc/fdo/
+
+# Install and start FDO servers
+greenprint "🔧 Install and start FDO servers"
+sudo dnf -y install fdo-manufacturing-server
+sudo dnf -y install fdo-owner-onboarding-server
+sudo dnf -y install fdo-rendezvous-server
+# Workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2168089
+# Workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2170903
+# sudo systemctl start fdo-owner-onboarding-server
+# sudo systemctl start fdo-serviceinfo-api-server
+sudo systemctl start fdo-manufacturing-server
+sudo systemctl start fdo-rendezvous-server
+sudo /usr/libexec/fdo/fdo-owner-onboarding-server &
+sudo /usr/libexec/fdo/fdo-serviceinfo-api-server
+
+# Wait for fdo server to be running
+until [ "$(curl -X POST http://${FDO_SERVER_ADDRESS}:8080/ping)" == "pong" ]; do
+    sleep 1;
+done;
 
 ###########################################################
 ##
@@ -252,11 +281,6 @@ greenprint "🧹 Clearing container running env"
 sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f
 # Remove all images
 sudo podman rmi -f -a
-
-# Wait for fdo server to be running
-until [ "$(curl -X POST http://${FDO_SERVER_ADDRESS}:8080/ping)" == "pong" ]; do
-    sleep 1;
-done;
 
 ##########################################################
 ##
@@ -398,7 +422,6 @@ sudo umount --detach-loop --lazy /mnt/installer
 sudo rm -rf "$ISO_FILENAME"
 # Remove mount dir
 sudo rm -rf /mnt/installer
-
 
 greenprint "📋 Update grub.cfg file for http boot"
 sudo sed -i 's/timeout=60/timeout=10/' "${GRUB_CFG}"
