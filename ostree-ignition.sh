@@ -12,9 +12,13 @@ ARCH=$(uname -m)
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="ostree-installer-${TEST_UUID}"
 SIMPLIFIED_GUEST_ADDRESS=192.168.100.50
-# RAW_GUEST_ADDRESS=192.168.100.51
-PROD_REPO_URL=http://192.168.100.1/repo
-PROD_REPO=/var/www/html/repo
+RAW_GUEST_ADDRESS=192.168.100.51
+# PROD_REPO_1 is for simplified installer test
+# PROD_REPO_2 is for raw image test
+PROD_REPO_1_URL=http://192.168.100.1/repo1
+PROD_REPO_1=/var/www/html/repo1
+PROD_REPO_2_URL=http://192.168.100.1/repo2
+PROD_REPO_2=/var/www/html/repo2
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
 IGNITION_SERVER_FOLDER=/var/www/html/ignition
@@ -23,8 +27,8 @@ CONTAINER_TYPE=edge-container
 CONTAINER_FILENAME=container.tar
 INSTALLER_TYPE=edge-simplified-installer
 INSTALLER_FILENAME=simplified-installer.iso
-# RAW_TYPE=edge-raw-image
-# RAW_FILENAME=image.raw.xz
+RAW_TYPE=edge-raw-image
+RAW_FILENAME=image.raw.xz
 REF_PREFIX="rhel-edge"
 # Workaround BZ#2108646
 BOOT_ARGS="uefi"
@@ -162,7 +166,8 @@ clean_up () {
     sudo podman rmi -f -a
 
     # Remove prod repo
-    sudo rm -rf "$PROD_REPO"
+    sudo rm -rf "$PROD_REPO_1"
+    sudo rm -rf "$PROD_REPO_2"
     sudo rm -rf "$IGNITION_SERVER_FOLDER"
 
     # Remomve tmp dir.
@@ -189,12 +194,18 @@ check_result () {
 ## Prepare edge prod and stage repo
 ##
 ###########################################################
-# Have a clean prod repo
-greenprint "🔧 Prepare edge prod repo"
-sudo rm -rf "$PROD_REPO"
-sudo mkdir -p "$PROD_REPO"
-sudo ostree --repo="$PROD_REPO" init --mode=archive
-sudo ostree --repo="$PROD_REPO" remote add --no-gpg-verify edge-stage "$STAGE_REPO_URL"
+# Have a clean prod repo for raw image test and simplified installer test
+greenprint "🔧 Prepare edge prod repo for simplified installer test"
+sudo rm -rf "$PROD_REPO_1"
+sudo mkdir -p "$PROD_REPO_1"
+sudo ostree --repo="$PROD_REPO_1" init --mode=archive
+sudo ostree --repo="$PROD_REPO_1" remote add --no-gpg-verify edge-stage "$STAGE_REPO_URL"
+
+greenprint "🔧 Prepare edge prod repo for raw image test"
+sudo rm -rf "$PROD_REPO_2"
+sudo mkdir -p "$PROD_REPO_2"
+sudo ostree --repo="$PROD_REPO_2" init --mode=archive
+sudo ostree --repo="$PROD_REPO_2" remote add --no-gpg-verify edge-stage "$STAGE_REPO_URL"
 
 # Prepare stage repo network
 greenprint "🔧 Prepare stage repo network"
@@ -261,7 +272,8 @@ done;
 
 # Sync installer edge content
 greenprint "📡 Sync installer content from stage repo"
-sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage "$OSTREE_REF"
+sudo ostree --repo="$PROD_REPO_1" pull --mirror edge-stage "$OSTREE_REF"
+sudo ostree --repo="$PROD_REPO_2" pull --mirror edge-stage "$OSTREE_REF"
 
 # Clean rhel-edge container
 sudo podman rm -f rhel-edge
@@ -328,7 +340,8 @@ passwd:
         - $SSH_KEY_PUB
 EOF
 butane --pretty --strict "${TEMPDIR}/config.bu" > "${TEMPDIR}/config.ign"
-# IGNITION_B64=$(cat "${TEMPDIR}/config.ign" | base64)
+# key "customizations.ignition.embedded.config": strings cannot contain newlines
+IGNITION_B64=$(base64 -w 0 < "${TEMPDIR}/config.ign")
 
 IGNITION_CONFIG_SAMPLE_PATH="${IGNITION_SERVER_FOLDER}/sample.ign"
 sudo tee "$IGNITION_CONFIG_SAMPLE_PATH" > /dev/null << EOF
@@ -385,8 +398,8 @@ groups = []
 [customizations]
 installation_device = "/dev/vdb"
 
-[customizations.ignition.firstboot]
-url = "${IGNITION_SERVER_URL}/config.ign"
+[customizations.ignition.embedded]
+config = "$IGNITION_B64"
 EOF
 
 greenprint "📄 installer blueprint"
@@ -398,7 +411,7 @@ sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve installer
 
 # Build installer image.
-build_image installer "${INSTALLER_TYPE}" "${PROD_REPO_URL}"
+build_image installer "${INSTALLER_TYPE}" "${PROD_REPO_1_URL}"
 
 # Download the image
 greenprint "📥 Downloading the installer image"
@@ -411,11 +424,15 @@ greenprint "🧹 Clean up installer blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete installer > /dev/null
 
+##################################################################
+##
+## Install with simplified installer ISO
+##
+##################################################################
 # Create qcow2 file for virt install.
 greenprint "🖥 Create simplified qcow2 file for virt install"
 SIMPLIFIED_LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-simplified.qcow2
 sudo qemu-img create -f qcow2 "${SIMPLIFIED_LIBVIRT_IMAGE_PATH}" 20G
-
 
 # Create a disk to simulate USB device to test USB installation
 # New growfs service dealing with LVM in simplified installer breaks USB installation
@@ -463,7 +480,7 @@ done
 check_result
 
 greenprint "🕹 Get ostree install commit value"
-INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
+INSTALL_HASH=$(curl "${PROD_REPO_1_URL}/refs/heads/${OSTREE_REF}")
 
 # Add instance IP address into /etc/ansible/hosts
 tee "${TEMPDIR}"/inventory > /dev/null << EOF
@@ -489,114 +506,9 @@ sudo rm -rf "/var/lib/libvirt/images/${ISO_FILENAME}"
 
 ##################################################################
 ##
-## Build edge-raw-image with ignition enabled
+## Build upgrade image
 ##
 ##################################################################
-
-#tee "$BLUEPRINT_FILE" > /dev/null << EOF
-#name = "raw"
-#description = "A rhel-edge raw image"
-#version = "0.0.1"
-#modules = []
-#groups = []
-
-#[customizations.ignition.embedded]
-#config = "$IGNITION_B64"
-#EOF
-
-#greenprint "📄 raw-image blueprint"
-#cat "$BLUEPRINT_FILE"
-
-## Prepare the blueprint for the compose.
-#greenprint "📋 Preparing raw-image blueprint"
-#sudo composer-cli blueprints push "$BLUEPRINT_FILE"
-#sudo composer-cli blueprints depsolve raw
-
-## Build raw image.
-#build_image raw "$RAW_TYPE" "${PROD_REPO_URL}"
-
-## Download raw image
-#greenprint "📥 Downloading the raw image"
-#sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
-#RAW_FILENAME="${COMPOSE_ID}-${RAW_FILENAME}"
-
-#greenprint "Extracting and converting the raw image to a qcow2 file"
-#sudo xz -d "${RAW_FILENAME}"
-#sudo qemu-img convert -f raw "${COMPOSE_ID}-image.raw" -O qcow2 "${IMAGE_KEY}-raw.qcow2"
-## Remove raw file
-#sudo rm -f "${COMPOSE_ID}-image.raw"
-
-## Clean compose and blueprints.
-#greenprint "🧹 Clean up raw blueprint and compose"
-#sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
-#sudo composer-cli blueprints delete raw > /dev/null
-
-## Create qcow2 file for virt install.
-#greenprint "🖥 Create raw qcow2 file for virt install"
-#RAW_LIBVIRT_IMAGE_PATH="/var/lib/libvirt/images/${IMAGE_KEY}-raw.qcow2"
-#sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
-
-#greenprint "💿 Install ostree image via raw image on UEFI VM"
-#sudo virt-install  --name="${IMAGE_KEY}-raw"\
-#                   --disk path="${RAW_LIBVIRT_IMAGE_PATH}",format=qcow2 \
-#                   --ram 2048 \
-#                   --vcpus 2 \
-#                   --network network=integration,mac=34:49:22:B0:83:31 \
-#                   --os-type linux \
-#                   --os-variant ${OS_VARIANT} \
-#                   --boot "${BOOT_ARGS}" \
-#                   --tpm backend.type=emulator,backend.version=2.0,model=tpm-crb \
-#                   --nographics \
-#                   --noautoconsole \
-#                   --wait=-1 \
-#                   --import \
-#                   --noreboot
-
-## Start VM.
-#greenprint "💻 Start UEFI VM"
-#sudo virsh start "${IMAGE_KEY}-raw"
-
-## Check for ssh ready to go.
-#greenprint "🛃 Checking for SSH is ready to go"
-#for _ in $(seq 0 30); do
-#    RESULTS="$(wait_for_ssh_up $RAW_GUEST_ADDRESS)"
-#    if [[ $RESULTS == 1 ]]; then
-#        echo "SSH is ready now! 🥳"
-#        break
-#    fi
-#    sleep 10
-#done
-
-## Check image installation result
-#check_result
-
-#greenprint "🕹 Get ostree install commit value"
-#INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
-
-## Add instance IP address into /etc/ansible/hosts
-#tee "${TEMPDIR}"/inventory > /dev/null << EOF
-#[ostree_guest]
-#${RAW_GUEST_ADDRESS}
-#[ostree_guest:vars]
-#ansible_python_interpreter=/usr/bin/python3
-#ansible_user=${IGNITION_USER}
-#ansible_private_key_file=${SSH_KEY}
-#ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-#ansible_become=yes
-#ansible_become_method=sudo
-#ansible_become_pass=${IGNITION_USER_PASSWORD}
-#EOF
-
-## Test IoT/Edge OS
-#podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="true" -e ignition="true" check-ostree.yaml || RESULTS=0
-#check_result
-
-##################################################################
-##
-## Upgrade and test edge vm with edge-simplified-installer (UEFI)
-##
-##################################################################
-
 # Write a blueprint for ostree image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "upgrade"
@@ -626,7 +538,7 @@ sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve upgrade
 
 # Build upgrade image.
-build_image upgrade "${CONTAINER_TYPE}" "$PROD_REPO_URL"
+build_image upgrade "${CONTAINER_TYPE}" "$PROD_REPO_1_URL"
 
 # Download the image
 greenprint "📥 Downloading the upgrade image"
@@ -659,23 +571,24 @@ done;
 
 # Pull upgrade to prod mirror
 greenprint "⛓ Pull upgrade to prod mirror"
-sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage "$OSTREE_REF"
-sudo ostree --repo="$PROD_REPO" static-delta generate "$OSTREE_REF"
-sudo ostree --repo="$PROD_REPO" summary -u
-
-# Clean upgrade container
-sudo podman rm -f rhel-edge
-sudo podman rmi -f "$EDGE_IMAGE_ID"
+sudo ostree --repo="$PROD_REPO_1" pull --mirror edge-stage "$OSTREE_REF"
+sudo ostree --repo="$PROD_REPO_1" static-delta generate "$OSTREE_REF"
+sudo ostree --repo="$PROD_REPO_1" summary -u
 
 # Get ostree commit value.
 greenprint "🕹 Get ostree upgrade commit value"
-UPGRADE_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
+UPGRADE_HASH=$(curl "${PROD_REPO_1_URL}/refs/heads/${OSTREE_REF}")
 
 # Clean compose and blueprints.
 greenprint "🧽 Clean up upgrade blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete upgrade > /dev/null
 
+##################################################################
+##
+## Upgrade simplified installer VM
+##
+##################################################################
 greenprint "🗳 Upgrade ostree image/commit on simplified VM"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${SIMPLIFIED_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${SIMPLIFIED_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
@@ -725,55 +638,179 @@ fi
 sudo virsh undefine "${IMAGE_KEY}-simplified" --nvram
 sudo virsh vol-delete --pool images "$IMAGE_KEY-simplified.qcow2"
 
+##################################################################
+##
+## Build edge-raw-image with ignition enabled
+##
+##################################################################
+
+tee "$BLUEPRINT_FILE" > /dev/null << EOF
+name = "raw"
+description = "A rhel-edge raw image"
+version = "0.0.1"
+modules = []
+groups = []
+
+[customizations.ignition.firstboot]
+url = "${IGNITION_SERVER_URL}/config.ign"
+EOF
+
+greenprint "📄 raw-image blueprint"
+cat "$BLUEPRINT_FILE"
+
+# Prepare the blueprint for the compose.
+greenprint "📋 Preparing raw-image blueprint"
+sudo composer-cli blueprints push "$BLUEPRINT_FILE"
+sudo composer-cli blueprints depsolve raw
+
+# Build raw image.
+build_image raw "$RAW_TYPE" "${PROD_REPO_2_URL}"
+
+# Download raw image
+greenprint "📥 Downloading the raw image"
+sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
+
+greenprint "Extracting and converting the raw image to a qcow2 file"
+RAW_FILENAME="${COMPOSE_ID}-${RAW_FILENAME}"
+sudo xz -d "${RAW_FILENAME}"
+RAW_LIBVIRT_IMAGE_PATH="/var/lib/libvirt/images/${IMAGE_KEY}-raw.qcow2"
+sudo qemu-img convert -f raw "${COMPOSE_ID}-image.raw" -O qcow2 "$RAW_LIBVIRT_IMAGE_PATH"
+# Remove raw file
+sudo rm -f "${COMPOSE_ID}-image.raw"
+
+# Clean compose and blueprints.
+greenprint "🧹 Clean up raw blueprint and compose"
+sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
+sudo composer-cli blueprints delete raw > /dev/null
+
+##################################################################
+##
+## Install with raw image
+##
+##################################################################
+
+greenprint "💿 Install ostree image via raw image on UEFI VM"
+sudo virt-install  --name="${IMAGE_KEY}-raw"\
+                   --disk path="${RAW_LIBVIRT_IMAGE_PATH}",format=qcow2 \
+                   --ram 2048 \
+                   --vcpus 2 \
+                   --network network=integration,mac=34:49:22:B0:83:31 \
+                   --os-type linux \
+                   --os-variant ${OS_VARIANT} \
+                   --boot "${BOOT_ARGS}" \
+                   --tpm backend.type=emulator,backend.version=2.0,model=tpm-crb \
+                   --nographics \
+                   --noautoconsole \
+                   --wait=-1 \
+                   --import \
+                   --noreboot
+
+# Start VM.
+greenprint "💻 Start UEFI VM"
+sudo virsh start "${IMAGE_KEY}-raw"
+
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for _ in $(seq 0 30); do
+    RESULTS="$(wait_for_ssh_up $RAW_GUEST_ADDRESS)"
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+# Check image installation result
+check_result
+
+greenprint "🕹 Get ostree install commit value"
+INSTALL_HASH=$(curl "${PROD_REPO_2_URL}/refs/heads/${OSTREE_REF}")
+
+# Add instance IP address into /etc/ansible/hosts
+tee "${TEMPDIR}"/inventory > /dev/null << EOF
+[ostree_guest]
+${RAW_GUEST_ADDRESS}
+[ostree_guest:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_user=${IGNITION_USER}
+ansible_private_key_file=${SSH_KEY}
+ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+ansible_become=yes
+ansible_become_method=sudo
+ansible_become_pass=${IGNITION_USER_PASSWORD}
+EOF
+
+# Test IoT/Edge OS
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="true" -e ignition="true" check-ostree.yaml || RESULTS=0
+check_result
+
+# Pull upgrade to prod mirror
+greenprint "⛓ Pull upgrade to prod mirror"
+sudo ostree --repo="$PROD_REPO_2" pull --mirror edge-stage "$OSTREE_REF"
+sudo ostree --repo="$PROD_REPO_2" static-delta generate "$OSTREE_REF"
+sudo ostree --repo="$PROD_REPO_2" summary -u
+
+# Clean upgrade container
+sudo podman rm -f rhel-edge
+sudo podman rmi -f "$EDGE_IMAGE_ID"
+
+# Get ostree commit value.
+greenprint "🕹 Get ostree upgrade commit value"
+UPGRADE_HASH=$(curl "${PROD_REPO_2_URL}/refs/heads/${OSTREE_REF}")
+
+##################################################################
+##
 ## Upgrade raw image VM
-#greenprint "🗳 Upgrade ostree image/commit on raw image VM"
-#sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${RAW_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
-#sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${RAW_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
+##
+##################################################################
+greenprint "🗳 Upgrade ostree image/commit on raw image VM"
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${RAW_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${RAW_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
 
-## Sleep 10 seconds here to make sure vm restarted already
-#sleep 10
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
 
-## Check for ssh ready to go.
-#greenprint "🛃 Checking for SSH is ready to go"
-## shellcheck disable=SC2034  # Unused variables left for readability
-#for _ in $(seq 0 30); do
-#    RESULTS="$(wait_for_ssh_up $RAW_GUEST_ADDRESS)"
-#    if [[ $RESULTS == 1 ]]; then
-#        echo "SSH is ready now! 🥳"
-#        break
-#    fi
-#    sleep 10
-#done
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+# shellcheck disable=SC2034  # Unused variables left for readability
+for _ in $(seq 0 30); do
+    RESULTS="$(wait_for_ssh_up $RAW_GUEST_ADDRESS)"
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
 
-## Check ostree upgrade result
-#check_result
+# Check ostree upgrade result
+check_result
 
-## Add instance IP address into /etc/ansible/hosts
-#tee "${TEMPDIR}"/inventory > /dev/null << EOF
-#[ostree_guest]
-#${RAW_GUEST_ADDRESS}
+# Add instance IP address into /etc/ansible/hosts
+tee "${TEMPDIR}"/inventory > /dev/null << EOF
+[ostree_guest]
+${RAW_GUEST_ADDRESS}
 
-#[ostree_guest:vars]
-#ansible_python_interpreter=/usr/bin/python3
-#ansible_user=${IGNITION_USER}
-#ansible_private_key_file=${SSH_KEY}
-#ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-#ansible_become=yes 
-#ansible_become_method=sudo
-#ansible_become_pass=${IGNITION_USER_PASSWORD}
-#EOF
+[ostree_guest:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_user=${IGNITION_USER}
+ansible_private_key_file=${SSH_KEY}
+ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+ansible_become=yes 
+ansible_become_method=sudo
+ansible_become_pass=${IGNITION_USER_PASSWORD}
+EOF
 
-## Test IoT/Edge OS
-#podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="true" -e ignition="true" check-ostree.yaml || RESULTS=0
-#check_result
+# Test IoT/Edge OS
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="true" -e ignition="true" check-ostree.yaml || RESULTS=0
+check_result
 
-## Clean up VM
-#greenprint "🧹 Clean up raw image VM"
-#if [[ $(sudo virsh domstate "${IMAGE_KEY}-raw") == "running" ]]; then
-#    sudo virsh destroy "${IMAGE_KEY}-raw"
-#fi
-#sudo virsh undefine "${IMAGE_KEY}-raw" --nvram
-#sudo virsh vol-delete --pool images "$IMAGE_KEY-raw.qcow2"
+# Clean up VM
+greenprint "🧹 Clean up raw image VM"
+if [[ $(sudo virsh domstate "${IMAGE_KEY}-raw") == "running" ]]; then
+    sudo virsh destroy "${IMAGE_KEY}-raw"
+fi
+sudo virsh undefine "${IMAGE_KEY}-raw" --nvram
+sudo virsh vol-delete --pool images "$IMAGE_KEY-raw.qcow2"
 
 # Final success clean up
 clean_up
