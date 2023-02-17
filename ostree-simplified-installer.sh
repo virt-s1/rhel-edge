@@ -50,6 +50,8 @@ SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o Conn
 SSH_KEY=key/ostree_key
 SSH_KEY_PUB=$(cat "${SSH_KEY}".pub)
 EDGE_USER_PASSWORD=foobar
+ANSIBLE_USER="admin"
+FDO_USER_ONBOARDING="false"
 
 # Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
 # It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
@@ -89,6 +91,8 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel9-unknown"
         IMAGE_NAME="image.raw.xz"
         SYSROOT_RO="true"
+        ANSIBLE_USER=fdouser
+        FDO_USER_ONBOARDING="true"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -101,11 +105,24 @@ case "${ID}-${VERSION_ID}" in
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         IMAGE_NAME="image.raw.xz"
         SYSROOT_RO="true"
+        ANSIBLE_USER=fdouser
+        FDO_USER_ONBOARDING="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
 esac
+
+if [[ "$FDO_USER_ONBOARDING" == "true" ]]; then
+    # FDO user does not have password, use ssh key and no sudo password instead
+    sudo /usr/local/bin/yq -iy '.service_info.initial_user |= {username: "fdouser", sshkeys: ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"]}' /etc/fdo/aio/configs/serviceinfo_api_server.yml
+    # No sudo password required by ansible
+    tee /tmp/fdouser > /dev/null << EOF
+fdouser ALL=(ALL) NOPASSWD: ALL
+EOF
+    sudo /usr/local/bin/yq -iy '.service_info.files |= [{path: "/etc/sudoers.d/fdouser", source_path: "/tmp/fdouser"}]' /etc/fdo/aio/configs/serviceinfo_api_server.yml
+    sudo systemctl restart fdo-aio
+fi
 
 # Colorful output.
 function greenprint {
@@ -246,9 +263,6 @@ clean_up () {
 
     # Remomve tmp dir.
     sudo rm -rf "$TEMPDIR"
-
-    # Remove fdo-container repo folder
-    sudo rm -rf fdo-containers
 
     # Stop prod repo http service
     sudo systemctl disable --now httpd
@@ -627,13 +641,18 @@ ${PUB_KEY_GUEST_ADDRESS}
 
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=admin
+ansible_user=${ANSIBLE_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 ansible_become=yes 
 ansible_become_method=sudo
 ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
+
+# FDO user does not have password, use ssh key and no sudo password instead
+if [[ "$ANSIBLE_USER" == "fdouser" ]]; then
+    sed -i '/^ansible_become_pass/d' "${TEMPDIR}"/inventory
+fi
 
 # Test IoT/Edge OS
 podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
