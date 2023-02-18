@@ -48,6 +48,9 @@ SYSROOT_RO="false"
 # Prepare osbuild-composer repository file
 sudo mkdir -p /etc/osbuild-composer/repositories
 
+# RHEL 8.8 and CS8 is still RO for /sysroot on raw image and simplified installer
+# The RO setting on RHEL 8.8 and CS8 is not configured by ostree, but osbuild-composer
+# by PR https://github.com/osbuild/osbuild-composer/pull/3178
 case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
@@ -66,6 +69,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel8-unknown"
         ADD_SSSD="true"
         USER_IN_RAW="true"
+        SYSROOT_RO="true"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -91,6 +95,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="centos-stream8"
         ADD_SSSD="true"
         USER_IN_RAW="true"
+        SYSROOT_RO="true"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
