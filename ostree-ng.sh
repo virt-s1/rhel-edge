@@ -58,6 +58,10 @@ SSH_KEY=key/ostree_key
 # New version mkksiso: Move kickstart to --ks KICKSTART
 NEW_MKKSISO="false"
 
+# Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+# It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
+SYSROOT_RO="false"
+
 case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
@@ -94,6 +98,7 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_PUSHING_FEAT="true"
         EMBEDDED_CONTAINER="true"
         HTTP_BOOT_FEAT="true"
+        SYSROOT_RO="true"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -116,6 +121,7 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_PUSHING_FEAT="true"
         EMBEDDED_CONTAINER="true"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
+        SYSROOT_RO="true"
         ;;
     "fedora-37")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
@@ -125,6 +131,7 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="fedora/37/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
         ANSIBLE_OS_NAME="fedora"
+        SYSROOT_RO="true"
         ;;
     "fedora-38")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
@@ -134,6 +141,7 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="fedora/38/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
         ANSIBLE_OS_NAME="fedora"
+        SYSROOT_RO="true"
         ;;
     "fedora-39")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
@@ -143,6 +151,7 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="fedora/39/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
         ANSIBLE_OS_NAME="fedora"
+        SYSROOT_RO="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -480,7 +489,21 @@ EOF
 
     # Check for ssh ready to go.
     greenprint "🛃 Checking for SSH is ready to go"
-    for LOOP_COUNTER in $(seq 0 30); do
+    for _ in $(seq 0 30); do
+        RESULTS="$(wait_for_ssh_up $HTTP_GUEST_ADDRESS)"
+        if [[ $RESULTS == 1 ]]; then
+            echo "SSH is ready now! 🥳"
+            break
+        fi
+        sleep 10
+    done
+
+    # Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${HTTP_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+    # Sleep 10 seconds here to make sure vm restarted already
+    sleep 10
+    greenprint "🛃 Checking for SSH is ready to go"
+    for _ in $(seq 0 30); do
         RESULTS="$(wait_for_ssh_up $HTTP_GUEST_ADDRESS)"
         if [[ $RESULTS == 1 ]]; then
             echo "SSH is ready now! 🥳"
@@ -509,7 +532,7 @@ EOF
 EOF
     # Test IoT/Edge OS
     greenprint "📼 Run Edge tests on HTTPBOOT VM"
-    podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" check-ostree.yaml || RESULTS=0
+    podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
     check_result
 
     greenprint "🧹 Clean up HTTPBOOT VM"
@@ -623,7 +646,7 @@ fi
 
 oc process -f tools/edge-stage-server-template.yaml -p EDGE_STAGE_REPO_TAG="${QUAY_REPO_TAG}" -p EDGE_STAGE_SERVER_NAME="${STAGE_OCP4_SERVER_NAME}" | oc apply -f -
 
-for LOOP_COUNTER in $(seq 0 60); do
+for _ in $(seq 0 60); do
     RETURN_CODE=$(curl -o /dev/null -s -w "%{http_code}" "${STAGE_OCP4_REPO_URL}refs/heads/${OSTREE_REF}")
     if [[ $RETURN_CODE == 200 ]]; then
         echo "Stage repo is ready"
@@ -745,7 +768,22 @@ sudo virsh start "${IMAGE_KEY}-bios"
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-for LOOP_COUNTER in $(seq 0 30); do
+for _ in $(seq 0 30); do
+    RESULTS="$(wait_for_ssh_up $BIOS_GUEST_ADDRESS)"
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${BIOS_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $BIOS_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
@@ -776,7 +814,7 @@ EOF
 
 # Test IoT/Edge OS
 greenprint "📼 Run Edge tests on BIOS VM"
-podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 check_result
 
 # Clean BIOS VM
@@ -808,7 +846,22 @@ sudo virsh start "${IMAGE_KEY}-uefi"
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-for LOOP_COUNTER in $(seq 0 30); do
+for _ in $(seq 0 30); do
+    RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${UEFI_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
@@ -920,8 +973,7 @@ sleep 10
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-# shellcheck disable=SC2034  # Unused variables left for readability
-for LOOP_COUNTER in $(seq 0 30); do
+for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
@@ -947,7 +999,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up

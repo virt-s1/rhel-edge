@@ -28,6 +28,9 @@ EMBEDDED_CONTAINER="false"
 # Workaround BZ#2108646
 BOOT_ARGS="uefi"
 FIREWALL_FEATURE="false"
+# Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+# It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
+SYSROOT_RO="false"
 
 # Set os-variant and boot location used by virt-install.
 case "${ID}-${VERSION_ID}" in
@@ -84,6 +87,7 @@ case "${ID}-${VERSION_ID}" in
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
         FIREWALL_FEATURE="true"
+        SYSROOT_RO="true"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -103,6 +107,7 @@ case "${ID}-${VERSION_ID}" in
         EMBEDDED_CONTAINER="true"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         FIREWALL_FEATURE="true"
+        SYSROOT_RO="true"
         ;;
     "fedora-37")
         IMAGE_TYPE=fedora-iot-commit
@@ -112,6 +117,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
+        SYSROOT_RO="true"
         ;;
     "fedora-38")
         IMAGE_TYPE=fedora-iot-commit
@@ -121,6 +127,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/38/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
+        SYSROOT_RO="true"
         ;;
     "fedora-39")
         IMAGE_TYPE=fedora-iot-commit
@@ -130,6 +137,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
+        SYSROOT_RO="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -472,7 +480,23 @@ sudo virsh start "${IMAGE_KEY}"
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-for LOOP_COUNTER in $(seq 0 30); do
+for _ in $(seq 0 30); do
+    RESULTS="$(wait_for_ssh_up $GUEST_ADDRESS)"
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
+
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
@@ -584,8 +608,7 @@ sleep 10
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-# shellcheck disable=SC2034  # Unused variables left for readability
-for LOOP_COUNTER in $(seq 0 30); do
+for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
@@ -609,7 +632,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e firewall_feature="${FIREWALL_FEATURE}" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e firewall_feature="${FIREWALL_FEATURE}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up

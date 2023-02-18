@@ -33,6 +33,10 @@ SSH_KEY=key/ostree_key
 CONTAINER_IMAGE_TYPE=edge-container
 CONTAINER_FILENAME=container.tar
 
+# Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+# It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
+SYSROOT_RO="false"
+
 case "${ID}-${VERSION_ID}" in
     "rhel-9.1")
         OS_VARIANT="rhel9.1"
@@ -49,6 +53,7 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REBASE_REF="rhel/92/${ARCH}/edge"
         DISTRO="rhel-91"
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/rel-eng/updates/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/x86_64/os/"
+        SYSROOT_RO="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -366,7 +371,7 @@ sudo virsh start "${IMAGE_KEY}-bios"
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-for LOOP_COUNTER in $(seq 0 30); do
+for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $BIOS_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
@@ -407,7 +412,7 @@ sudo virsh start "${IMAGE_KEY}-uefi"
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-for LOOP_COUNTER in $(seq 0 30); do
+for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
@@ -516,8 +521,20 @@ sleep 10
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-# shellcheck disable=SC2034  # Unused variables left for readability
-for LOOP_COUNTER in $(seq 0 30); do
+for _ in $(seq 0 30); do
+    RESULTS="$(wait_for_ssh_up $BIOS_GUEST_ADDRESS)"
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${BIOS_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
+for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $BIOS_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
@@ -541,7 +558,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=rhel-edge -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel-edge:${OSTREE_REBASE_REF}" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=rhel-edge -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel-edge:${OSTREE_REBASE_REF}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 check_result
 
 ########################################
@@ -604,8 +621,20 @@ sleep 10
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-# shellcheck disable=SC2034  # Unused variables left for readability
-for LOOP_COUNTER in $(seq 0 30); do
+for _ in $(seq 0 30); do
+    RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${UEFI_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
+for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
@@ -629,7 +658,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=rhel-edge -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel-edge:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=rhel-edge -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel-edge:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
