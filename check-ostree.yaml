@@ -269,12 +269,10 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when:
-        - ansible_facts['distribution'] != 'Fedora'
-        - sysroot_ro == "false" or (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '<') and ansible_facts ['distribution_version'] is version('8.8', '!='))
+      when: sysroot_ro == "false"
 
     # https://fedoraproject.org/wiki/Changes/Silverblue_Kinoite_readonly_sysroot
-    - name: /sysroot should be mount with ro permission since Fedora 37
+    - name: /sysroot should be mount with ro permission on RHEL 9.2 and Fedora 37 above
       block:
         - assert:
             that:
@@ -288,9 +286,7 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: (ansible_facts['distribution'] == 'Fedora') or (sysroot_ro == "true" and ((ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>=')) or
-            (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.8', '>=') and ansible_facts ['distribution_version'] is version('9.0', '!=') and ansible_facts ['distribution_version'] is version('9.1', '!=')) or
-            (ansible_facts['distribution'] == 'CentOS')))
+      when: sysroot_ro == "true"
 
     # case: check /var mount point
     - name: check /var mount point

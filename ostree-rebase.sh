@@ -51,36 +51,11 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel8-unknown"
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/nightly/RHEL-8/latest-RHEL-8.8.0/compose/BaseOS/x86_64/os/"
         ;;
-    "rhel-9.0")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        PARENT_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9.0"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/rel-eng/updates/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
-        ;;
-    "rhel-9.1")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        PARENT_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9.1"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/x86_64/os/"
-        ;;
-    "rhel-9.2")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        PARENT_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9-unknown"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/x86_64/os/"
-        ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
         PARENT_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos-stream8"
         BOOT_LOCATION="http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/"
-        ;;
-    "centos-9")
-        OSTREE_REF="centos/9/${ARCH}/edge"
-        PARENT_REF="centos/9/${ARCH}/edge"
-        OS_VARIANT="centos-stream9"
-        BOOT_LOCATION="https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/os/"
-        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -383,7 +358,7 @@ sudo virsh start "${IMAGE_KEY}-bios"
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-for LOOP_COUNTER in $(seq 0 30); do
+for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $BIOS_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
@@ -419,7 +394,7 @@ sudo virsh start "${IMAGE_KEY}-uefi"
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-for LOOP_COUNTER in $(seq 0 30); do
+for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
@@ -523,8 +498,7 @@ sleep 10
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-# shellcheck disable=SC2034  # Unused variables left for readability
-for LOOP_COUNTER in $(seq 0 30); do
+for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $BIOS_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
@@ -560,8 +534,7 @@ sleep 10
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-# shellcheck disable=SC2034  # Unused variables left for readability
-for LOOP_COUNTER in $(seq 0 30); do
+for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
