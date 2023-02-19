@@ -148,7 +148,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "${{ needs.check-compose.outputs.rhel90_compose }} - ${{ steps.date.outputs.date }}"
@@ -176,14 +176,14 @@ jobs:
           merge-method: rebase
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@v2
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-rhel-9-0
 
       - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v1
+        uses: peter-evans/create-or-update-project-card@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: RHEL Compose Test
@@ -209,7 +209,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "${{ needs.check-compose.outputs.rhel91_compose }} - ${{ steps.date.outputs.date }}"
@@ -237,14 +237,14 @@ jobs:
           merge-method: rebase
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@v2
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-rhel-9-1
 
       - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v1
+        uses: peter-evans/create-or-update-project-card@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: RHEL Compose Test
@@ -270,7 +270,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "${{ needs.check-compose.outputs.rhel92_compose }} - ${{ steps.date.outputs.date }}"
@@ -305,7 +305,7 @@ jobs:
           body: /test-rhel-9-2
 
       - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v1
+        uses: peter-evans/create-or-update-project-card@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: RHEL Compose Test

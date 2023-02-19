@@ -72,7 +72,7 @@ jobs:
 
   #     - name: Create Pull Request
   #       id: cpr
-  #       uses: peter-evans/create-pull-request@v3
+  #       uses: peter-evans/create-pull-request@v4
   #       with:
   #         token: ${{ secrets.GITHUB_TOKEN }}
   #         commit-message: "${{ needs.check-compose.outputs.rawhide_compose }} - ${{ steps.date.outputs.date }}"
@@ -101,14 +101,14 @@ jobs:
   #         merge-method: rebase
 
   #     - name: Add a comment to trigger test workflow
-  #       uses: peter-evans/create-or-update-comment@v1
+  #       uses: peter-evans/create-or-update-comment@v2
   #       with:
   #         token: ${{ secrets.PAT }}
   #         issue-number: ${{ steps.cpr.outputs.pull-request-number }}
   #         body: /test-rawhide
 
   #     - name: Create a project card to track compose test result
-  #       uses: peter-evans/create-or-update-project-card@v1
+  #       uses: peter-evans/create-or-update-project-card@v2
   #       with:
   #         token: ${{ secrets.GITHUB_TOKEN }}
   #         project-name: Fedora Compose Test
@@ -149,7 +149,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Fedora 38 Daily Compose Test - ${{ steps.date.outputs.date }}"
@@ -171,14 +171,14 @@ jobs:
                 - ${{ steps.package_version.outputs.composer_cli_version_f38 }}
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@v2
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-f38
 
       - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v1
+        uses: peter-evans/create-or-update-project-card@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: Fedora Compose Test
@@ -219,7 +219,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Fedora 37 Daily Compose Test - ${{ steps.date.outputs.date }}"
@@ -241,14 +241,14 @@ jobs:
                 - ${{ steps.package_version.outputs.composer_cli_version_f37 }}
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@v2
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-f37
 
       - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v1
+        uses: peter-evans/create-or-update-project-card@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: Fedora Compose Test

@@ -55,7 +55,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "${{ needs.check-compose.outputs.fapolicyd_version_92 }} - ${{ steps.date.outputs.date }}"
@@ -73,14 +73,14 @@ jobs:
                 - ${{ needs.check-compose.outputs.fapolicyd_version_92 }}
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@v2
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-fapolicyd-rhel-9-2
 
       - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v1
+        uses: peter-evans/create-or-update-project-card@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: Customer Case
@@ -103,7 +103,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "${{ needs.check-compose.outputs.pcp_version_92 }} - ${{ steps.date.outputs.date }}"
@@ -122,14 +122,14 @@ jobs:
                 - ${{ needs.check-compose.outputs.pcp_version_92 }}
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@v2
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-grafana-pcp-rhel-9-2
 
       - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v1
+        uses: peter-evans/create-or-update-project-card@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: Customer Case
