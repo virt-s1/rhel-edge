@@ -8,16 +8,6 @@ set -euox pipefail
 source /etc/os-release
 ARCH=$(uname -m)
 
-# Install fdo packages (This cannot be done in the setup.sh because fdo-admin-cli is not available on fedora)
-sudo dnf install -y fdo-admin-cli python3-pip
-# Install yq to modify service api server config yaml file
-sudo pip3 install yq
-# Start fdo-aio to have /etc/fdo/aio folder
-sudo systemctl enable --now fdo-aio
-# Prepare service api server config file
-sudo /usr/local/bin/yq -iy '.service_info.diskencryption_clevis |= [{disk_label: "/dev/vda4", reencrypt: true, binding: {pin: "tpm2", config: "{}"}}]' /etc/fdo/aio/configs/serviceinfo_api_server.yml
-sudo systemctl restart fdo-aio
-
 # Set up variables.
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="ostree-installer-${TEST_UUID}"
@@ -28,9 +18,6 @@ PROD_REPO_URL=http://192.168.100.1/repo
 PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
-FDO_SERVER_ADDRESS=192.168.100.1
-DIUN_PUB_KEY_HASH=sha256:$(openssl x509 -fingerprint -sha256 -noout -in /etc/fdo/aio/keys/diun_cert.pem | cut -d"=" -f2 | sed 's/://g')
-DIUN_PUB_KEY_ROOT_CERTS=$(cat /etc/fdo/aio/keys/diun_cert.pem)
 CONTAINER_TYPE=edge-container
 CONTAINER_FILENAME=container.tar
 INSTALLER_TYPE=edge-simplified-installer
@@ -125,17 +112,6 @@ case "${ID}-${VERSION_ID}" in
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
 esac
-
-if [[ "$FDO_USER_ONBOARDING" == "true" ]]; then
-    # FDO user does not have password, use ssh key and no sudo password instead
-    sudo /usr/local/bin/yq -iy '.service_info.initial_user |= {username: "fdouser", sshkeys: ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"]}' /etc/fdo/aio/configs/serviceinfo_api_server.yml
-    # No sudo password required by ansible
-    tee /tmp/fdouser > /dev/null << EOF
-fdouser ALL=(ALL) NOPASSWD: ALL
-EOF
-    sudo /usr/local/bin/yq -iy '.service_info.files |= [{path: "/etc/sudoers.d/fdouser", source_path: "/tmp/fdouser"}]' /etc/fdo/aio/configs/serviceinfo_api_server.yml
-    sudo systemctl restart fdo-aio
-fi
 
 # Colorful output.
 function greenprint {
@@ -292,6 +268,71 @@ check_result () {
         exit 1
     fi
 }
+
+######################################################################
+##
+## Configure FDO Servers
+##
+######################################################################
+# Generate keys
+greenprint "🔧 Generate FDO key and cert"
+CONTAINER_IMAGE="${CONTAINER_IMAGE:-quay.io/fido-fdo/admin-cli}"
+mkdir -p keys
+for i in "diun" "manufacturer" "device-ca" "owner"; do podman run -v "$PWD"/keys:/keys:z "$CONTAINER_IMAGE" generate-key-and-cert "$i"; done
+echo "sha256:$(openssl x509 -fingerprint -sha256 -noout -in keys/diun_cert.pem | cut -d"=" -f2 | sed 's/://g')" > keys/diun_pub_key_hash
+DIUN_PUB_KEY_HASH=sha256:$(openssl x509 -fingerprint -sha256 -noout -in ./keys/diun_cert.pem | cut -d"=" -f2 | sed 's/://g')
+DIUN_PUB_KEY_ROOT_CERTS=$(cat ./keys/diun_cert.pem)
+FDO_SERVER_ADDRESS=192.168.100.1
+
+# Prepare FDO config files
+greenprint "🔧 Prepare FDO config files"
+sudo mkdir -p /etc/fdo/keys
+sudo cp keys/* /etc/fdo/keys/
+sudo cp data/fdo/manufacturing-server.yml /etc/fdo/
+sudo cp data/fdo/owner-onboarding-server.yml /etc/fdo/
+sudo cp data/fdo/rendezvous-server.yml /etc/fdo/
+sudo cp data/fdo/serviceinfo-api-server.yml /etc/fdo/
+
+if [[ "$FDO_USER_ONBOARDING" == "true" ]]; then
+    # Install yq to modify service api server config yaml file
+    sudo dnf install -y python3-pip
+    sudo pip3 install yq
+    # FDO user does not have password, use ssh key and no sudo password instead
+    sudo /usr/local/bin/yq -iy '.service_info.initial_user |= {username: "fdouser", sshkeys: ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"]}' /etc/fdo/serviceinfo-api-server.yml
+    # No sudo password required by ansible
+    tee /tmp/fdouser > /dev/null << EOF
+fdouser ALL=(ALL) NOPASSWD: ALL
+EOF
+    sudo /usr/local/bin/yq -iy '.service_info.files |= [{path: "/etc/sudoers.d/fdouser", source_path: "/tmp/fdouser"}]' /etc/fdo/serviceinfo-api-server.yml
+fi
+
+# Install and start FDO servers
+greenprint "🔧 Install and start FDO servers"
+sudo dnf -y install fdo-manufacturing-server
+sudo dnf -y install fdo-owner-onboarding-server
+sudo dnf -y install fdo-rendezvous-server
+sudo systemctl start fdo-manufacturing-server
+sudo systemctl start fdo-rendezvous-server
+# Workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2168089
+# Workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2170903
+# After the bug fixed, user should start owner and servceinfo server separately
+# sudo systemctl start fdo-owner-onboarding-server
+# sudo systemctl start fdo-serviceinfo-api-server
+sudo /usr/libexec/fdo/fdo-owner-onboarding-server &
+sudo /usr/libexec/fdo/fdo-serviceinfo-api-server &
+
+# Wait for fdo manufacture server to be running
+until [ "$(curl -X POST http://${FDO_SERVER_ADDRESS}:8080/ping)" == "pong" ]; do
+    sleep 1;
+done;
+# Wait for fdo owner server to be running
+until [ "$(curl -X POST http://${FDO_SERVER_ADDRESS}:8081/ping)" == "pong" ]; do
+    sleep 1;
+done;
+# Wait for fdo rendezvous server to be running
+until [ "$(curl -X POST http://${FDO_SERVER_ADDRESS}:8082/ping)" == "pong" ]; do
+    sleep 1;
+done;
 
 ###########################################################
 ##
