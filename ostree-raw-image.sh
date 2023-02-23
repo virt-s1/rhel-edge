@@ -69,7 +69,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel8-unknown"
         ADD_SSSD="true"
         USER_IN_RAW="true"
-        SYSROOT_RO="true"
+        SYSROOT_RO="false"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -95,7 +95,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="centos-stream8"
         ADD_SSSD="true"
         USER_IN_RAW="true"
-        SYSROOT_RO="true"
+        SYSROOT_RO="false"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"

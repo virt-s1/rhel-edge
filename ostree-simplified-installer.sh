@@ -78,7 +78,6 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         IMAGE_NAME="image.raw.xz"
-        SYSROOT_RO="true"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -102,7 +101,6 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos-stream8"
         IMAGE_NAME="image.raw.xz"
-        SYSROOT_RO="true"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
