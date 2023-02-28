@@ -41,6 +41,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=9
         ADD_SSSD="false"
+        DIRS_FILES_CUSTOMIZATION="false"
         ;;
     "rhel-8.7")
         OSTREE_REF="rhel/8/${ARCH}/edge"
@@ -50,6 +51,7 @@ case "${ID}-${VERSION_ID}" in
         CUT_DIRS=9
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
+        DIRS_FILES_CUSTOMIZATION="false"
         ;;
     "rhel-8.8")
         OSTREE_REF="rhel/8/${ARCH}/edge"
@@ -60,6 +62,7 @@ case "${ID}-${VERSION_ID}" in
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
         FIREWALL_FEATURE="true"
+        DIRS_FILES_CUSTOMIZATION="true"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -68,6 +71,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/rel-eng/updates/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=9
         ADD_SSSD="false"
+        DIRS_FILES_CUSTOMIZATION="false"
         ;;
     "rhel-9.1")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -77,6 +81,7 @@ case "${ID}-${VERSION_ID}" in
         CUT_DIRS=9
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
+        DIRS_FILES_CUSTOMIZATION="false"
         ;;
     "rhel-9.2")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -88,6 +93,7 @@ case "${ID}-${VERSION_ID}" in
         EMBEDDED_CONTAINER="true"
         FIREWALL_FEATURE="true"
         SYSROOT_RO="true"
+        DIRS_FILES_CUSTOMIZATION="true"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -97,6 +103,7 @@ case "${ID}-${VERSION_ID}" in
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
         FIREWALL_FEATURE="true"
+        DIRS_FILES_CUSTOMIZATION="true"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
@@ -108,6 +115,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         FIREWALL_FEATURE="true"
         SYSROOT_RO="true"
+        DIRS_FILES_CUSTOMIZATION="true"
         ;;
     "fedora-37")
         IMAGE_TYPE=fedora-iot-commit
@@ -118,6 +126,7 @@ case "${ID}-${VERSION_ID}" in
         CUT_DIRS=8
         ADD_SSSD="false"
         SYSROOT_RO="true"
+        DIRS_FILES_CUSTOMIZATION="true"
         ;;
     "fedora-38")
         IMAGE_TYPE=fedora-iot-commit
@@ -128,6 +137,7 @@ case "${ID}-${VERSION_ID}" in
         CUT_DIRS=8
         ADD_SSSD="false"
         SYSROOT_RO="true"
+        DIRS_FILES_CUSTOMIZATION="true"
         ;;
     "fedora-39")
         IMAGE_TYPE=fedora-iot-commit
@@ -138,6 +148,7 @@ case "${ID}-${VERSION_ID}" in
         CUT_DIRS=8
         ADD_SSSD="false"
         SYSROOT_RO="true"
+        DIRS_FILES_CUSTOMIZATION="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -384,6 +395,36 @@ source = "quay.io/fedora/fedora:latest"
 EOF
 fi
 
+# Add directory and files customization, and services customization for testing
+if [[ "${DIRS_FILES_CUSTOMIZATION}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[customizations.directories]]
+path = "/etc/custom_dir/dir1"
+user = 1020
+group = 1020
+mode = "0770"
+ensure_parents = true
+
+[[customizations.files]]
+path = "/etc/systemd/system/custom.service"
+data = "[Unit]\nDescription=Custom service\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/bin/false\n[Install]\nWantedBy=multi-user.target\n"
+
+[[customizations.files]]
+path = "/etc/custom_file.txt"
+data = "image builder is the best\n"
+
+[[customizations.directories]]
+path = "/etc/systemd/system/custom.service.d"
+
+[[customizations.files]]
+path = "/etc/systemd/system/custom.service.d/override.conf"
+data = "[Service]\nExecStart=\nExecStart=/usr/bin/cat /etc/custom_file.txt\n"
+
+[customizations.services]
+enabled = ["custom.service"]
+EOF
+fi
+
 # Build installation image.
 build_image "$BLUEPRINT_FILE" ostree
 
@@ -565,6 +606,36 @@ sources = ["192.168.100.52"]
 EOF
 fi
 
+# Add directory and files customization, and services customization for testing
+if [[ "${DIRS_FILES_CUSTOMIZATION}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[customizations.directories]]
+path = "/etc/custom_dir/dir1"
+user = 1020
+group = 1020
+mode = "0770"
+ensure_parents = true
+
+[[customizations.files]]
+path = "/etc/systemd/system/custom.service"
+data = "[Unit]\nDescription=Custom service\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/bin/false\n[Install]\nWantedBy=multi-user.target\n"
+
+[[customizations.files]]
+path = "/etc/custom_file.txt"
+data = "image builder is the best\n"
+
+[[customizations.directories]]
+path = "/etc/systemd/system/custom.service.d"
+
+[[customizations.files]]
+path = "/etc/systemd/system/custom.service.d/override.conf"
+data = "[Service]\nExecStart=\nExecStart=/usr/bin/cat /etc/custom_file.txt\n"
+
+[customizations.services]
+enabled = ["custom.service"]
+EOF
+fi
+
 # Build upgrade image.
 build_image "$BLUEPRINT_FILE" upgrade
 
@@ -632,7 +703,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e firewall_feature="${FIREWALL_FEATURE}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e firewall_feature="${FIREWALL_FEATURE}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
