@@ -52,6 +52,8 @@ SSH_KEY_PUB=$(cat "${SSH_KEY}".pub)
 EDGE_USER_PASSWORD=foobar
 ANSIBLE_USER="admin"
 FDO_USER_ONBOARDING="false"
+USER_IN_BLUEPRINT="false"
+BLUEPRINT_USER="admin"
 
 # Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
 # It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
@@ -78,6 +80,8 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         IMAGE_NAME="image.raw.xz"
+        USER_IN_BLUEPRINT="true"
+        BLUEPRINT_USER="simple"
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -96,11 +100,15 @@ case "${ID}-${VERSION_ID}" in
         SYSROOT_RO="true"
         ANSIBLE_USER=fdouser
         FDO_USER_ONBOARDING="true"
+        USER_IN_BLUEPRINT="true"
+        BLUEPRINT_USER="simple"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos-stream8"
         IMAGE_NAME="image.raw.xz"
+        USER_IN_BLUEPRINT="true"
+        BLUEPRINT_USER="simple"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
@@ -110,6 +118,8 @@ case "${ID}-${VERSION_ID}" in
         SYSROOT_RO="true"
         ANSIBLE_USER=fdouser
         FDO_USER_ONBOARDING="true"
+        USER_IN_BLUEPRINT="true"
+        BLUEPRINT_USER="simple"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -405,6 +415,19 @@ manufacturing_server_url="http://${FDO_SERVER_ADDRESS}:8080"
 diun_pub_key_insecure="true"
 EOF
 
+# Only RHEL 8.8, 9.2 and above support user in simplified installer bluepint
+if [[ "$USER_IN_BLUEPRINT" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[customizations.user]]
+name = "simple"
+description = "Administrator account"
+password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl."
+key = "${SSH_KEY_PUB}"
+home = "/home/simple/"
+groups = ["wheel"]
+EOF
+fi
+
 greenprint "📄 installer blueprint"
 cat "$BLUEPRINT_FILE"
 
@@ -515,13 +538,14 @@ greenprint "🕹 Get ostree install commit value"
 INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
 
 # Add instance IP address into /etc/ansible/hosts
+# For RHEL 8.8, 9.2 and above ansible user will be configured in simplified installer blueprint
 tee "${TEMPDIR}"/inventory > /dev/null << EOF
 [ostree_guest]
 ${HTTP_GUEST_ADDRESS}
 
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=admin
+ansible_user=${BLUEPRINT_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 ansible_become=yes 

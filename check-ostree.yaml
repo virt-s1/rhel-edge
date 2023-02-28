@@ -44,6 +44,10 @@
       ignore_errors: yes
       become: yes
 
+    - name: check rpm-ostree status
+      command: rpm-ostree status
+      ignore_errors: yes
+
     # case: check rt kernel installed after upgrade
     - name: check installed kernel
       command: uname -r
