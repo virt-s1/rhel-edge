@@ -104,6 +104,7 @@ To run RHEL for Edge test on ARM server, a bare metal ARM server is required.
     CentOS Stream 8
     CentOS Stream 9
     Fedora 37 (Simplified-installer not supported)
+    Fedora 38 (Simplified-installer not supported)
     Fedora rawhide (Simplified-installer not supported)
 
 ### Test Run
@@ -117,7 +118,7 @@ To run RHEL for Edge test on ARM server, a bare metal ARM server is required.
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-rebase.sh
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-8-to-9.sh
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-9-to-9.sh
-    $ DOWNLOAD_NODE="hello-world.com" ./minimal-raw.sh
+    $ ./minimal-raw.sh
 
 #### For ARM
 
