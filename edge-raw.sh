@@ -128,7 +128,7 @@ case "$TEST_OS" in
         ANSIBLE_OS_NAME="redhat"
         REF_PREFIX="rhel-edge"
         USER_IN_RAW="true"
-        SYSROOT_RO="true"
+        SYSROOT_RO="false"
         ;;
     "rhel-9-1")
         sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-1-0.json
@@ -163,7 +163,7 @@ case "$TEST_OS" in
         ANSIBLE_OS_NAME="redhat"
         REF_PREFIX="rhel-edge"
         USER_IN_RAW="true"
-        SYSROOT_RO="true"
+        SYSROOT_RO="false"
         ;;
     "centos-stream-9")
         OS_VARIANT="centos-stream9"
@@ -525,7 +525,7 @@ if [ $# -eq 2 ] && [ "$1" != "$2" ]; then
             UPGRADE_OSTREE_REF="rhel/8/${ARCH}/edge"
             GUEST_IMAGE_URL="http://${DOWNLOAD_NODE}/rhel-8/nightly/RHEL-8/latest-RHEL-8.8.0/compose/BaseOS/${ARCH}/images"
             GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">rhel-guest-image-8.8-.*.qcow2<" | tr -d '><')
-            SYSROOT_RO="true"
+            SYSROOT_RO="false"
             ;;
         "rhel-9-2")
             sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-2-0.json
@@ -750,7 +750,20 @@ sleep 10
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-# shellcheck disable=SC2034  # Unused variables left for readability
+for _ in $(seq 0 30); do
+    RESULTS=$(wait_for_ssh_up "$EDGE_RAW_VM_IP")
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${EDGE_RAW_VM_IP}" "echo ${EDGE_USER_PASSWORD} | nohup sudo -S systemctl reboot &>/dev/null & exit"
+
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
 for _ in $(seq 0 30); do
     RESULTS=$(wait_for_ssh_up "$EDGE_RAW_VM_IP")
     if [[ $RESULTS == 1 ]]; then
