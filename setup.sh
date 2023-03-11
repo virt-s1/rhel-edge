@@ -74,6 +74,8 @@ case "${ID}-${VERSION_ID}" in
         sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json
         sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
     "fedora-37")
+        # workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2162815
+        sudo dnf install -y nghttp2
         ;;
     "fedora-38")
         ;;
