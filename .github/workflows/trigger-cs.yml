@@ -19,10 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # CS8 URL has more mirrors, so use curl -L to follow redirect
       - name: Check CentOS Stream 8 compose
         id: check_compose_id_cs8
         run: |
-          CURRENT_COMPOSE_CS8=$(curl -s "${COMPOSE_URL_CS8}/" | grep -ioE ">CentOS-Stream-8-.*/<" | tr -d '>/<' | tail -1)
+          CURRENT_COMPOSE_CS8=$(curl -s -L "${COMPOSE_URL_CS8}/" | grep -ioE ">CentOS-Stream-8-.*/<" | tr -d '>/<' | tail -1)
           curl -s ${COMPOSE_URL_CS8}/${CURRENT_COMPOSE_CS8}/STATUS --output STATUS_CS8
           STATUS_CS8=$(cat STATUS_CS8)
           if [[ "$STATUS_CS8" == "FINISHED" ]]; then
