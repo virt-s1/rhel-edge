@@ -8,7 +8,7 @@ on:
     - cron: '0 15 * * *'
 
 env:
-  COMPOSE_URL_CS8: https://composes.stream.centos.org/stream-8/production
+  COMPOSE_URL_CS8: https://odcs.stream.centos.org/stream-8/production
   COMPOSE_URL_CS9: https://composes.stream.centos.org/production
 
 jobs:
@@ -19,16 +19,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      # CS8 URL has more mirrors, so use curl -L to follow redirect
       - name: Check CentOS Stream 8 compose
         id: check_compose_id_cs8
         run: |
-          CURRENT_COMPOSE_CS8=$(curl -s -L "${COMPOSE_URL_CS8}" | grep -ioE ">CentOS-Stream-8-.*/<" | tr -d '>/<' | tail -1)
+          CURRENT_COMPOSE_CS8=$(curl -s "${COMPOSE_URL_CS8}/" | grep -ioE ">CentOS-Stream-8-.*/<" | tr -d '>/<' | tail -1)
           curl -s ${COMPOSE_URL_CS8}/${CURRENT_COMPOSE_CS8}/STATUS --output STATUS_CS8
           STATUS_CS8=$(cat STATUS_CS8)
           if [[ "$STATUS_CS8" == "FINISHED" ]]; then
-              curl -s ${COMPOSE_URL_CS8}/${CURRENT_COMPOSE_CS8}/COMPOSE_ID --output COMPOSE_ID_CS8
-              COMPOSE_ID_CS8=$(cat COMPOSE_ID_CS8)
+              COMPOSE_ID_CS8=$CURRENT_COMPOSE_CS8
               TESTED_COMPOSE_CS8=( $( cat compose/compose.cs8 ) )
               if [[ " ${TESTED_COMPOSE_CS8[*]} " =~ "$COMPOSE_ID_CS8" ]]; then
                   COMPOSE_ID_CS8="false"
