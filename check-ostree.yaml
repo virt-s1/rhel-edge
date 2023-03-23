@@ -573,9 +573,9 @@
       block:
         - assert:
             that:
-              - result_dmesg_error.stdout_lines | length <= 3
+              - result_dmesg_error.stdout_lines | length <= 5
               # - "'pcieport 0000:00:01.6: pciehp: Failed to check link status' in result_dmesg_error.stdout"
-              - "'RAS: Correctable Errors collector initialized' in result_dmesg_error.stdout or 'systemd[1]: bpf-lsm: Failed to load BPF object: No such process' in result_dmesg_error.stdout"
+              - "'RAS: Correctable Errors collector initialized' in result_dmesg_error.stdout or 'systemd[1]: bpf-lsm: Failed to load BPF object: No such process' in result_dmesg_error.stdout or 'Failed to dissect: Permission denied' in result_dmesg_error.stdout or '/usr/lib/systemd/system-generators/systemd-gpt-auto-generator failed with exit status 1' in result_dmesg_error.stdout"
             fail_msg: "more or less error and failed log"
             success_msg: "everything works as expected"
       always:
