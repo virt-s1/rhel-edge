@@ -11,7 +11,8 @@ ARCH=$(uname -m)
 # Install fdo packages (This cannot be done in the setup.sh because fdo-admin-cli is not available on fedora)
 sudo dnf install -y fdo-admin-cli python3-pip
 # Install yq to modify service api server config yaml file
-sudo pip3 install yq
+# Workaround issue https://github.com/virt-s1/rhel-edge/issues/2571
+sudo pip3 install yq==3.1.1
 # Start fdo-aio to have /etc/fdo/aio folder
 sudo systemctl enable --now fdo-aio
 # Prepare service api server config file
