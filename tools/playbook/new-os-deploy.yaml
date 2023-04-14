@@ -5,22 +5,26 @@
   vars:
     date_label: "{{ lookup('pipe', 'date +%y%m%d') }}"
     flavor: "ci.standard.large"
+    cloud_profile: "rhos-01"
+    os_network:
+      rhos-01: "shared_net_9"
+      rhos-d: "provider_net_shared_2"
 
   tasks:
     - name: create keypair for rhel-edge test
       openstack.cloud.keypair:
-        cloud: rhos-01
+        cloud: "{{ cloud_profile }}"
         state: present
         name: "debugging"
         public_key_file: key/ostree_key.pub
 
     - name: "deploy RHEL instance"
       openstack.cloud.server:
-        cloud: rhos-01
+        cloud: "{{ cloud_profile }}"
         name: "{{ os }}-{{ date_label }}"
         image: "{{ images[os] }}"
         flavor: "{{ flavor }}"
-        network: "shared_net_9"
+        network: "{{ os_network[cloud_profile] }}"
         key_name: xiaofwan
         security_groups: debug_vm
         auto_ip: yes
@@ -75,11 +79,11 @@
 
     - name: "deploy CentOS Stream instance"
       openstack.cloud.server:
-        cloud: rhos-01
+        cloud: "{{ cloud_profile }}"
         name: "{{ os }}-{{ date_label }}"
         image: "{{ images[os] }}"
         flavor: "{{ flavor }}"
-        network: "shared_net_9"
+        network: "{{ os_network[cloud_profile] }}"
         key_name: xiaofwan
         security_groups: debug_vm
         auto_ip: yes
@@ -110,11 +114,11 @@
 
     - name: "deploy Fedora instance"
       openstack.cloud.server:
-        cloud: rhos-01
+        cloud: "{{ cloud_profile }}"
         name: "{{ os }}-{{ date_label }}"
         image: "{{ images[os] }}"
         flavor: "{{ flavor }}"
-        network: "shared_net_9"
+        network: "{{ os_network[cloud_profile] }}"
         key_name: xiaofwan
         security_groups: debug_vm
         auto_ip: yes
@@ -145,11 +149,11 @@
 
     - name: "deploy remote instance"
       openstack.cloud.server:
-        cloud: rhos-01
+        cloud: "{{ cloud_profile }}"
         name: "{{ os }}-{{ date_label }}"
         image: "{{ images[os] }}"
         flavor: "{{ flavor }}"
-        network: "shared_net_9"
+        network: "{{ os_network[cloud_profile] }}"
         key_name: xiaofwan
         security_groups: debug_vm
         auto_ip: yes
@@ -183,19 +187,24 @@
         instance_result: "{{ tmp_instance_result }}"
       when: tmp_instance_result.changed
 
-    - debug:
-        var: instance_result.server.addresses.shared_net_9[0].addr
+    - set_fact:
+        instance_ip_addr: "{{ instance_result.server.addresses.shared_net_9[0].addr }}"
+      when: cloud_profile == "rhos-01"
+
+    - set_fact:
+        instance_ip_addr: "{{ instance_result.server.addresses.provider_net_shared_2[0].addr }}"
+      when: cloud_profile == "rhos-d"
 
     - name: waits until instance is reachable
       wait_for:
-        host: "{{ instance_result.server.addresses.shared_net_9[0].addr }}"
+        host: "{{ instance_ip_addr }}"
         port: 22
         search_regex: OpenSSH
         delay: 10
 
     - name: add instance ip into host group guest
       add_host:
-        name: "{{ instance_result.server.addresses.shared_net_9[0].addr }}"
+        name: "{{ instance_ip_addr }}"
         groups: guest
 
     - name: keep private key permission to 600
@@ -209,7 +218,7 @@
       register: cloud_init_check
       changed_when: false
       until: cloud_init_check is success
-      delegate_to: "{{ instance_result.server.addresses.shared_net_9[0].addr }}"
+      delegate_to: "{{ instance_ip_addr }}"
 
 - hosts: guest
   gather_facts: yes
