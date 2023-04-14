@@ -122,7 +122,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_COMMIT="false"
         OSTREE_REF="fedora/37/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
-        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Everything/x86_64/os/"
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/releases/37/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
         SYSROOT_RO="true"
@@ -133,7 +133,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_COMMIT="false"
         OSTREE_REF="fedora/38/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
-        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/38/Everything/x86_64/os/"
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/development/38/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
         SYSROOT_RO="true"
@@ -144,7 +144,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_COMMIT="false"
         OSTREE_REF="fedora/39/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
-        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/"
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
         SYSROOT_RO="true"
