@@ -1,0 +1,94 @@
+---
+name: Run FDO Container Test on CentOS Stream 9
+
+on:
+  workflow_dispatch:
+  schedule:
+    # run 8:05 every Sunday
+    - cron: '5 8 * * 0'
+
+jobs:
+  pre-edge-fdo-container-c9:
+    runs-on: ubuntu-latest
+    env:
+      STATUS_NAME: edge-fdo-container-centos9
+
+    steps:
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Runner has been deploying...'
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  edge-fdo-container-c9:
+    needs: [pre-edge-fdo-container-c9]
+    runs-on: [kite, x86_64, gcp, centos-stream-9, large]
+    env:
+      STATUS_NAME: edge-fdo-container-centos9
+
+    steps:
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Test has been running...'
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.pr-info.outputs.sha }}
+          fetch-depth: 0
+
+      - name: run ostree-fdo-container.sh
+        run: ./ostree-fdo-container.sh
+        env:
+          DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
+        timeout-minutes: 120
+
+      - name: Set non cancelled result status
+        if: ${{ !cancelled() }}
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: ${{ job.status }}
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set cancelled result status
+        if: ${{ cancelled() }}
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: error
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v3
+        if: ${{ always() }}
+        with:
+          name: edge-fdo-container-centos9
+          path: |
+            *.json
+            *.log
+
+      - name: Create a project card to track compose test result
+        uses: peter-evans/create-or-update-project-card@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          project-name: Packages
+          column-name: ${{ github.event.client_payload.package_name }}
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
