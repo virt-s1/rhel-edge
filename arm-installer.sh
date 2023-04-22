@@ -157,6 +157,10 @@ PROD_REPO_URL_2="${PROD_REPO_URL}/"
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
 ANSIBLE_USER="installeruser"
+DIRS_FILES_CUSTOMIZATION="true"
+# Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+# It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
+SYSROOT_RO="false"
 
 # Prepare cloud-init data
 CLOUD_INIT_DIR=$(mktemp -d)
@@ -183,12 +187,13 @@ case "$TEST_OS" in
         GUEST_IMAGE_URL="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/aarch64/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">rhel-guest-image-9.2-.*.qcow2<" | tr -d '><')
         ANSIBLE_OS_NAME="rhel"
+        SYSROOT_RO="true"
         ;;
     "centos-stream-8")
         OS_VARIANT="centos-stream8"
         cp tools/user-data "$CLOUD_INIT_DIR"
         OSTREE_REF="centos/8/${ARCH}/edge"
-        GUEST_IMAGE_URL="https://cloud.centos.org/centos/8-stream/aarch64/images"
+        GUEST_IMAGE_URL="https://odcs.stream.centos.org/stream-8/production/latest-CentOS-Stream/compose/BaseOS/aarch64/images/"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">CentOS-Stream-GenericCloud-8-.*.qcow2<" | tr -d '><' | tail -1)
         ANSIBLE_OS_NAME="rhel"
         ;;
@@ -200,6 +205,7 @@ case "$TEST_OS" in
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">CentOS-Stream-GenericCloud-9-.*.qcow2<" | tr -d '><')
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ANSIBLE_OS_NAME="rhel"
+        SYSROOT_RO="true"
         ;;
     "fedora-37")
         OS_VARIANT="fedora-unknown"
@@ -207,12 +213,13 @@ case "$TEST_OS" in
         OSTREE_REF="fedora/37/${ARCH}/iot"
         CONTAINER_IMAGE_TYPE=iot-container
         INSTALLER_IMAGE_TYPE=iot-installer
-        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/aarch64/images"
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/aarch64/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-37-.*.qcow2<" | tr -d '><')
         EMBEDDED_CONTAINER="false"
         CONTAINER_PUSHING_FEAT="false"
         QUAY_REPO=""
         ANSIBLE_OS_NAME="fedora"
+        SYSROOT_RO="true"
         ;;
     "fedora-38")
         OS_VARIANT="fedora-unknown"
@@ -220,12 +227,13 @@ case "$TEST_OS" in
         OSTREE_REF="fedora/38/${ARCH}/iot"
         CONTAINER_IMAGE_TYPE=iot-container
         INSTALLER_IMAGE_TYPE=iot-installer
-        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/38/Cloud/aarch64/images"
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/38/Cloud/aarch64/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-38-.*.qcow2<" | tr -d '><')
         EMBEDDED_CONTAINER="false"
         CONTAINER_PUSHING_FEAT="false"
         QUAY_REPO=""
         ANSIBLE_OS_NAME="fedora"
+        SYSROOT_RO="true"
         ;;
     "fedora-39")
         OS_VARIANT="fedora-unknown"
@@ -233,12 +241,13 @@ case "$TEST_OS" in
         OSTREE_REF="fedora/39/${ARCH}/iot"
         CONTAINER_IMAGE_TYPE=iot-container
         INSTALLER_IMAGE_TYPE=iot-installer
-        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/aarch64/images"
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/aarch64/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Rawhide-.*.qcow2<" | tr -d '><')
         EMBEDDED_CONTAINER="false"
         CONTAINER_PUSHING_FEAT="false"
         QUAY_REPO=""
         ANSIBLE_OS_NAME="fedora"
+        SYSROOT_RO="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -364,6 +373,36 @@ provider = "container"
 [settings]
 username = "$QUAY_USERNAME"
 password = "$QUAY_PASSWORD"
+EOF
+fi
+
+# Add directory and files customization, and services customization for testing
+if [[ "${DIRS_FILES_CUSTOMIZATION}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[customizations.directories]]
+path = "/etc/custom_dir/dir1"
+user = 1020
+group = 1020
+mode = "0770"
+ensure_parents = true
+
+[[customizations.files]]
+path = "/etc/systemd/system/custom.service"
+data = "[Unit]\nDescription=Custom service\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/bin/false\n[Install]\nWantedBy=multi-user.target\n"
+
+[[customizations.files]]
+path = "/etc/custom_file.txt"
+data = "image builder is the best\n"
+
+[[customizations.directories]]
+path = "/etc/systemd/system/custom.service.d"
+
+[[customizations.files]]
+path = "/etc/systemd/system/custom.service.d/override.conf"
+data = "[Service]\nExecStart=\nExecStart=/usr/bin/cat /etc/custom_file.txt\n"
+
+[customizations.services]
+enabled = ["custom.service"]
 EOF
 fi
 
@@ -500,6 +539,21 @@ for _ in $(seq 0 30); do
     sleep 10
 done
 
+# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${EDGE_INSTALLER_VM_IP}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for _ in $(seq 0 30); do
+    RESULTS=$(wait_for_ssh_up "$EDGE_INSTALLER_VM_IP")
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
 # Check image installation result
 check_result
 
@@ -519,7 +573,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" check-ostree.yaml || RESULTS=0
+sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
 check_result
 
 ##################################################
@@ -548,6 +602,35 @@ if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]
 source = "quay.io/fedora/fedora:latest"
+EOF
+fi
+
+if [[ "${DIRS_FILES_CUSTOMIZATION}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[customizations.directories]]
+path = "/etc/custom_dir/dir1"
+user = 1020
+group = 1020
+mode = "0770"
+ensure_parents = true
+
+[[customizations.files]]
+path = "/etc/systemd/system/custom.service"
+data = "[Unit]\nDescription=Custom service\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/bin/false\n[Install]\nWantedBy=multi-user.target\n"
+
+[[customizations.files]]
+path = "/etc/custom_file.txt"
+data = "image builder is the best\n"
+
+[[customizations.directories]]
+path = "/etc/systemd/system/custom.service.d"
+
+[[customizations.files]]
+path = "/etc/systemd/system/custom.service.d/override.conf"
+data = "[Service]\nExecStart=\nExecStart=/usr/bin/cat /etc/custom_file.txt\n"
+
+[customizations.services]
+enabled = ["custom.service"]
 EOF
 fi
 
@@ -632,7 +715,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" check-ostree.yaml || RESULTS=0
+sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
