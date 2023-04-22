@@ -69,6 +69,9 @@ clean_up () {
 
 # Variables before case
 BOOT_ARGS="uefi"
+# Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+# It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
+SYSROOT_RO="false"
 # Prepare cloud-init data
 CLOUD_INIT_DIR=$(mktemp -d)
 cp tools/meta-data "$CLOUD_INIT_DIR"
@@ -96,6 +99,7 @@ case "$TEST_OS" in
         GUEST_IMAGE_URL="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/aarch64/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">rhel-guest-image-9.2-.*.qcow2<" | tr -d '><')
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/aarch64/os/"
+        SYSROOT_RO="true"
         ;;
     "centos-stream-8")
         IMAGE_TYPE="edge-commit"
@@ -119,6 +123,7 @@ case "$TEST_OS" in
         CURRENT_COMPOSE_CS9=$(curl -s "https://composes.stream.centos.org/production/" | grep -ioE ">CentOS-Stream-9-.*/<" | tr -d '>/<' | tail -1)
         BOOT_LOCATION="https://composes.stream.centos.org/production/${CURRENT_COMPOSE_CS9}/compose/BaseOS/aarch64/os/"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
+        SYSROOT_RO="true"
         ;;
     "fedora-37")
         IMAGE_TYPE="iot-commit"
@@ -126,9 +131,10 @@ case "$TEST_OS" in
         OS_VARIANT="fedora-unknown"
         OSTREE_REF="fedora/37/${ARCH}/iot"
         OSTREE_REBASE_REF="fedora/xx/${ARCH}/iot"
-        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/aarch64/images"
+        GUEST_IMAGE_URL="dl.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/aarch64/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-37-.*.qcow2<" | tr -d '><')
-        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Everything/aarch64/os/"
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/releases/37/Everything/aarch64/os/"
+        SYSROOT_RO="true"
         ;;
     "fedora-38")
         IMAGE_TYPE="iot-commit"
@@ -136,9 +142,10 @@ case "$TEST_OS" in
         OS_VARIANT="fedora-unknown"
         OSTREE_REF="fedora/38/${ARCH}/iot"
         OSTREE_REBASE_REF="fedora/xx/${ARCH}/iot"
-        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/38/Cloud/aarch64/images"
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/38/Cloud/aarch64/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-38-.*.qcow2<" | tr -d '><')
-        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/38/Everything/aarch64/os/"
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/development/38/Everything/aarch64/os/"
+        SYSROOT_RO="true"
         ;;
     "fedora-39")
         IMAGE_TYPE="iot-commit"
@@ -146,9 +153,10 @@ case "$TEST_OS" in
         OS_VARIANT="fedora-unknown"
         OSTREE_REF="fedora/39/${ARCH}/iot"
         OSTREE_REBASE_REF="fedora/xx/${ARCH}/iot"
-        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/aarch64/images"
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/aarch64/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Rawhide-.*.qcow2<" | tr -d '><')
-        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/aarch64/os/"
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/aarch64/os/"
+        SYSROOT_RO="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -356,6 +364,21 @@ for _ in $(seq 0 30); do
     sleep 10
 done
 
+# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${EDGE_RAW_VM_IP}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for _ in $(seq 0 30); do
+    RESULTS=$(wait_for_ssh_up "$EDGE_RAW_VM_IP")
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
 # Check image installation result
 check_result
 
@@ -375,7 +398,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 check_result
 
 ##################################################
@@ -474,7 +497,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${REBASE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REBASE_REF}" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${REBASE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REBASE_REF}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up

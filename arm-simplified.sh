@@ -40,6 +40,16 @@ wait_for_cloud_init () {
     fi
 }
 
+# Wait for FDO onboarding finished.
+wait_for_fdo () {
+    SSH_STATUS=$(sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${1}" "id -u ${ANSIBLE_USER} > /dev/null 2>&1 && echo -n READY")
+    if [[ $SSH_STATUS == READY ]]; then
+        echo 1
+    else
+        echo 0
+    fi
+}
+
 # Test result checking
 check_result () {
     greenprint "Checking for test result"
@@ -79,7 +89,6 @@ BOOT_ARGS="uefi"
 CONTAINER_IMAGE_TYPE=edge-container
 SIMPLIFIED_IMAGE_TYPE=edge-simplified-installer
 SIMPLIFIED_FILENAME="simplified-installer.iso"
-# IMAGE_NAME="image.raw.xz"
 
 # Set up variables.
 TEMPDIR=$(mktemp -d)
@@ -94,6 +103,10 @@ PROD_REPO_ADDRESS=192.168.100.1
 PROD_REPO_URL="http://${PROD_REPO_ADDRESS}/${TEST_OS}-simplified"
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
+# Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+# It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
+SYSROOT_RO="false"
+ANSIBLE_USER="admin"
 
 # Prepare cloud-init data
 CLOUD_INIT_DIR=$(mktemp -d)
@@ -122,6 +135,20 @@ case "$TEST_OS" in
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">rhel-guest-image-9.2-.*.qcow2<" | tr -d '><')
         ANSIBLE_OS_NAME="redhat"
         REF_PREFIX="rhel-edge"
+        SYSROOT_RO="true"
+        ANSIBLE_USER=fdouser
+        ;;
+    "rhel-9-3")
+        sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-3-0.json
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" tools/user-data.93 | sudo tee "${CLOUD_INIT_DIR}/user-data"
+        OS_VARIANT="rhel9-unknown"
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        GUEST_IMAGE_URL="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.3.0/compose/BaseOS/aarch64/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">rhel-guest-image-9.3-.*.qcow2<" | tr -d '><')
+        ANSIBLE_OS_NAME="redhat"
+        REF_PREFIX="rhel-edge"
+        SYSROOT_RO="true"
+        ANSIBLE_USER=fdouser
         ;;
     "centos-stream-8")
         OS_VARIANT="centos-stream8"
@@ -141,6 +168,8 @@ case "$TEST_OS" in
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ANSIBLE_OS_NAME="redhat"
         REF_PREFIX="rhel-edge"
+        SYSROOT_RO="true"
+        ANSIBLE_USER=fdouser
         ;;
     "fedora-37")
         OS_VARIANT="fedora-unknown"
@@ -148,10 +177,11 @@ case "$TEST_OS" in
         OSTREE_REF="fedora/37/${ARCH}/iot"
         CONTAINER_IMAGE_TYPE=iot-container
         SIMPLIFIED_IMAGE_TYPE=iot-simplified-installer
-        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/aarch64/images"
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/aarch64/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-37-.*.qcow2<" | tr -d '><')
         ANSIBLE_OS_NAME="fedora-iot"
         REF_PREFIX="fedora-iot"
+        SYSROOT_RO="true"
         ;;
     "fedora-38")
         OS_VARIANT="fedora-unknown"
@@ -159,10 +189,11 @@ case "$TEST_OS" in
         OSTREE_REF="fedora/38/${ARCH}/iot"
         CONTAINER_IMAGE_TYPE=iot-container
         SIMPLIFIED_IMAGE_TYPE=iot-simplified-installer
-        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/38/Cloud/aarch64/images"
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/38/Cloud/aarch64/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-38-.*.qcow2<" | tr -d '><')
         ANSIBLE_OS_NAME="fedora-iot"
         REF_PREFIX="fedora-iot"
+        SYSROOT_RO="true"
         ;;
     "fedora-39")
         OS_VARIANT="fedora-unknown"
@@ -170,10 +201,11 @@ case "$TEST_OS" in
         OSTREE_REF="fedora/39/${ARCH}/iot"
         CONTAINER_IMAGE_TYPE=iot-container
         SIMPLIFIED_IMAGE_TYPE=iot-simplified-installer
-        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/aarch64/images"
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/aarch64/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Rawhide-.*.qcow2<" | tr -d '><')
         ANSIBLE_OS_NAME="fedora-iot"
         REF_PREFIX="fedora-iot"
+        SYSROOT_RO="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -355,7 +387,6 @@ EOF
 sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e image_type="$SIMPLIFIED_IMAGE_TYPE" -e repo_url="$PROD_REPO_URL" -e ostree_ref="$OSTREE_REF" build-image.yaml || RESULTS=0
 
 # Copy image back from builder VM.
-# scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i "$SSH_KEY" "${SSH_USER}@${BUILDER_VM_IP}:/home/admin/*-${SIMPLIFIED_FILENAME}" "${TEMPDIR}/${SIMPLIFIED_FILENAME}"
 sudo scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i "$SSH_KEY" "${SSH_USER}@${BUILDER_VM_IP}:/home/admin/*-${SIMPLIFIED_FILENAME}" "/var/lib/libvirt/images/${SIMPLIFIED_FILENAME}"
 
 # Remove image in builder VM
@@ -366,26 +397,6 @@ until [ "$(curl -X POST http://"${BUILDER_VM_IP}":8080/ping)" == "pong" ]; do
     sleep 1;
 done;
 
-# HTTPD_PATH="/var/www/html"
-# GRUB_CFG="${HTTPD_PATH}/httpboot/EFI/BOOT/grub.cfg"
-# greenprint "📋 Mount simplified installer iso and copy content to webserver/httpboot"
-# sudo mkdir -p "${HTTPD_PATH}/httpboot"
-# sudo mkdir -p /mnt/installer
-# sudo mount -o loop "${TEMPDIR}/${SIMPLIFIED_FILENAME}" /mnt/installer
-# sudo cp -R /mnt/installer/* "${HTTPD_PATH}/httpboot/"
-# sudo chmod -R +r "${HTTPD_PATH}"/httpboot/*
-# sudo umount --detach-loop --lazy /mnt/installer
-# # Remove simplified installer ISO file
-# sudo rm -rf "${TEMPDIR}/${SIMPLIFIED_FILENAME}"
-# # Remove mount dir
-# sudo rm -rf /mnt/installer
-
-# greenprint "📋 Update grub.cfg file for http boot"
-# sudo sed -i 's/timeout=60/timeout=10/' "${GRUB_CFG}"
-# sudo sed -i 's/coreos.inst.install_dev=\/dev\/sda/coreos.inst.install_dev=\/dev\/vda/' "${GRUB_CFG}"
-# sudo sed -i 's/linux \/images\/pxeboot\/vmlinuz/linuxefi \/httpboot\/images\/pxeboot\/vmlinuz/' "${GRUB_CFG}"
-# sudo sed -i 's/initrd \/images\/pxeboot\/initrd.img/initrdefi \/httpboot\/images\/pxeboot\/initrd.img/' "${GRUB_CFG}"
-# sudo sed -i "s/coreos.inst.image_file=\/run\/media\/iso\/${IMAGE_NAME}/coreos.inst.image_url=http:\/\/${PROD_REPO_ADDRESS}\/httpboot\/${IMAGE_NAME}/" "${GRUB_CFG}"
 
 # Create qcow2 file for virt install.
 greenprint "Create qcow2 file for virt install"
@@ -395,20 +406,6 @@ sudo qemu-img create -f qcow2 "${EDGE_SIMPLIFIED_IMAGE_PATH}" 20G
 # Install via simplified installer image on UEFI vm with diun_pub_key_insecure enabled
 # The QEMU executable /usr/bin/qemu-system-aarch64 does not support TPM model tpm-crb
 greenprint "💿 Install via simplified installer image on UEFI vm"
-# sudo virt-install  --name="${EDGE_SIMPLIFIED_VM_NAME}" \
-#                    --disk path="${EDGE_SIMPLIFIED_IMAGE_PATH}",format=qcow2 \
-#                    --ram 3072 \
-#                    --vcpus 2 \
-#                    --network network=integration \
-#                    --pxe \
-#                    --os-type linux \
-#                    --os-variant "${OS_VARIANT}" \
-#                    --boot ${BOOT_ARGS} \
-#                    --tpm backend.type=emulator,backend.version=2.0,model=tpm-tis \
-#                    --nographics \
-#                    --noautoconsole \
-#                    --wait=-1 \
-#                    --noreboot
 sudo virt-install  --name="${EDGE_SIMPLIFIED_VM_NAME}" \
                    --disk path="${EDGE_SIMPLIFIED_IMAGE_PATH}",format=qcow2 \
                    --ram 3072 \
@@ -451,6 +448,32 @@ for _ in $(seq 0 30); do
     sleep 10
 done
 
+# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${EDGE_SIMPLIFIED_VM_IP}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for _ in $(seq 0 30); do
+    RESULTS=$(wait_for_ssh_up "$EDGE_SIMPLIFIED_VM_IP")
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+greenprint "Waiting for FDO user onboarding finished"
+for _ in $(seq 0 30); do
+    RESULTS=$(wait_for_fdo "$EDGE_SIMPLIFIED_VM_IP")
+    if [[ $RESULTS == 1 ]]; then
+        echo "FDO user is ready to use! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+
 # Check image installation result
 check_result
 
@@ -464,27 +487,30 @@ tee "${TEMPDIR}"/inventory > /dev/null << EOF
 ${EDGE_SIMPLIFIED_VM_IP}
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=admin
+ansible_user=${ANSIBLE_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 ansible_become_method=sudo
 ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
+# FDO user does not have password, use ssh key and no sudo password instead
+if [[ "$ANSIBLE_USER" == "fdouser" ]]; then
+    sed -i '/^ansible_become_pass/d' "${TEMPDIR}"/inventory
+fi
+
+
 # Test IoT/Edge OS
-sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="true" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
+sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
 check_result
 
-# Clean up BIOS VM
-greenprint "🧹 Clean up httpboot VM"
+# Clean up VM
+greenprint "🧹 Clean up VM"
 if [[ $(sudo virsh domstate "$EDGE_SIMPLIFIED_VM_NAME") == "running" ]]; then
     sudo virsh destroy "$EDGE_SIMPLIFIED_VM_NAME"
 fi
 sudo virsh undefine "$EDGE_SIMPLIFIED_VM_NAME" --nvram
 sudo virsh vol-delete --pool images "$EDGE_SIMPLIFIED_IMAGE_PATH"
-
-# Clean http boot folder
-# sudo rm -rf "${HTTPD_PATH}/${TEST_OS}-simplified-httpboot"
 
 ##########################################################################
 ##
@@ -580,6 +606,21 @@ for _ in $(seq 0 30); do
     sleep 10
 done
 
+# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${EDGE_SIMPLIFIED_VM_IP}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for _ in $(seq 0 30); do
+    RESULTS=$(wait_for_ssh_up "$EDGE_SIMPLIFIED_VM_IP")
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
 # Check image installation result
 check_result
 
@@ -593,7 +634,7 @@ tee "${TEMPDIR}"/inventory > /dev/null << EOF
 ${EDGE_SIMPLIFIED_VM_IP}
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=admin
+ansible_user=${SSH_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 ansible_become_method=sudo
@@ -601,11 +642,11 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="true" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
+sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
 check_result
 
-# Clean up BIOS VM
-greenprint "🧹 Clean up httpboot VM"
+# Clean up VM
+greenprint "🧹 Clean up VM"
 if [[ $(sudo virsh domstate "$EDGE_SIMPLIFIED_VM_NAME") == "running" ]]; then
     sudo virsh destroy "$EDGE_SIMPLIFIED_VM_NAME"
 fi
@@ -711,6 +752,21 @@ for _ in $(seq 0 30); do
     sleep 10
 done
 
+# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${EDGE_SIMPLIFIED_VM_IP}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for _ in $(seq 0 30); do
+    RESULTS=$(wait_for_ssh_up "$EDGE_SIMPLIFIED_VM_IP")
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
 # Check image installation result
 check_result
 
@@ -724,7 +780,7 @@ tee "${TEMPDIR}"/inventory > /dev/null << EOF
 ${EDGE_SIMPLIFIED_VM_IP}
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=admin
+ansible_user=${SSH_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 ansible_become_method=sudo
@@ -732,7 +788,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="true" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
+sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
 check_result
 
 # Clear simplified installer ISO and cert files
@@ -850,7 +906,7 @@ tee "${TEMPDIR}"/inventory > /dev/null << EOF
 ${EDGE_SIMPLIFIED_VM_IP}
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=admin
+ansible_user=${SSH_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 ansible_become_method=sudo
@@ -858,7 +914,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="true" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
+sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" -e fdo_credential="true" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up

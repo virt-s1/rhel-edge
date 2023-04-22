@@ -77,6 +77,13 @@
       become: yes
       when: ansible_facts['distribution_version'] == "9.2"
 
+    - name: copy rhel-93.json to /etc/osbuild-composer/repositories
+      copy:
+        src: "{{ playbook_dir }}/files/rhel-9-3-0.json"
+        dest: /etc/osbuild-composer/repositories/rhel-93.json
+      become: yes
+      when: ansible_facts['distribution_version'] == "9.3"
+
     - name: copy centos-stream-8.json to /etc/osbuild-composer/repositories
       copy:
         src: "{{ playbook_dir }}/files/centos-stream-8.json"
@@ -144,6 +151,27 @@
       when:
         - fdo_installed.rc == 1
         - image_type == "edge-simplified-installer" or image_type == "iot-simplified-installer"
+
+    - name: config fdo user onboarding
+      shell: |
+        /usr/local/bin/yq -iy '.service_info.initial_user |= {username: "fdouser", sshkeys: ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"]}' /etc/fdo/aio/configs/serviceinfo_api_server.yml
+        echo "fdouser ALL=(ALL) NOPASSWD: ALL" > /tmp/fdouser
+        /usr/local/bin/yq -iy '.service_info.files |= [{path: "/etc/sudoers.d/fdouser", source_path: "/tmp/fdouser"}]' /etc/fdo/aio/configs/serviceinfo_api_server.yml
+      become: yes
+      when:
+        - fdo_installed.rc == 1
+        - image_type == "edge-simplified-installer" or image_type == "iot-simplified-installer"
+        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>=')) or (ansible_facts['distribution'] == 'CentOS' or ansible_facts ['distribution_version'] is version('9', '=='))
+
+    - name: restart fdo service
+      systemd:
+        name: fdo-aio
+        state: restarted
+      become: yes
+      when:
+        - fdo_installed.rc == 1
+        - image_type == "edge-simplified-installer" or image_type == "iot-simplified-installer"
+        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>=')) or (ansible_facts['distribution'] == 'CentOS' or ansible_facts ['distribution_version'] is version('9', '=='))
 
     - name: get current date and time
       command: date +'%Y-%m-%d %H:%M:%S'
@@ -214,6 +242,11 @@
       shell: "composer-cli --json compose start-ostree --ref {{ ostree_ref }} --parent {{ parent_ref }} --url {{ repo_url }} {{ bp_name }} {{ image_type }} | tee /tmp/{{ image_type }}-compose-start"
       become: yes
       when: rebase == "true"
+
+    - name: start minimal raw image building
+      shell: "composer-cli --json compose start {{ bp_name }} {{ image_type }} | tee /tmp/{{ image_type }}-compose-start"
+      become: yes
+      when: image_type == "minimal-raw"
 
     - name: get compose uuid for new weldr-client
       command: jq -r '.[0].body.build_id' "/tmp/{{ image_type }}-compose-start"
@@ -313,6 +346,16 @@
       become: yes
       when:
         - image_type == "edge-simplified-installer" or image_type == "iot-simplified-installer"
+
+    - name: grant read permission to minimal raw image file
+      file:
+        path: "/home/admin/{{ compose_uuid }}-raw.img"
+        owner: admin
+        group: admin
+        mode: '0644'
+      become: yes
+      when:
+        - image_type == "minimal-raw"
 
     - name: remove image
       command: "composer-cli compose delete {{ compose_uuid }}"

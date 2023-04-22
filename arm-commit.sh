@@ -73,6 +73,11 @@ EMBEDDED_CONTAINER="true"
 # Prepare cloud-init data
 CLOUD_INIT_DIR=$(mktemp -d)
 cp tools/meta-data "$CLOUD_INIT_DIR"
+DIRS_FILES_CUSTOMIZATION="true"
+# Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+# It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
+SYSROOT_RO="false"
+FIREWALL_FEATURE="false"
 
 # Set useful things according to different distros.
 case "$TEST_OS" in
@@ -86,6 +91,7 @@ case "$TEST_OS" in
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">rhel-guest-image-8.8-.*.qcow2<" | tr -d '><')
         USER_IN_COMMIT="true"
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/nightly/RHEL-8/latest-RHEL-8.8.0/compose/BaseOS/aarch64/os/"
+        FIREWALL_FEATURE="true"
         ;;
     "rhel-9-2")
         IMAGE_TYPE="edge-commit"
@@ -99,17 +105,20 @@ case "$TEST_OS" in
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">rhel-guest-image-9.2-.*.qcow2<" | tr -d '><')
         USER_IN_COMMIT="true"
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/aarch64/os/"
+        SYSROOT_RO="true"
+        FIREWALL_FEATURE="true"
         ;;
     "centos-stream-8")
         IMAGE_TYPE="edge-commit"
         cp tools/user-data "$CLOUD_INIT_DIR"
         OS_VARIANT="centos-stream8"
         OSTREE_REF="centos/8/${ARCH}/edge"
-        GUEST_IMAGE_URL="https://cloud.centos.org/centos/8-stream/aarch64/images"
+        GUEST_IMAGE_URL="https://odcs.stream.centos.org/stream-8/production/latest-CentOS-Stream/compose/BaseOS/aarch64/images/"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">CentOS-Stream-GenericCloud-8-.*.qcow2<" | tr -d '><' | tail -1)
         USER_IN_COMMIT="true"
-        CURRENT_COMPOSE_CS8=$(curl -s "https://composes.centos.org/" | grep -ioE ">CentOS-Stream-8-.*/<" | tr -d '>/<' | tail -1)
-        BOOT_LOCATION="https://composes.centos.org/${CURRENT_COMPOSE_CS8}/compose/BaseOS/aarch64/os/"
+        CURRENT_COMPOSE_CS8=$(curl -s "https://odcs.stream.centos.org/stream-8/production/" | grep -ioE ">CentOS-Stream-8-.*/<" | tr -d '>/<' | tail -1)
+        BOOT_LOCATION="https://odcs.stream.centos.org/stream-8/production/${CURRENT_COMPOSE_CS8}/compose/BaseOS/aarch64/os/"
+        FIREWALL_FEATURE="true"
         ;;
     "centos-stream-9")
         IMAGE_TYPE="edge-commit"
@@ -122,28 +131,32 @@ case "$TEST_OS" in
         CURRENT_COMPOSE_CS9=$(curl -s "https://composes.stream.centos.org/production/" | grep -ioE ">CentOS-Stream-9-.*/<" | tr -d '>/<' | tail -1)
         BOOT_LOCATION="https://composes.stream.centos.org/production/${CURRENT_COMPOSE_CS9}/compose/BaseOS/aarch64/os/"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
+        SYSROOT_RO="true"
+        FIREWALL_FEATURE="true"
         ;;
     "fedora-37")
         IMAGE_TYPE="iot-commit"
         cp tools/user-data "$CLOUD_INIT_DIR"
         OS_VARIANT="fedora-unknown"
         OSTREE_REF="fedora/37/${ARCH}/iot"
-        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/aarch64/images"
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/aarch64/images"
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-37-.*.qcow2<" | tr -d '><')
         USER_IN_COMMIT="false"
         EMBEDDED_CONTAINER="false"
-        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Everything/aarch64/os/"
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/releases/37/Everything/aarch64/os/"
+        SYSROOT_RO="true"
         ;;
     "fedora-38")
         IMAGE_TYPE="iot-commit"
         cp tools/user-data "$CLOUD_INIT_DIR"
         OS_VARIANT="fedora-unknown"
         OSTREE_REF="fedora/38/${ARCH}/iot"
-        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/38/Cloud/aarch64/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Rawhide-.*.qcow2<" | tr -d '><')
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/38/Cloud/aarch64/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-38-.*.qcow2<" | tr -d '><')
         USER_IN_COMMIT="false"
         EMBEDDED_CONTAINER="false"
-        BOOT_LOCATION="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/development/38/Everything/aarch64/os/"
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/development/38/Everything/aarch64/os/"
+        SYSROOT_RO="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -277,6 +290,36 @@ source = "quay.io/fedora/fedora:latest"
 EOF
 fi
 
+# Add directory and files customization, and services customization for testing
+if [[ "${DIRS_FILES_CUSTOMIZATION}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[customizations.directories]]
+path = "/etc/custom_dir/dir1"
+user = 1020
+group = 1020
+mode = "0770"
+ensure_parents = true
+
+[[customizations.files]]
+path = "/etc/systemd/system/custom.service"
+data = "[Unit]\nDescription=Custom service\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/bin/false\n[Install]\nWantedBy=multi-user.target\n"
+
+[[customizations.files]]
+path = "/etc/custom_file.txt"
+data = "image builder is the best\n"
+
+[[customizations.directories]]
+path = "/etc/systemd/system/custom.service.d"
+
+[[customizations.files]]
+path = "/etc/systemd/system/custom.service.d/override.conf"
+data = "[Service]\nExecStart=\nExecStart=/usr/bin/cat /etc/custom_file.txt\n"
+
+[customizations.services]
+enabled = ["custom.service"]
+EOF
+fi
+
 # Create inventory file
 tee "${TEMPDIR}"/inventory > /dev/null << EOF
 [builder]
@@ -377,6 +420,22 @@ for _ in $(seq 0 30); do
     sleep 10
 done
 
+# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${EDGE_COMMIT_VM_IP}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
+
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for _ in $(seq 0 30); do
+    RESULTS=$(wait_for_ssh_up "$EDGE_COMMIT_VM_IP")
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
 # Check image installation result
 check_result
 
@@ -396,7 +455,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 check_result
 
 ##################################################
@@ -441,6 +500,46 @@ if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]
 source = "quay.io/fedora/fedora:latest"
+EOF
+fi
+
+if [[ "${FIREWALL_FEATURE}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[customizations.firewall.zones]]
+name = "trusted"
+sources = ["192.168.100.51"]
+[[customizations.firewall.zones]]
+name = "work"
+sources = ["192.168.100.52"]
+EOF
+fi
+
+if [[ "${DIRS_FILES_CUSTOMIZATION}" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[customizations.directories]]
+path = "/etc/custom_dir/dir1"
+user = 1020
+group = 1020
+mode = "0770"
+ensure_parents = true
+
+[[customizations.files]]
+path = "/etc/systemd/system/custom.service"
+data = "[Unit]\nDescription=Custom service\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/bin/false\n[Install]\nWantedBy=multi-user.target\n"
+
+[[customizations.files]]
+path = "/etc/custom_file.txt"
+data = "image builder is the best\n"
+
+[[customizations.directories]]
+path = "/etc/systemd/system/custom.service.d"
+
+[[customizations.files]]
+path = "/etc/systemd/system/custom.service.d/override.conf"
+data = "[Service]\nExecStart=\nExecStart=/usr/bin/cat /etc/custom_file.txt\n"
+
+[customizations.services]
+enabled = ["custom.service"]
 EOF
 fi
 
@@ -517,7 +616,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" check-ostree.yaml || RESULTS=0
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" -e firewall_feature="${FIREWALL_FEATURE}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up

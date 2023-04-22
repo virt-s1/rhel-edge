@@ -408,6 +408,7 @@
       command: grep -Fxq "Environment=LOG_LEVEL=trace" /etc/systemd/system/fdo-client-linuxapp.service.d/log_trace.conf
       register: result_log_trace
       changed_when: no
+      become: yes
       ignore_errors: yes
       when: ignition == "true"
 
@@ -435,6 +436,7 @@
         - name: check hello.service logs
           command: journalctl -b -0 -u hello.service
           register: result_hello_service_log
+          become: yes
 
         - assert:
             that:
@@ -475,6 +477,7 @@
     - name: check ostree-remount mount log
       command: journalctl -u ostree-remount
       register: result_remount_jounalctl
+      become: yes
 
     - name: ostree-remount should remount /var and /sysroot
       block:
@@ -756,6 +759,7 @@
 
         - name: all greenboot* service should run without error
           command: journalctl -b -0 -u greenboot -u greenboot-healthcheck -u greenboot-rpm-ostree-grub2-check-fallback -u greenboot-grub2-set-counter -u greenboot-grub2-set-success -u greenboot-status -u redboot -u redboot-auto-reboot -u redboot.target
+          become: yes
           register: result_greenboot_log
 
         - assert:
@@ -802,6 +806,7 @@
     - name: check fdo-client-linuxapp logs
       command: journalctl -u fdo-client-linuxapp
       register: result_fdo_client_linuxapp_journalctl
+      become: yes
 
     # case: check rollback function if boot error found
     - name: install sanely failing health check unit to test red boot status behavior
@@ -852,6 +857,7 @@
         - name: list boots
           shell: journalctl --list-boots
           register: result_list_boots
+          become: yes
 
         - assert:
             that:
@@ -900,9 +906,11 @@
         - name: check boot-complete.target
           # will fail if the target was not reached
           command: systemctl --no-pager status boot-complete.target
+          become: yes
 
         - name: fallback log should be found here
           command: journalctl -b -0 -u greenboot -u greenboot-healthcheck -u greenboot-rpm-ostree-grub2-check-fallback -u greenboot-grub2-set-counter -u greenboot-grub2-set-success -u greenboot-status -u redboot -u redboot-auto-reboot -u redboot.target
+          become: yes
           register: result_greenboot_log
 
         - assert:
@@ -952,6 +960,7 @@
     - name: check fdo-client-linuxapp logs
       command: journalctl -u fdo-client-linuxapp
       register: result_fdo_client_linuxapp_journalctl
+      become: yes
 
     # Check re-encryption status on x86_64
     - name: wait for FDO re-encryption
@@ -996,6 +1005,7 @@
     - name: check fdo-client-linuxapp logs
       command: journalctl -u fdo-client-linuxapp
       register: result_fdo_client_linuxapp_journalctl
+      become: yes
 
     # case: checking firewall customizations
     - name: Check applied firewall customizations
