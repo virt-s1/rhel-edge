@@ -12,7 +12,7 @@ on:
 env:
   COMPOSE_URL_90: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
   COMPOSE_URL_91: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
-  COMPOSE_URL_92: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/RHEL-9"
+  COMPOSE_URL_92: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
 
 jobs:
   check-compose:
