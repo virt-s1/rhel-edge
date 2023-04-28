@@ -89,8 +89,8 @@ jobs:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
-      - name: Deploy arm runner
-        run: toos/deploy_bare.sh
+      - name: Setup arm runner
+        run: tools/deploy_bare.sh
         timeout-minutes: 10
 
       - name: run arm-commit.sh
@@ -197,8 +197,8 @@ jobs:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
-      - name: Deploy arm runner
-        run: toos/deploy_bare.sh
+      - name: Setup arm runner
+        run: tools/deploy_bare.sh
         timeout-minutes: 10
 
       - name: run arm-commit.sh
@@ -280,7 +280,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup arm runner
-        run: toos/deploy_bare.sh
+        run: tools/deploy_bare.sh
         timeout-minutes: 10
 
       - name: run arm-installer.sh
@@ -365,7 +365,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup arm runner
-        run: toos/deploy_bare.sh
+        run: tools/deploy_bare.sh
         timeout-minutes: 10
 
       - name: run arm-raw.sh
@@ -450,7 +450,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup arm runner
-        run: toos/deploy_bare.sh
+        run: tools/deploy_bare.sh
         timeout-minutes: 10
 
       - name: run arm-simplified.sh
@@ -532,7 +532,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup arm runner
-        run: toos/deploy_bare.sh
+        run: tools/deploy_bare.sh
         timeout-minutes: 10
 
       - name: run arm-ignition.sh
