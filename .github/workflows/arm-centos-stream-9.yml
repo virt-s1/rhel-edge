@@ -48,7 +48,7 @@ jobs:
   pre-arm-all-cs9:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/arm-cs9-all') }}
+            endsWith(github.event.comment.body, '/arm-cs9-all') }}
     runs-on: ubuntu-latest
     env:
       STATUS_NAME: arm-all-cs9
@@ -156,7 +156,7 @@ jobs:
   pre-arm-commit-cs9:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/arm-cs9-commit') }}
+            endsWith(github.event.comment.body, '/arm-cs9-commit') }}
     runs-on: ubuntu-latest
     env:
       STATUS_NAME: arm-commit-cs9
@@ -238,7 +238,7 @@ jobs:
   pre-arm-installer-cs9:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/arm-cs9-installer') }}
+            endsWith(github.event.comment.body, '/arm-cs9-installer') }}
     runs-on: ubuntu-latest
     env:
       STATUS_NAME: arm-installer-cs9
@@ -323,7 +323,7 @@ jobs:
   pre-arm-raw-cs9:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/arm-cs9-raw') }}
+            endsWith(github.event.comment.body, '/arm-cs9-raw') }}
     runs-on: ubuntu-latest
     env:
       STATUS_NAME: arm-raw-cs9
@@ -408,7 +408,7 @@ jobs:
   pre-arm-simplified-cs9:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/arm-cs9-simplified') }}
+            endsWith(github.event.comment.body, '/arm-cs9-simplified') }}
     runs-on: ubuntu-latest
     env:
       STATUS_NAME: arm-simplified-installer-cs9
@@ -490,7 +490,7 @@ jobs:
   pre-arm-ignition-cs9:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/arm-cs9-ignition') }}
+            endsWith(github.event.comment.body, '/arm-cs9-ignition') }}
     runs-on: ubuntu-latest
     env:
       STATUS_NAME: arm-ignition-cs9
