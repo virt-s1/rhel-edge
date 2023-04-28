@@ -25,18 +25,14 @@ jobs:
           STATUS_CS9=$(cat STATUS_CS9)
           if [[ "$STATUS_CS9" == "FINISHED" ]]; then
               COMPOSE_ID_CS9=$CURRENT_COMPOSE_CS9
-              TESTED_COMPOSE_CS9=( $( cat compose/compose.cs9 ) )
-              if [[ " ${TESTED_COMPOSE_CS9[*]} " =~ "$COMPOSE_ID_CS9" ]]; then
-                  COMPOSE_ID_CS9="false"
-              fi
           else
               COMPOSE_ID_CS9="false"
           fi
 
           if [[ "$COMPOSE_ID_CS9" != "false" ]]; then
-              OSBUILD_VERSION_CS9=$(curl -s "${COMPOSE_URL_CS9}/${COMPOSE_ID_CS9}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
-              OSBUILD_COMPOSER_VERSION_CS9=$(curl -s "${COMPOSE_URL_CS9}/${COMPOSE_ID_CS9}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
-              COMPOSER_CLI_VERSION_CS9=$(curl -s "${COMPOSE_URL_CS9}/${COMPOSE_ID_CS9}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              OSBUILD_VERSION_CS9=$(curl -s "${COMPOSE_URL_CS9}/${COMPOSE_ID_CS9}/compose/AppStream/aarch64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION_CS9=$(curl -s "${COMPOSE_URL_CS9}/${COMPOSE_ID_CS9}/compose/AppStream/aarch64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION_CS9=$(curl -s "${COMPOSE_URL_CS9}/${COMPOSE_ID_CS9}/compose/AppStream/aarch64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
               echo "osbuild_version_cs9=$OSBUILD_VERSION_CS9" >> $GITHUB_OUTPUT
               echo "osbuild_composer_version_cs9=$OSBUILD_COMPOSER_VERSION_CS9" >> $GITHUB_OUTPUT
               echo "composer_cli_version_cs9=$COMPOSER_CLI_VERSION_CS9" >> $GITHUB_OUTPUT
