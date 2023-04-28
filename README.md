@@ -83,7 +83,8 @@ Test suites in scenario:
 5. [`ostree-rebase.sh`](ostree-rebase.sh) and [`arm-rebase.sh`](arm-rebase.sh): Different ostree ref rebase test on RHEL 8.x and CentOS Stream 8
 6. [`ostree-8-to-9.sh`](ostree-8-to-9.sh): RHEL 8/CentOS Stream 8 Edge system upgrade to RHEL 9/CentOS Stream 9 Edge system test
 6. [`ostree-9-to-9.sh`](ostree-9-to-9.sh): RHEL 9/CentOS Stream 9 Edge system upgrade and rebase to RHEL 9/CentOS Stream 9 Edge system test
-7. [`minimal-raw.sh`](minimal-raw.sh): RPM based system test (Not ostree)
+7. [`minimal-raw.sh`](minimal-raw.sh) and [`arm-minimal.sh`](arm-minimal.sh): RPM based system test (Not ostree)
+8. [`ostree-ignition.sh`](ostree-ignition.sh) and [`arm-ignition.sh`](arm-ignition.sh): Ignition test for simplified installer and raw image
 
 ### Test environment
 
@@ -120,14 +121,15 @@ To run RHEL for Edge test on ARM server, a bare metal ARM server is required.
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-9-to-9.sh
     $ ./minimal-raw.sh
 
-#### For ARM
+#### For ARM64
 
     $ tools/deploy_bare.sh
     $ DOWNLOAD_NODE="hello-world.com" ./arm-commit.sh <test os>
     $ DOWNLOAD_NODE="hello-world.com" QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./arm-installer.sh <test os>
     $ DOWNLOAD_NODE="hello-world.com" DOCKERHUB_USERNAME=rhel-edge DOCKERHUB_PASSWORD=123456 ./arm-raw.sh <test os>
     $ DOWNLOAD_NODE="hello-world.com" ./arm-simplified.sh <test os>
-    $ DOWNLOAD_NODE="hello-world.com" ./arm-rebase.sh <test os>
+    $ DOWNLOAD_NODE="hello-world.com" ./arm-ignition.sh <centos-stream-9 or rhel-9-2>
+    $ DOWNLOAD_NODE="hello-world.com" ./arm-minimal.sh <fedora-37 or fedora-38>
 
     <test os> can be one of "rhel-8-8", "rhel-9-2", "centos-stream-8", "centos-stream-9", "fedora-37", "fedora-38"
 

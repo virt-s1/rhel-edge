@@ -227,12 +227,12 @@ sudo qemu-img resize "${GUEST_IMAGE_PATH}" 15G
 # Set up a cloud-init ISO.
 greenprint "💿 Creating a cloud-init ISO"
 CLOUD_INIT_PATH="${LIBVIRT_IMAGE_PATH}/seed-simplified.iso"
-rm -f "$CLOUD_INIT_PATH"
+sudo rm -f "$CLOUD_INIT_PATH"
 pushd "$CLOUD_INIT_DIR"
     sudo mkisofs -o $CLOUD_INIT_PATH -V cidata \
         -r -J user-data meta-data > /dev/null 2>&1
 popd
-rm -rf "$CLOUD_INIT_DIR"
+sudo rm -rf "$CLOUD_INIT_DIR"
 
 # Ensure SELinux is happy with image.
 greenprint "👿 Running restorecon on image directory"
