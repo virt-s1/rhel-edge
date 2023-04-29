@@ -119,7 +119,7 @@ To run RHEL for Edge test on ARM server, a bare metal ARM server is required.
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-rebase.sh
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-8-to-9.sh
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-9-to-9.sh
-    $ ./minimal-raw.sh
+    $ ./minimal-raw.sh (Fedora 37 and above)
 
 #### For ARM64
 
