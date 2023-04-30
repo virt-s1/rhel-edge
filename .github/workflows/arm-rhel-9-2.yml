@@ -48,7 +48,7 @@ jobs:
   pre-arm-all-92:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            endsWith(github.event.comment.body, '/arm-92-all') }}
+            endsWith(github.event.comment.body, '/arm-rhel-9-2-all') }}
     runs-on: ubuntu-latest
     env:
       STATUS_NAME: arm-all-92
@@ -159,7 +159,7 @@ jobs:
   pre-arm-commit-92:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            endsWith(github.event.comment.body, '/arm-92-commit') }}
+            endsWith(github.event.comment.body, '/arm-rhel-9-2-commit') }}
     runs-on: ubuntu-latest
     env:
       STATUS_NAME: arm-commit-92
@@ -244,7 +244,7 @@ jobs:
   pre-arm-installer-92:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            endsWith(github.event.comment.body, '/arm-92-installer') }}
+            endsWith(github.event.comment.body, '/arm-rhel-9-2-installer') }}
     runs-on: ubuntu-latest
     env:
       STATUS_NAME: arm-installer-92
@@ -332,7 +332,7 @@ jobs:
   pre-arm-raw-92:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            endsWith(github.event.comment.body, '/arm-92-raw') }}
+            endsWith(github.event.comment.body, '/arm-rhel-9-2-raw') }}
     runs-on: ubuntu-latest
     env:
       STATUS_NAME: arm-raw-92
@@ -420,7 +420,7 @@ jobs:
   pre-arm-simplified-92:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            endsWith(github.event.comment.body, '/arm-92-simplified') }}
+            endsWith(github.event.comment.body, '/arm-rhel-9-2-simplified') }}
     runs-on: ubuntu-latest
     env:
       STATUS_NAME: arm-simplified-installer-92
@@ -505,7 +505,7 @@ jobs:
   pre-arm-ignition-92:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            endsWith(github.event.comment.body, '/arm-92-ignition') }}
+            endsWith(github.event.comment.body, '/arm-rhel-9-2-ignition') }}
     runs-on: ubuntu-latest
     env:
       STATUS_NAME: arm-ignition-92
