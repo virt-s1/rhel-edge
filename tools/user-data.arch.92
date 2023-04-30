@@ -15,16 +15,16 @@ packages:
 yum_repos:
   baseos:
     name: rhel-baseos
-    baseurl: http://REPLACE_ME_HERE/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/REPLACE_ARCH_HERE/os/
+    baseurl: http://REPLACE_ME_HERE/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/REPLACE_ARCH_HERE/os/
     enabled: true
     gpgcheck: false
   appstream:
     name: rhel-baseos
-    baseurl: http://REPLACE_ME_HERE/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/AppStream/REPLACE_ARCH_HERE/os/
+    baseurl: http://REPLACE_ME_HERE/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.2.0/compose/AppStream/REPLACE_ARCH_HERE/os/
     enabled: true
     gpgcheck: false
   crb:
     name: rhel-crb
-    baseurl: http://REPLACE_ME_HERE/rhel-9/nightly/RHEL-9/latest-RHEL-9.2.0/compose/CRB/REPLACE_ARCH_HERE/os/
+    baseurl: http://REPLACE_ME_HERE/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.2.0/compose/CRB/REPLACE_ARCH_HERE/os/
     enabled: true
     gpgcheck: false
