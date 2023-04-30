@@ -56,6 +56,8 @@ case "${ID}-${VERSION_ID}" in
         PARENT_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos-stream8"
         BOOT_LOCATION="http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/"
+        # workaround issue #2640
+        BOOT_ARGS="loader=/usr/share/edk2/ovmf/OVMF_CODE.secboot.fd,loader.readonly=yes,loader.secure='no',loader.type=pflash,nvram=/usr/share/edk2/ovmf/OVMF_VARS.fd"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"

@@ -96,6 +96,8 @@ case "${ID}-${VERSION_ID}" in
         ADD_SSSD="true"
         USER_IN_RAW="true"
         SYSROOT_RO="false"
+        # workaround issue #2640
+        BOOT_ARGS="loader=/usr/share/edk2/ovmf/OVMF_CODE.secboot.fd,loader.readonly=yes,loader.secure='no',loader.type=pflash,nvram=/usr/share/edk2/ovmf/OVMF_VARS.fd"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
