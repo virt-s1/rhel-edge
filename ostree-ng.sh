@@ -116,6 +116,8 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_PUSHING_FEAT="true"
         EMBEDDED_CONTAINER="true"
         DIRS_FILES_CUSTOMIZATION="true"
+        # workaround issue #2640
+        BOOT_ARGS="loader=/usr/share/edk2/ovmf/OVMF_CODE.secboot.fd,loader.readonly=yes,loader.secure='no',loader.type=pflash,nvram=/usr/share/edk2/ovmf/OVMF_VARS.fd"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
