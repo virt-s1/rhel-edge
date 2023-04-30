@@ -76,7 +76,7 @@ jobs:
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "aarch64 ${{ needs.check-compose.outputs.cs9_compose }} - ${{ steps.date.outputs.date }}"
+          title: "[aarch64] ${{ needs.check-compose.outputs.cs9_compose }} - ${{ steps.date.outputs.date }}"
           labels: DO_NOT_MERGE,CentOS-Stream-9,aarch64
           body: |
             CentOS Stream 9 compose ${{ needs.check-compose.outputs.cs9_compose }}

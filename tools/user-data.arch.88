@@ -15,16 +15,16 @@ packages:
 yum_repos:
   baseos:
     name: rhel-baseos
-    baseurl: http://REPLACE_ME_HERE/rhel-8/nightly/RHEL-8/latest-RHEL-8.8.0/compose/BaseOS/REPLACE_ARCH_HERE/os/
+    baseurl: http://REPLACE_ME_HERE/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.8.0/compose/BaseOS/REPLACE_ARCH_HERE/os/
     enabled: true
     gpgcheck: false
   appstream:
     name: rhel-baseos
-    baseurl: http://REPLACE_ME_HERE/rhel-8/nightly/RHEL-8/latest-RHEL-8.8.0/compose/AppStream/REPLACE_ARCH_HERE/os/
+    baseurl: http://REPLACE_ME_HERE/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.8.0/compose/AppStream/REPLACE_ARCH_HERE/os/
     enabled: true
     gpgcheck: false
   crb:
     name: rhel-crb
-    baseurl: http://REPLACE_ME_HERE/rhel-8/nightly/RHEL-8/latest-RHEL-8.8.0/compose/CRB/REPLACE_ARCH_HERE/os/
+    baseurl: http://REPLACE_ME_HERE/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.8.0/compose/CRB/REPLACE_ARCH_HERE/os/
     enabled: true
     gpgcheck: false
