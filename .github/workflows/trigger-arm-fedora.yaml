@@ -35,15 +35,9 @@ jobs:
 
           echo "f38_compose=$COMPOSE_ID_F38" >> $GITHUB_OUTPUT
 
-      - name: Add new compose id in compose.f38
-        run: |
-          compose_id="${{ needs.check-compose.outputs.f38_compose }}"
-          echo $compose_id >> compose/compose.f38
-          cat compose/compose.f38
-
       - name: Make change for PR creating
         run: |
-          compose_id="${{ needs.check-compose.outputs.f38_compose }}"
+          compose_id="${{ steps.package_version.outputs.f38_compose }}"
           echo $compose_id >> arm_f38.run
 
       - name: Get current date
@@ -55,22 +49,22 @@ jobs:
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "aarch64 - ${{ needs.check-compose.outputs.f38_compose }} - ${{ steps.date.outputs.date }}"
+          commit-message: "aarch64 - ${{ steps.package_version.outputs.f38_compose }} - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "[aarch64] ${{ needs.check-compose.outputs.f38_compose }} - ${{ steps.date.outputs.date }}"
+          title: "[aarch64] Fedora 38 Test - ${{ steps.date.outputs.date }}"
           labels: DO_NOT_MERGE,fedora-38,aarch64
           body: |
-            Fedora 38 compose ${{ needs.check-compose.outputs.f38_compose }}
+            Fedora 38 compose ${{ steps.package_version.outputs.f38_compose }}
             - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: "${{ env.COMPOSE_URL_F38 }}/${{ needs.check-compose.outputs.f38_compose }}"
+            - Compose URL: "${{ env.COMPOSE_URL_F38 }}/${{ steps.package_version.outputs.f38_compose }}"
             - Packages:
-                - ${{ needs.check-compose.outputs.osbuild_version_f38 }}
-                - ${{ needs.check-compose.outputs.osbuild_composer_version_f38 }}
-                - ${{ needs.check-compose.outputs.composer_cli_version_f38 }}
+                - ${{ steps.package_version.outputs.osbuild_version_f38 }}
+                - ${{ steps.package_version.outputs.osbuild_composer_version_f38 }}
+                - ${{ steps.package_version.outputs.composer_cli_version_f38 }}
 
       - name: Add a comment to trigger test workflow
         uses: peter-evans/create-or-update-comment@v2
@@ -83,6 +77,6 @@ jobs:
         uses: peter-evans/create-or-update-project-card@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          project-name: RHEL Compose Test
+          project-name: Fedora Compose Test
           column-name: Fedora-38
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}

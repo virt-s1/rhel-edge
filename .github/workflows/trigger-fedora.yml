@@ -139,7 +139,7 @@ jobs:
 
       - name: Add new compose id in compose.f38
         run: |
-          compose_id="${{ needs.check-compose.outputs.f38_compose }}"
+          compose_id="${{ steps.package_version.outputs.f38_compose }}"
           echo $compose_id >> compose/compose.f38
           cat compose/compose.f38
 
