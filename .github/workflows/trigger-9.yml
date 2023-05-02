@@ -18,7 +18,8 @@ jobs:
   check-compose:
     # Do not run this job on any fork repos
     if: github.repository == 'virt-s1/rhel-edge'
-    runs-on: [kite, x86_64, rhos-01, fedora-37, small]
+    runs-on: container-runner
+    container: quay.io/fedora/fedora:38-x86_64
     steps:
       - uses: actions/checkout@v3
 
