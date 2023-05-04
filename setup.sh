@@ -45,7 +45,7 @@ curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-
 
 # Install required packages
 greenprint "Install required packages"
-sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli podman skopeo wget firewalld lorax xorriso curl jq expect qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm virt-install rpmdevtools
+sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli podman skopeo wget firewalld lorax xorriso curl jq expect qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm libvirt-daemon virt-install rpmdevtools
 
 # Customize repository
 sudo mkdir -p /etc/osbuild-composer/repositories
@@ -78,6 +78,8 @@ case "${ID}-${VERSION_ID}" in
         sudo dnf install -y nghttp2
         ;;
     "fedora-38")
+        ;;
+    "fedora-39")
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"

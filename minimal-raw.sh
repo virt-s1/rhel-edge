@@ -49,6 +49,9 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="fedora37"
         ;;
     "fedora-38")
+        OS_VARIANT="fedora-unknown"
+        ;;
+    "fedora-39")
         OS_VARIANT="fedora-rawhide"
         ;;
     *)
