@@ -139,7 +139,7 @@ case "${ID}-${VERSION_ID}" in
         sudo dnf install -y dmidecode
         sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
         OSTREE_REF="fedora/37/${ARCH}/iot"
-        OS_VARIANT="fedora-unknown"
+        OS_VARIANT="fedora37"
         ANSIBLE_OS_NAME="fedora"
         SYSROOT_RO="true"
         DIRS_FILES_CUSTOMIZATION="true"
@@ -161,7 +161,7 @@ case "${ID}-${VERSION_ID}" in
         sudo dnf install -y dmidecode
         sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
         OSTREE_REF="fedora/39/${ARCH}/iot"
-        OS_VARIANT="fedora-unknown"
+        OS_VARIANT="fedora-rawhide"
         ANSIBLE_OS_NAME="fedora"
         SYSROOT_RO="true"
         DIRS_FILES_CUSTOMIZATION="true"
