@@ -31,6 +31,8 @@ FIREWALL_FEATURE="false"
 # Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
 # It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
 SYSROOT_RO="false"
+FEDORA_IMAGE_DIGEST="sha256:4d76a7480ce1861c95975945633dc9d03807ffb45c64b664ef22e673798d414b"
+FEDORA_LOCAL_NAME="localhost/fedora-minimal:v1"
 
 # Set os-variant and boot location used by virt-install.
 case "${ID}-${VERSION_ID}" in
@@ -392,6 +394,10 @@ if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]
 source = "quay.io/fedora/fedora:latest"
+
+[[containers]]
+source = "registry.gitlab.com/redhat/services/products/image-builder/ci/osbuild-composer/fedora-minimal@${FEDORA_IMAGE_DIGEST}"
+name = "${FEDORA_LOCAL_NAME}"
 EOF
 fi
 
@@ -592,6 +598,10 @@ if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]
 source = "quay.io/fedora/fedora:latest"
+
+[[containers]]
+source = "registry.gitlab.com/redhat/services/products/image-builder/ci/osbuild-composer/fedora-minimal@${FEDORA_IMAGE_DIGEST}"
+name = "${FEDORA_LOCAL_NAME}"
 EOF
 fi
 
