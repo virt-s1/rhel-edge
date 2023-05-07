@@ -76,10 +76,13 @@ case "${ID}-${VERSION_ID}" in
     "fedora-37")
         # workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2162815
         sudo dnf install -y nghttp2
+        sudo cp files/fedora-37.json /etc/osbuild-composer/repositories/fedora-37.json
         ;;
     "fedora-38")
+        sudo cp files/fedora-38.json /etc/osbuild-composer/repositories/fedora-38.json
         ;;
     "fedora-39")
+        sudo cp files/fedora-39.json /etc/osbuild-composer/repositories/fedora-39.json
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
