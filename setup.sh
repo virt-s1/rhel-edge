@@ -57,6 +57,8 @@ case "${ID}-${VERSION_ID}" in
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-7-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-87.json > /dev/null;;
     "rhel-8.8")
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-8-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-88.json > /dev/null;;
+    "rhel-8.9")
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-9-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-89.json > /dev/null;;
     "rhel-9.0")
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-6-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-86.json > /dev/null
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-0-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-90.json > /dev/null;;
@@ -68,6 +70,11 @@ case "${ID}-${VERSION_ID}" in
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-8-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-88.json > /dev/null
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-1-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-91.json > /dev/null
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-2-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-92.json > /dev/null;;
+    "rhel-9.3")
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-8-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-88.json > /dev/null
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-1-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-91.json > /dev/null
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-2-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-92.json > /dev/null
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-3-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-93.json > /dev/null;;
     "centos-8")
         sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json;;
     "centos-9")
