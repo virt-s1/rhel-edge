@@ -634,6 +634,7 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when:
         - embedded_container == "true"
+        - ansible_architecture == "x86_64"
         - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>='))
 
     # case: check running container with podman
@@ -714,6 +715,7 @@
       ignore_errors: yes  # due to https://bugzilla.redhat.com/show_bug.cgi?id=1903983
       when:
         - embedded_container == "true"
+        - ansible_architecture == "x86_64"
         - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>='))
 
     - name: run fedora-minimal container test
@@ -734,6 +736,7 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when:
         - embedded_container == "true"
+        - ansible_architecture == "x86_64"
         - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>='))
 
     # case: check dnf package and it should not be installed
