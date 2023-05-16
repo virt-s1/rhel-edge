@@ -637,6 +637,26 @@
         - ansible_architecture == "x86_64"
         - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>='))
 
+    - name: embedded fedora-aarch64 container image should be listed by podman images
+      block:
+        - assert:
+            that:
+              - "'localhost/fedora-aarch64' in result_podman_images.stdout"
+            fail_msg: "fedora-aarch64 image is not built in image"
+            success_msg: "fedora-aarch64 image is built in image"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when:
+        - embedded_container == "true"
+        - ansible_architecture == "aarch64"
+        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>='))
+
+
     # case: check running container with podman
     # bug https://bugzilla.redhat.com/show_bug.cgi?id=2123611 fix is not landed on CS8
     - name: run ubi8 image with root
@@ -738,6 +758,41 @@
         - embedded_container == "true"
         - ansible_architecture == "x86_64"
         - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>='))
+
+    # case: check fedora-aarch64 container with podman
+    - name: run fedora-aarch64 image
+      command: podman run localhost/fedora-aarch64@sha256:8fd6ac4c552bbec7910df7b0625310561d56513ecbcc418825a2f5635efecfab cat /etc/os-release
+      register: faarch64_container_result
+      become: yes
+      retries: 30  # due to https://github.com/osbuild/osbuild-composer/issues/2492
+      delay: 2
+      until: faarch64_container_result is success
+      ignore_errors: yes  # due to https://bugzilla.redhat.com/show_bug.cgi?id=1903983
+      when:
+        - embedded_container == "true"
+        - ansible_architecture == "aarch64"
+        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>='))
+
+    - name: run fedora-aarch64 container test
+      block:
+        - assert:
+            that:
+              - faarch64_container_result is succeeded
+              - "'Trying to pull' not in faarch64_container_result.stdout"
+            fail_msg: "failed run fedora-aarch64 container with podman"
+            success_msg: "running fedora-aarch64 container with podman successed"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when:
+        - embedded_container == "true"
+        - ansible_architecture == "aarch64"
+        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>='))
+
 
     # case: check dnf package and it should not be installed
     # https://github.com/osbuild/osbuild-composer/blob/master/internal/distro/rhel8/distro.go#L642
