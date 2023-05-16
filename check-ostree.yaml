@@ -875,6 +875,8 @@
 
         - name: reboot to deploy new ostree commit
           reboot:
+            post_reboot_delay: 10
+            pre_reboot_delay: 5
           become: yes
 
         - name: wait for connection to become reachable/usable
