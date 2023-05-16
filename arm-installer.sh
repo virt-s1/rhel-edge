@@ -161,6 +161,8 @@ DIRS_FILES_CUSTOMIZATION="true"
 # Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
 # It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
 SYSROOT_RO="false"
+FEDORA_IMAGE_DIGEST="sha256:8fd6ac4c552bbec7910df7b0625310561d56513ecbcc418825a2f5635efecfab"
+FEDORA_LOCAL_NAME="localhost/fedora-aarch64:v1"
 
 # Prepare cloud-init data
 CLOUD_INIT_DIR=$(mktemp -d)
@@ -360,6 +362,10 @@ if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]
 source = "quay.io/fedora/fedora:latest"
+
+[[containers]]
+source = "registry.gitlab.com/redhat/edge/rhel-edge/fedora-aarch64@${FEDORA_IMAGE_DIGEST}"
+name = "${FEDORA_LOCAL_NAME}"
 EOF
 fi
 
@@ -600,6 +606,10 @@ if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]
 source = "quay.io/fedora/fedora:latest"
+
+[[containers]]
+source = "registry.gitlab.com/redhat/edge/rhel-edge/fedora-aarch64@${FEDORA_IMAGE_DIGEST}"
+name = "${FEDORA_LOCAL_NAME}"
 EOF
 fi
 

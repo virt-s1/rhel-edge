@@ -174,6 +174,8 @@ KS_FILE=${COMMIT_HTTPD_PATH}/ks.cfg
 OS_NAME="rhel-edge"
 PROD_REPO_ADDRESS=192.168.100.1
 PROD_REPO_URL="http://${PROD_REPO_ADDRESS}/${TEST_OS}-commit/repo/"
+FEDORA_IMAGE_DIGEST="sha256:8fd6ac4c552bbec7910df7b0625310561d56513ecbcc418825a2f5635efecfab"
+FEDORA_LOCAL_NAME="localhost/fedora-aarch64:v1"
 
 # Download guest image
 sudo curl --no-progress-meter -o "${GUEST_IMAGE_PATH}" "${GUEST_IMAGE_URL}/${GUEST_IMAGE_NAME}"
@@ -285,6 +287,10 @@ if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]
 source = "quay.io/fedora/fedora:latest"
+
+[[containers]]
+source = "registry.gitlab.com/redhat/edge/rhel-edge/fedora-aarch64@${FEDORA_IMAGE_DIGEST}"
+name = "${FEDORA_LOCAL_NAME}"
 EOF
 fi
 
@@ -498,6 +504,10 @@ if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]
 source = "quay.io/fedora/fedora:latest"
+
+[[containers]]
+source = "registry.gitlab.com/redhat/edge/rhel-edge/fedora-aarch64@${FEDORA_IMAGE_DIGEST}"
+name = "${FEDORA_LOCAL_NAME}"
 EOF
 fi
 
