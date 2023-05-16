@@ -10,6 +10,16 @@
     parent_ref: ""
 
   tasks:
+    - name: check partition size
+      command: df -h
+      ignore_errors: yes
+      become: yes
+
+    - name: check memory usage
+      command: free -mh
+      ignore_errors: yes
+      become: yes
+
     - name: install required packages
       dnf:
         name:
@@ -276,6 +286,16 @@
           delay: 50
           until: "'FINISHED' in compose_status.stdout"
       always:
+        - name: check partition size
+          command: df -h
+          ignore_errors: yes
+          become: yes
+
+        - name: check memory usage
+          command: free -mh
+          ignore_errors: yes
+          become: yes
+
         - name: show worker log
           command: "journalctl -a --no-pager --since '{{ start_time }}' -u osbuild-worker@1.service"
           become: yes
