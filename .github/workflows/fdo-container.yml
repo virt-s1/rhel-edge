@@ -1,14 +1,48 @@
 ---
-name: Run FDO Container Test on CentOS Stream 9
+name: FDO Container Test on CentOS Stream 9
 
 on:
-  workflow_dispatch:
-  schedule:
-    # run 8:05 every Sunday
-    - cron: '5 8 * * 0'
+  issue_comment:
+    types:
+      - created
 
 jobs:
+  pr-info:
+    if: ${{ github.event.issue.pull_request && endsWith(github.event.comment.body, '/test-fdo-container') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query author repository permissions
+        uses: octokit/request-action@v2.x
+        id: user_permission
+        with:
+          route: GET /repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}/permission
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # restrict running of tests to users with admin or write permission for the repository
+      # see https://docs.github.com/en/free-pro-team@latest/rest/reference/repos#get-repository-permissions-for-a-user
+      - name: Check if user does have correct permissions
+        if: contains('admin write', fromJson(steps.user_permission.outputs.data).permission)
+        id: check_user_perm
+        run: |
+          echo "User '${{ github.event.sender.login }}' has permission '${{ fromJson(steps.user_permission.outputs.data).permission }}' allowed values: 'admin', 'write'"
+          echo "allowed_user=true" >> $GITHUB_OUTPUT
+      - name: Get information for pull request
+        uses: octokit/request-action@v2.x
+        id: pr-api
+        with:
+          route: GET /repos/${{ github.repository }}/pulls/${{ github.event.issue.number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    outputs:
+      allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
+      sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
+
   pre-edge-fdo-container-c9:
+    needs: pr-info
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
+            endsWith(github.event.comment.body, '/test-fdo-container')) }}
     runs-on: ubuntu-latest
     env:
       STATUS_NAME: edge-fdo-container-centos9
@@ -26,7 +60,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   edge-fdo-container-c9:
-    needs: [pre-edge-fdo-container-c9]
+    needs: [pr-info, pre-edge-fdo-container-c9]
     runs-on: [kite, x86_64, gcp, centos-stream-9, large]
     env:
       STATUS_NAME: edge-fdo-container-centos9
@@ -84,11 +118,3 @@ jobs:
           path: |
             *.json
             *.log
-
-      - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          project-name: Packages
-          column-name: ${{ github.event.client_payload.package_name }}
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}

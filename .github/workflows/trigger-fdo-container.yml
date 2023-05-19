@@ -1,0 +1,54 @@
+---
+name: FDO container test trigger
+
+on:
+  workflow_dispatch:
+  schedule:
+    # run 8:05 every Sunday
+    - cron: '5 8 * * 0'
+
+jobs:
+  fdo-container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Make change for PR creating
+        run: |
+          echo "fdo-container" > fdo-container.run
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "FDO container test - ${{ steps.date.outputs.date }}"
+          committer: cloudkitebot <henrywangxf1@gmail.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: cpr
+          branch-suffix: random
+          delete-branch: true
+          title: "FDO container test - ${{ steps.date.outputs.date }}"
+          labels: DO_NOT_MERGE,fdo-container
+          body: |
+            FDO container test
+            - Date: ${{ steps.date.outputs.date }}
+
+      - name: Add a comment to trigger test workflow
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          token: ${{ secrets.PAT }}
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          body: /test-fdo-container
+
+      - name: Create a project card to track compose test result
+        uses: peter-evans/create-or-update-project-card@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          project-name: Packages
+          column-name: fdo-container
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
