@@ -8,6 +8,7 @@ source /etc/os-release
 ARCH=$(uname -m)
 OSTREE_REF="centos/9/${ARCH}/edge"
 OS_VARIANT="centos-stream9"
+BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
 
 # Install python3-pip
 sudo dnf install -y python3-pip
@@ -33,7 +34,6 @@ CONTAINER_FILENAME=container.tar
 INSTALLER_TYPE=edge-simplified-installer
 INSTALLER_FILENAME=simplified-installer.iso
 REF_PREFIX="rhel-edge"
-BOOT_ARGS="uefi"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -206,8 +206,8 @@ sudo podman rmi -f -a
 ##
 ##########################################################
 greenprint "🔧 Generate FDO key and configuration files"
-sudo mkdir aio
-sudo podman run -v "$PWD"/aio/:/aio:z \
+mkdir aio
+podman run -v "$PWD"/aio/:/aio:z \
   "quay.io/fido-fdo/aio:nightly" \
   aio --directory aio generate-configs-and-keys --contact-hostname "$FDO_MANUFACTURING_ADDRESS"
 
@@ -216,12 +216,12 @@ DIUN_PUB_KEY_HASH=sha256:$(openssl x509 -fingerprint -sha256 -noout -in aio/keys
 
 # Prepare FDO config files
 greenprint "🔧 Prepare FDO key and configuration files for FDO containers"
-sudo mkdir -p fdo/keys
-sudo cp aio/keys/* fdo/keys/
-sudo cp data/fdo/manufacturing-server.yml fdo/
-sudo cp data/fdo/owner-onboarding-server.yml fdo/
-sudo cp data/fdo/rendezvous-server.yml fdo/
-sudo cp data/fdo/serviceinfo-api-server.yml fdo/
+mkdir -p fdo/keys
+cp aio/keys/* fdo/keys/
+cp data/fdo/manufacturing-server.yml fdo/
+cp data/fdo/owner-onboarding-server.yml fdo/
+cp data/fdo/rendezvous-server.yml fdo/
+cp data/fdo/serviceinfo-api-server.yml fdo/
 
 # FDO user does not have password, use ssh key and no sudo password instead
 sudo /usr/local/bin/yq -iy '.service_info.initial_user |= {username: "fdouser", sshkeys: ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"]}' fdo/serviceinfo-api-server.yml
@@ -469,7 +469,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
+sudo podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 check_result
 
 # Clean up BIOS VM
@@ -614,7 +614,7 @@ for _ in $(seq 0 30); do
 done
 
 # Test IoT/Edge OS
-podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
+sudo podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 check_result
 
 # Clean up VM
@@ -749,7 +749,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
+sudo podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 check_result
 
 # Remove simplified installer ISO file
