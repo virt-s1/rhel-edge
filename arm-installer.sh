@@ -264,7 +264,7 @@ sudo ostree --repo="$INSTALLER_HTTPD_PATH" remote add --no-gpg-verify edge-stage
 # Download guest image
 sudo curl --no-progress-meter -o "${GUEST_IMAGE_PATH}" "${GUEST_IMAGE_URL}/${GUEST_IMAGE_NAME}"
 # Extend to 15G for image building required
-sudo qemu-img resize "${GUEST_IMAGE_PATH}" 15G
+sudo qemu-img resize "${GUEST_IMAGE_PATH}" 20G
 
 # Set up a cloud-init ISO.
 greenprint "💿 Creating a cloud-init ISO"
@@ -284,7 +284,7 @@ sudo restorecon -Rv /var/lib/libvirt/images/
 sudo virt-install --name="$BUILDER_VM_NAME" \
                   --disk path="$GUEST_IMAGE_PATH",format=qcow2 \
                   --disk path="$CLOUD_INIT_PATH",device=cdrom \
-                  --memory 3072 \
+                  --memory 4096 \
                   --vcpus 2 \
                   --network network=integration \
                   --os-variant "$OS_VARIANT" \
