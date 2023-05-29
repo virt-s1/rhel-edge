@@ -67,7 +67,7 @@ jobs:
 
   iot-commit-rawhide:
     needs: [pr-info, pre-iot-commit-rawhide]
-    runs-on: [kite, x86_64, gcp, fedora-rawhide, large]
+    runs-on: [kite, x86_64, gcp, fedora-rawhide, medium]
     env:
       STATUS_NAME: iot-commit-rawhide
 
@@ -227,7 +227,7 @@ jobs:
 
   iot-raw-image-rawhide:
     needs: [pr-info, pre-iot-raw-image-rawhide]
-    runs-on: [kite, x86_64, gcp, fedora-rawhide, large]
+    runs-on: [kite, x86_64, gcp, fedora-rawhide, medium]
     env:
       STATUS_NAME: iot-raw-image-rawhide
 
@@ -309,7 +309,7 @@ jobs:
 
   minimal-raw-rawhide:
     needs: [pr-info, pre-minimal-raw-rawhide]
-    runs-on: [kite, x86_64, gcp, fedora-rawhide, large]
+    runs-on: [kite, x86_64, gcp, fedora-rawhide, medium]
     env:
       STATUS_NAME: minimal-raw-rawhide
 

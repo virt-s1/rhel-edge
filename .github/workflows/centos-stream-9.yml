@@ -69,7 +69,7 @@ jobs:
 
   edge-commit-cs9:
     needs: [pr-info, pre-edge-commit-cs9]
-    runs-on: [kite, x86_64, gcp, centos-stream-9, large]
+    runs-on: [kite, x86_64, gcp, centos-stream-9, medium]
     env:
       STATUS_NAME: edge-commit-cs9
 
@@ -231,7 +231,7 @@ jobs:
 
   edge-raw-image-cs9:
     needs: [pr-info, pre-edge-raw-image-cs9]
-    runs-on: [kite, x86_64, gcp, centos-stream-9, large]
+    runs-on: [kite, x86_64, gcp, centos-stream-9, medium]
     env:
       STATUS_NAME: edge-raw-image-cs9
 
@@ -313,7 +313,7 @@ jobs:
 
   edge-simplified-cs9:
     needs: [pr-info, pre-edge-simplified-cs9]
-    runs-on: [kite, x86_64, gcp, centos-stream-9, large]
+    runs-on: [kite, x86_64, gcp, centos-stream-9, medium]
     env:
       STATUS_NAME: edge-simplified-installer-cs9
 
@@ -392,7 +392,7 @@ jobs:
 
   edge-8to9-cs9:
     needs: [pr-info, pre-edge-8to9-cs9]
-    runs-on: [kite, x86_64, gcp, centos-stream-9, large]
+    runs-on: [kite, x86_64, gcp, centos-stream-9, medium]
     env:
       STATUS_NAME: edge-8to9-cs9
 
@@ -471,7 +471,7 @@ jobs:
 
   edge-ignition-cs9:
     needs: [pr-info, pre-edge-ignition-cs9]
-    runs-on: [kite, x86_64, gcp, centos-stream-9, large]
+    runs-on: [kite, x86_64, gcp, centos-stream-9, medium]
     env:
       STATUS_NAME: edge-ignition-cs9
 

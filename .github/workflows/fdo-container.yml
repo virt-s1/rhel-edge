@@ -61,7 +61,7 @@ jobs:
 
   edge-fdo-container-c9:
     needs: [pr-info, pre-edge-fdo-container-c9]
-    runs-on: [kite, x86_64, gcp, centos-stream-9, large]
+    runs-on: [kite, x86_64, gcp, centos-stream-9, medium]
     env:
       STATUS_NAME: edge-fdo-container-centos9
 

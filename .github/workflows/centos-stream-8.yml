@@ -68,7 +68,7 @@ jobs:
 
   edge-commit-cs8:
     needs: [pr-info, pre-edge-commit-cs8]
-    runs-on: [kite, x86_64, gcp, centos-stream-8, large]
+    runs-on: [kite, x86_64, gcp, centos-stream-8, medium]
     env:
       STATUS_NAME: edge-commit-cs8
 
@@ -230,7 +230,7 @@ jobs:
 
   edge-raw-image-cs8:
     needs: [pr-info, pre-edge-raw-image-cs8]
-    runs-on: [kite, x86_64, gcp, centos-stream-8, large]
+    runs-on: [kite, x86_64, gcp, centos-stream-8, medium]
     env:
       STATUS_NAME: edge-raw-image-cs8
 
@@ -312,7 +312,7 @@ jobs:
 
   edge-simplified-cs8:
     needs: [pr-info, pre-edge-simplified-cs8]
-    runs-on: [kite, x86_64, gcp, centos-stream-8, large]
+    runs-on: [kite, x86_64, gcp, centos-stream-8, medium]
     env:
       STATUS_NAME: edge-simplified-installer-cs8
 
@@ -391,7 +391,7 @@ jobs:
 
   edge-rebase-cs8:
     needs: [pr-info, pre-edge-rebase-cs8]
-    runs-on: [kite, x86_64, gcp, centos-stream-8, large]
+    runs-on: [kite, x86_64, gcp, centos-stream-8, medium]
     env:
       STATUS_NAME: edge-rebase-cs8
 

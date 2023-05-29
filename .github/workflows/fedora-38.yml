@@ -67,7 +67,7 @@ jobs:
 
   iot-commit-f38:
     needs: [pr-info, pre-iot-commit-f38]
-    runs-on: [kite, x86_64, gcp, fedora-38, large]
+    runs-on: [kite, x86_64, gcp, fedora-38, medium]
     env:
       STATUS_NAME: iot-commit-f38
 
@@ -227,7 +227,7 @@ jobs:
 
   iot-raw-image-f38:
     needs: [pr-info, pre-iot-raw-image-f38]
-    runs-on: [kite, x86_64, gcp, fedora-38, large]
+    runs-on: [kite, x86_64, gcp, fedora-38, medium]
     env:
       STATUS_NAME: iot-raw-image-f38
 
@@ -309,7 +309,7 @@ jobs:
 
   minimal-raw-f38:
     needs: [pr-info, pre-minimal-raw-f38]
-    runs-on: [kite, x86_64, gcp, fedora-38, large]
+    runs-on: [kite, x86_64, gcp, fedora-38, medium]
     env:
       STATUS_NAME: minimal-raw-f38
 
