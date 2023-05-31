@@ -264,6 +264,16 @@ wait_for_ssh_up () {
     fi
 }
 
+# Wait for FDO onboarding finished.
+wait_for_fdo () {
+    SSH_STATUS=$(sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@"${1}" "id -u ${ANSIBLE_USER} > /dev/null 2>&1 && echo -n READY")
+    if [[ $SSH_STATUS == READY ]]; then
+        echo 1
+    else
+        echo 0
+    fi
+}
+
 # Clean up our mess.
 clean_up () {
     greenprint "🧼 Cleaning up"
@@ -652,6 +662,16 @@ for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $PUB_KEY_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+greenprint "Waiting for FDO user onboarding finished"
+for _ in $(seq 0 30); do
+    RESULTS=$(wait_for_fdo "$PUB_KEY_GUEST_ADDRESS")
+    if [[ $RESULTS == 1 ]]; then
+        echo "FDO user is ready to use! 🥳"
         break
     fi
     sleep 10
