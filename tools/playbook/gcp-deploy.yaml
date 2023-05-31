@@ -8,6 +8,7 @@
     os: "fedora-37"
     flavor:
       gcp:
+        medium: "n2-standard-2"
         large: "n2-standard-4"
         xlarge: "n2-standard-8"
     images:
