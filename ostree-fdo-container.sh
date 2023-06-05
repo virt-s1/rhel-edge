@@ -570,7 +570,7 @@ done
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${PUB_KEY_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
-for _ in $(seq 0 60); do
+for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $PUB_KEY_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
         echo "SSH is ready now! 🥳"
@@ -602,7 +602,7 @@ EOF
 # Workaround to fix edge-simplified-installer test failure (ansible runs before fdouser is created)
 # Bug link: https://github.com/osbuild/osbuild-composer/pull/3378#issuecomment-1502633131
 greenprint "🕹 Check if user 'fdouser' exist in edge vm"
-for _ in $(seq 0 30); do
+for _ in $(seq 0 60); do
     FDOUSER_EXIST=$(ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@$PUB_KEY_GUEST_ADDRESS "grep fdouser /etc/passwd")
     if [[ ${FDOUSER_EXIST} =~ "fdouser" ]]; then
         echo "fdouser has been created"
