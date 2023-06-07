@@ -933,6 +933,10 @@
             post_reboot_delay: 10
             pre_reboot_delay: 5
           become: yes
+          register: result_reboot
+          until: result_reboot is success
+          retries: 10
+          delay: 5
 
         - name: wait for connection to become reachable/usable
           wait_for_connection:
