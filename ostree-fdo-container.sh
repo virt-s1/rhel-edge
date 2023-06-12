@@ -146,6 +146,16 @@ wait_for_ssh_up () {
     fi
 }
 
+# Wait for FDO onboarding finished.
+wait_for_fdo () {
+    SSH_STATUS=$(sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@"${1}" "id -u fdouser > /dev/null 2>&1 && echo -n READY")
+    if [[ $SSH_STATUS == READY ]]; then
+        echo 1
+    else
+        echo 0
+    fi
+}
+
 # Clean up our mess.
 clean_up () {
     greenprint "🧼 Cleaning up"
@@ -601,16 +611,25 @@ EOF
 
 # Workaround to fix edge-simplified-installer test failure (ansible runs before fdouser is created)
 # Bug link: https://github.com/osbuild/osbuild-composer/pull/3378#issuecomment-1502633131
-greenprint "🕹 Check if user 'fdouser' exist in edge vm"
+# greenprint "🕹 Check if user 'fdouser' exist in edge vm"
+# for _ in $(seq 0 60); do
+#     FDOUSER_EXIST=$(ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@$PUB_KEY_GUEST_ADDRESS "grep fdouser /etc/passwd")
+#     if [[ ${FDOUSER_EXIST} =~ "fdouser" ]]; then
+#         echo "fdouser has been created"
+#         break
+#     else
+#         echo "fdouser has not been created yet"
+#         sleep 10
+#     fi
+# done
+greenprint "Waiting for FDO user onboarding finished"
 for _ in $(seq 0 60); do
-    FDOUSER_EXIST=$(ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@$PUB_KEY_GUEST_ADDRESS "grep fdouser /etc/passwd")
-    if [[ ${FDOUSER_EXIST} =~ "fdouser" ]]; then
-        echo "fdouser has been created"
+    RESULTS=$(wait_for_fdo "$PUB_KEY_GUEST_ADDRESS")
+    if [[ $RESULTS == 1 ]]; then
+        echo "FDO user is ready to use! 🥳"
         break
-    else
-        echo "fdouser has not been created yet"
-        sleep 10
     fi
+    sleep 10
 done
 
 # Test IoT/Edge OS
