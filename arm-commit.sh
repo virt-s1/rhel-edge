@@ -81,28 +81,28 @@ FIREWALL_FEATURE="false"
 
 # Set useful things according to different distros.
 case "$TEST_OS" in
-    "rhel-8-8")
+    "rhel-8-9")
         IMAGE_TYPE="edge-commit"
-        sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-8-0.json
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g; s/REPLACE_ARCH_HERE/${ARCH}/g" tools/user-data.arch.88 | sudo tee "${CLOUD_INIT_DIR}/user-data"
+        sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-9-0.json
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g; s/REPLACE_ARCH_HERE/${ARCH}/g" tools/user-data.arch.89 | sudo tee "${CLOUD_INIT_DIR}/user-data"
         OS_VARIANT="rhel8-unknown"
         OSTREE_REF="rhel/8/${ARCH}/edge"
-        GUEST_IMAGE_URL="http://${DOWNLOAD_NODE}/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.8.0/compose/BaseOS/aarch64/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">rhel-guest-image-8.8-.*.qcow2<" | tr -d '><')
+        GUEST_IMAGE_URL="http://${DOWNLOAD_NODE}/rhel-8/nightly/RHEL-8/latest-RHEL-8.9.0/compose/BaseOS/aarch64/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">rhel-guest-image-8.9-.*.qcow2<" | tr -d '><')
         USER_IN_COMMIT="true"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.8.0/compose/BaseOS/aarch64/os/"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/nightly/RHEL-8/latest-RHEL-8.9.0/compose/BaseOS/aarch64/os/"
         FIREWALL_FEATURE="true"
         ;;
-    "rhel-9-2")
+    "rhel-9-3")
         IMAGE_TYPE="edge-commit"
-        sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-2-0.json
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g; s/REPLACE_ARCH_HERE/${ARCH}/g" tools/user-data.arch.92 | sudo tee "${CLOUD_INIT_DIR}/user-data"
+        sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-3-0.json
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g; s/REPLACE_ARCH_HERE/${ARCH}/g" tools/user-data.arch.93 | sudo tee "${CLOUD_INIT_DIR}/user-data"
         OS_VARIANT="rhel9-unknown"
         OSTREE_REF="rhel/9/${ARCH}/edge"
-        GUEST_IMAGE_URL="http://${DOWNLOAD_NODE}/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/aarch64/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">rhel-guest-image-9.2-.*.qcow2<" | tr -d '><')
+        GUEST_IMAGE_URL="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.3.0/compose/BaseOS/aarch64/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">rhel-guest-image-9.3-.*.qcow2<" | tr -d '><')
         USER_IN_COMMIT="true"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/aarch64/os/"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.3.0/compose/BaseOS/aarch64/os/"
         SYSROOT_RO="true"
         FIREWALL_FEATURE="true"
         ;;
