@@ -83,6 +83,13 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_BLUEPRINT="true"
         BLUEPRINT_USER="simple"
         ;;
+    "rhel-8.9")
+        OSTREE_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8-unknown"
+        IMAGE_NAME="image.raw.xz"
+        USER_IN_BLUEPRINT="true"
+        BLUEPRINT_USER="simple"
+        ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
@@ -94,6 +101,16 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_NAME="disk.img.xz"
         ;;
     "rhel-9.2")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        IMAGE_NAME="image.raw.xz"
+        SYSROOT_RO="true"
+        ANSIBLE_USER=fdouser
+        FDO_USER_ONBOARDING="true"
+        USER_IN_BLUEPRINT="true"
+        BLUEPRINT_USER="simple"
+        ;;
+    "rhel-9.3")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
         IMAGE_NAME="image.raw.xz"
