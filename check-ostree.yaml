@@ -918,17 +918,8 @@
       become: yes
 
     # case: check rollback function if boot error found
-    # For Fedora, to avoid flaky reboot issue
     - name: install sanely failing health check unit to test red boot status behavior
       block:
-        - name: install sanely failing health check unit to test red boot status behavior
-          command: rpm-ostree install --cache-only https://kite-webhook-prod.s3.amazonaws.com/greenboot-failing-unit-1.0-1.el8.noarch.rpm --reboot
-          become: yes
-          register: install_result
-          ignore_errors: yes
-          ignore_unreachable: yes
-          when: ansible_facts['distribution'] == "Fedora"
-
         - name: install sanely failing health check unit to test red boot status behavior
           command: rpm-ostree install --cache-only https://kite-webhook-prod.s3.amazonaws.com/greenboot-failing-unit-1.0-1.el8.noarch.rpm
           become: yes
@@ -936,18 +927,15 @@
           retries: 30  # due to https://github.com/osbuild/osbuild-composer/issues/2492
           delay: 2
           until: install_result is success
-          when: ansible_facts['distribution'] != "Fedora"
+
+        - name: delay 10 seconds before reboot to make system stable
+          pause:
+            seconds: 10
 
         - name: reboot to deploy new ostree commit
           reboot:
             post_reboot_delay: 10
-            pre_reboot_delay: 5
           become: yes
-          register: result_reboot
-          until: result_reboot is success
-          retries: 10
-          delay: 5
-          when: ansible_facts['distribution'] != "Fedora"
 
         - name: wait for connection to become reachable/usable
           wait_for_connection:
