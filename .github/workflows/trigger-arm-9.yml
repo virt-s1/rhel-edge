@@ -18,13 +18,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Check RHEL 9.2 compose
+      - name: Check RHEL 9.3 compose
         id: check_compose_id_93
         run: |
-          curl -s ${COMPOSE_URL_93}/latest-RHEL-9.2.0/STATUS --output STATUS_93
+          curl -s ${COMPOSE_URL_93}/latest-RHEL-9.3.0/STATUS --output STATUS_93
           STATUS_93=$(cat STATUS_93)
           if [[ "$STATUS_93" == "FINISHED" ]]; then
-              curl -s ${COMPOSE_URL_93}/latest-RHEL-9.2.0/COMPOSE_ID --output COMPOSE_ID_93
+              curl -s ${COMPOSE_URL_93}/latest-RHEL-9.3.0/COMPOSE_ID --output COMPOSE_ID_93
               COMPOSE_ID_93=$(cat COMPOSE_ID_93)
           else
               COMPOSE_ID_93="false"
@@ -78,9 +78,9 @@ jobs:
           branch-suffix: random
           delete-branch: true
           title: "[aarch64] ${{ needs.check-compose.outputs.rhel93_compose }} - ${{ steps.date.outputs.date }}"
-          labels: DO_NOT_MERGE,RHEL-9.2.0,aarch64
+          labels: DO_NOT_MERGE,RHEL-9.3.0,aarch64
           body: |
-            RHEL 9.2 compose ${{ needs.check-compose.outputs.rhel93_compose }}
+            RHEL 9.3 compose ${{ needs.check-compose.outputs.rhel93_compose }}
             - Date: ${{ steps.date.outputs.date }}
             - Compose URL: "${{ env.COMPOSE_URL_93 }}/${{ needs.check-compose.outputs.rhel93_compose }}"
             - Packages:
@@ -93,12 +93,12 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-          body: /arm-rhel-9-2-all
+          body: /arm-rhel-9-3-all
 
       - name: Create a project card to track compose test result
         uses: peter-evans/create-or-update-project-card@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: RHEL Compose Test
-          column-name: RHEL-9-2
+          column-name: RHEL-9-3
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
