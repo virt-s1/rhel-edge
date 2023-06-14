@@ -497,7 +497,7 @@ EOF
     sudo qemu-img create -f qcow2 "${LIBVIRT_HTTP_IMAGE_PATH}" 20G
 
     # Workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2124239
-    if [[ "${VERSION_ID}" == "8.7" ]]; then
+    if [[ "${VERSION_ID}" == "8.7" || "${VERSION_ID}" == "8.9" ]]; then
         ALLOC_VM_RAM=4096
     fi
 
