@@ -814,6 +814,11 @@ LIBVIRT_UEFI_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-uefi.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_BIOS_IMAGE_PATH}" 20G
 sudo qemu-img create -f qcow2 "${LIBVIRT_UEFI_IMAGE_PATH}" 20G
 
+# Workaround bug https://bugzilla.redhat.com/show_bug.cgi?id=2213388
+if [[ "${VERSION_ID}" == "39" ]]; then
+    sudo systemctl restart libvirtd
+fi
+
 # Install ostree image via ISO on BIOS vm
 greenprint "💿 Install ostree image via installer(ISO) on BIOS vm"
 sudo virt-install  --name="${IMAGE_KEY}-bios" \

@@ -528,6 +528,11 @@ if [[ "${USER_IN_COMMIT}" == "true" ]]; then
     sudo sed -i '/^user\|^sshkey/d' "${KS_FILE}"
 fi
 
+# Workaround bug https://bugzilla.redhat.com/show_bug.cgi?id=2213388
+if [[ "${VERSION_ID}" == "39" ]]; then
+    sudo systemctl restart libvirtd
+fi
+
 # Install ostree image via anaconda.
 greenprint "Install ostree image via anaconda"
 sudo virt-install  --name="${IMAGE_KEY}"\
