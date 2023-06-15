@@ -240,6 +240,11 @@ sudo composer-cli blueprints delete minimal-raw > /dev/null
 greenprint "👿 Running restorecon on image directory"
 sudo restorecon -Rv /var/lib/libvirt/images/
 
+# Workaround bug https://bugzilla.redhat.com/show_bug.cgi?id=2213388
+if [[ "${VERSION_ID}" == "39" ]]; then
+    sudo systemctl restart libvirtd
+fi
+
 ##################################################################
 ##
 ## Install and test minimal-raw image (UEFI)
