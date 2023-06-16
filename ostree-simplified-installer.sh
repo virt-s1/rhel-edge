@@ -127,7 +127,10 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_BLUEPRINT="true"
         BLUEPRINT_USER="simple"
         # workaround issue #2640
-        BOOT_ARGS="loader=/usr/share/edk2/ovmf/OVMF_CODE.secboot.fd,loader.readonly=yes,loader.secure='no',loader.type=pflash,nvram=/usr/share/edk2/ovmf/OVMF_VARS.fd"
+        BOOT_ARGS="loader=/usr/share/edk2/ovmf/OVMF_CODE.secboot.fd,loader.readonly=yes,loader.secure=no,loader.type=pflash,nvram=/usr/share/edk2/ovmf/OVMF_VARS.fd"
+        # sometimes the file /usr/share/edk2/ovmf/OVMF_VARS.fd got deleted after virt-install
+        # a workaround for this issue
+        sudo cp /usr/share/edk2/ovmf/OVMF_VARS.fd /tmp/
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
@@ -640,6 +643,11 @@ greenprint "🖥 Create qcow2 file for virt install"
 LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-keyhash.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
 
+if [[ "${VERSION_ID}" == "8" ]]; then
+    # copy OVMF_VARS.fd back as a workaround
+    sudo cp /tmp/OVMF_VARS.fd /usr/share/edk2/ovmf/
+fi
+
 greenprint "💿 Install ostree image via installer(ISO) on UEFI VM"
 sudo virt-install  --name="${IMAGE_KEY}-fdosshkey"\
                    --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
@@ -781,6 +789,11 @@ sudo composer-cli blueprints delete fdorootcert > /dev/null
 greenprint "🖥 Create qcow2 file for virt install"
 LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-cert.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
+
+if [[ "${VERSION_ID}" == "8" ]]; then
+    # copy OVMF_VARS.fd back as a workaround
+    sudo cp /tmp/OVMF_VARS.fd /usr/share/edk2/ovmf/
+fi
 
 greenprint "💿 Install ostree image via installer(ISO) on UEFI VM"
 sudo virt-install  --name="${IMAGE_KEY}-fdorootcert"\
