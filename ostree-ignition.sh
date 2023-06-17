@@ -422,7 +422,7 @@ EOF
 
 ######################################################################
 ##
-## Build edge-simplified-installer with ignition configured
+## Build edge-simplified-installer with ignition embedded configured
 ##
 ######################################################################
 # Write a blueprint for installer image.
@@ -477,7 +477,7 @@ sudo qemu-img create -f qcow2 "${SIMPLIFIED_LIBVIRT_IMAGE_PATH}" 20G
 LIBVIRT_FAKE_USB_PATH=/var/lib/libvirt/images/usb.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_FAKE_USB_PATH}" 16G
 
-greenprint "💿 Install ostree image via installer(ISO) on UEFI VM"
+greenprint "💿 Install ostree image via embedded ignition simplified installer"
 sudo virt-install  --name="${IMAGE_KEY}-simplified"\
                    --disk path="${LIBVIRT_FAKE_USB_PATH}",format=qcow2 \
                    --disk path="${SIMPLIFIED_LIBVIRT_IMAGE_PATH}",format=qcow2 \
@@ -543,7 +543,7 @@ ansible_python_interpreter=/usr/bin/python3
 ansible_user=${IGNITION_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-ansible_become=yes 
+ansible_become=yes
 ansible_become_method=sudo
 ansible_become_pass=${IGNITION_USER_PASSWORD}
 EOF
@@ -672,7 +672,7 @@ ansible_python_interpreter=/usr/bin/python3
 ansible_user=${IGNITION_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-ansible_become=yes 
+ansible_become=yes
 ansible_become_method=sudo
 ansible_become_pass=${IGNITION_USER_PASSWORD}
 EOF
@@ -688,6 +688,140 @@ if [[ $(sudo virsh domstate "${IMAGE_KEY}-simplified") == "running" ]]; then
 fi
 sudo virsh undefine "${IMAGE_KEY}-simplified" --nvram
 sudo virsh vol-delete --pool images "$IMAGE_KEY-simplified.qcow2"
+
+######################################################################
+##
+## Build edge-simplified-installer with ignition firstboot configured
+##
+######################################################################
+# Write a blueprint for installer image.
+tee "$BLUEPRINT_FILE" > /dev/null << EOF
+name = "installer"
+description = "A rhel-edge simplified-installer image"
+version = "0.0.1"
+modules = []
+groups = []
+
+[customizations]
+installation_device = "/dev/vda"
+
+[customizations.ignition.firstboot]
+url = "${IGNITION_SERVER_URL}/config.ign"
+EOF
+
+greenprint "📄 installer blueprint"
+cat "$BLUEPRINT_FILE"
+
+# Prepare the blueprint for the compose.
+greenprint "📋 Preparing installer blueprint"
+sudo composer-cli blueprints push "$BLUEPRINT_FILE"
+sudo composer-cli blueprints depsolve installer
+
+# Build installer image.
+build_image installer "${INSTALLER_TYPE}" "${PROD_REPO_2_URL}"
+
+# Download the image
+greenprint "📥 Downloading the installer image"
+sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
+ISO_FILENAME="${COMPOSE_ID}-${INSTALLER_FILENAME}"
+sudo mv "$ISO_FILENAME" /var/lib/libvirt/images
+
+# Clean compose and blueprints.
+greenprint "🧹 Clean up installer blueprint and compose"
+sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
+sudo composer-cli blueprints delete installer > /dev/null
+
+##################################################################
+##
+## Install with simplified installer ISO
+##
+##################################################################
+# Create qcow2 file for virt install.
+greenprint "🖥 Create simplified qcow2 file for virt install"
+SIMPLIFIED_LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-simplified.qcow2
+sudo qemu-img create -f qcow2 "${SIMPLIFIED_LIBVIRT_IMAGE_PATH}" 20G
+
+greenprint "💿 Install ostree image via firstboot ignition simplified installer"
+sudo virt-install  --name="${IMAGE_KEY}-simplified"\
+                   --disk path="${SIMPLIFIED_LIBVIRT_IMAGE_PATH}",format=qcow2 \
+                   --ram 2048 \
+                   --vcpus 2 \
+                   --network network=integration,mac=34:49:22:B0:83:30 \
+                   --os-type linux \
+                   --os-variant ${OS_VARIANT} \
+                   --cdrom "/var/lib/libvirt/images/${ISO_FILENAME}" \
+                   --boot "${BOOT_ARGS}" \
+                   --tpm backend.type=emulator,backend.version=2.0,model=tpm-crb \
+                   --nographics \
+                   --noautoconsole \
+                   --wait=-1 \
+                   --noreboot
+
+# Start VM.
+greenprint "💻 Start simplified installer VM"
+sudo virsh start "${IMAGE_KEY}-simplified"
+
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for _ in $(seq 0 30); do
+    RESULTS="$(wait_for_ssh_up $SIMPLIFIED_GUEST_ADDRESS)"
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${SIMPLIFIED_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
+for _ in $(seq 0 30); do
+    RESULTS="$(wait_for_ssh_up $SIMPLIFIED_GUEST_ADDRESS)"
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+# Check image installation result
+check_result
+
+greenprint "🕹 Get ostree install commit value"
+INSTALL_HASH=$(curl "${PROD_REPO_2_URL}/refs/heads/${OSTREE_REF}")
+
+# Add instance IP address into /etc/ansible/hosts
+tee "${TEMPDIR}"/inventory > /dev/null << EOF
+[ostree_guest]
+${SIMPLIFIED_GUEST_ADDRESS}
+
+[ostree_guest:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_user=${IGNITION_USER}
+ansible_private_key_file=${SSH_KEY}
+ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+ansible_become=yes
+ansible_become_method=sudo
+ansible_become_pass=${IGNITION_USER_PASSWORD}
+EOF
+
+# Test IoT/Edge OS
+podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" -e ignition="true" check-ostree.yaml || RESULTS=0
+check_result
+
+# Remove simplified installer ISO file
+sudo rm -rf "/var/lib/libvirt/images/${ISO_FILENAME}"
+
+# Clean up VM
+greenprint "🧹 Clean up simplified VM"
+if [[ $(sudo virsh domstate "${IMAGE_KEY}-simplified") == "running" ]]; then
+    sudo virsh destroy "${IMAGE_KEY}-simplified"
+fi
+sudo virsh undefine "${IMAGE_KEY}-simplified" --nvram
+sudo virsh vol-delete --pool images "$IMAGE_KEY-simplified.qcow2"
+
+# No upgrade test for ignition firstboot on simplified installer image
 
 ##################################################################
 ##
@@ -859,7 +993,7 @@ ansible_python_interpreter=/usr/bin/python3
 ansible_user=${IGNITION_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-ansible_become=yes 
+ansible_become=yes
 ansible_become_method=sudo
 ansible_become_pass=${IGNITION_USER_PASSWORD}
 EOF

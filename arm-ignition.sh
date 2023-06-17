@@ -429,7 +429,7 @@ EOF
 
 ##########################################################################
 ##
-## Build edge-simplified-installer with ignition configured
+## Build edge-simplified-installer with embedded ignition configured
 ##
 ##########################################################################
 # Write a blueprint for installer image.
@@ -468,7 +468,7 @@ sudo qemu-img create -f qcow2 "${IGNITION_SIMPLIFIED_IMAGE_PATH}" 20G
 # UEFI installation test
 # Install via simplified installer image on UEFI vm with diun_pub_key_insecure enabled
 # The QEMU executable /usr/bin/qemu-system-aarch64 does not support TPM model tpm-crb
-greenprint "💿 Install via simplified installer image on UEFI vm"
+greenprint "💿 Install ostree image via embedded ignition simplified installer"
 sudo virt-install  --name="${IGNITION_SIMPLIFIED_VM_NAME}" \
                    --disk path="${IGNITION_SIMPLIFIED_IMAGE_PATH}",format=qcow2 \
                    --ram 3072 \
@@ -676,6 +676,153 @@ if [[ $(sudo virsh domstate "${IGNITION_SIMPLIFIED_VM_NAME}") == "running" ]]; t
 fi
 sudo virsh undefine "${IGNITION_SIMPLIFIED_VM_NAME}" --nvram
 sudo virsh vol-delete --pool images "${IGNITION_SIMPLIFIED_IMAGE_PATH}"
+
+##########################################################################
+##
+## Build edge-simplified-installer with firtboot ignition configured
+##
+##########################################################################
+# Write a blueprint for installer image.
+tee "$BLUEPRINT_FILE" > /dev/null << EOF
+name = "installer"
+description = "A rhel-edge simplified-installer image"
+version = "0.0.1"
+modules = []
+groups = []
+
+[customizations]
+installation_device = "/dev/vda"
+
+[customizations.ignition.firstboot]
+url = "${IGNITION_SERVER_URL}/config.ign"
+EOF
+
+# Create inventory file
+tee "${TEMPDIR}"/inventory > /dev/null << EOF
+[builder]
+${BUILDER_VM_IP}
+[builder:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_user=${SSH_USER}
+ansible_private_key_file=${SSH_KEY}
+ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+EOF
+
+# Build edge/iot-simplified-installer image.
+sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e image_type="$SIMPLIFIED_IMAGE_TYPE" -e repo_url="$PROD_REPO_2_URL" -e ostree_ref="$OSTREE_REF" build-image.yaml || RESULTS=0
+
+# Copy image back from builder VM.
+sudo scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i "$SSH_KEY" "${SSH_USER}@${BUILDER_VM_IP}:/home/admin/*-${SIMPLIFIED_FILENAME}" "/var/lib/libvirt/images/${SIMPLIFIED_FILENAME}"
+
+# Remove image in builder VM
+ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${BUILDER_VM_IP}" 'rm -f /home/admin/*.iso'
+
+# Wait for fdo server to be running
+until [ "$(curl -X POST http://"${BUILDER_VM_IP}":8080/ping)" == "pong" ]; do
+    sleep 1;
+done;
+
+# Create qcow2 file for virt install.
+greenprint "Create qcow2 file for virt install"
+sudo qemu-img create -f qcow2 "${IGNITION_SIMPLIFIED_IMAGE_PATH}" 20G
+
+# UEFI installation test
+# Install via simplified installer image on UEFI vm with diun_pub_key_insecure enabled
+# The QEMU executable /usr/bin/qemu-system-aarch64 does not support TPM model tpm-crb
+greenprint "💿 Install ostree image via firstboot ignition simplified installer"
+sudo virt-install  --name="${IGNITION_SIMPLIFIED_VM_NAME}" \
+                   --disk path="${IGNITION_SIMPLIFIED_IMAGE_PATH}",format=qcow2 \
+                   --ram 3072 \
+                   --vcpus 2 \
+                   --network network=integration \
+                   --os-type linux \
+                   --os-variant "${OS_VARIANT}" \
+                   --boot ${BOOT_ARGS} \
+                   --cdrom "/var/lib/libvirt/images/${SIMPLIFIED_FILENAME}" \
+                   --tpm backend.type=emulator,backend.version=2.0,model=tpm-tis \
+                   --nographics \
+                   --noautoconsole \
+                   --wait=-1 \
+                   --noreboot
+
+# Start VM.
+greenprint "Start VM"
+sudo virsh start "${IGNITION_SIMPLIFIED_VM_NAME}"
+
+# Wait until VM has IP addr from dhcp server
+greenprint "Wait until VM's IP"
+while ! sudo virsh domifaddr "${IGNITION_SIMPLIFIED_VM_NAME}" | grep ipv4 > /dev/null;
+do
+    sleep 5
+    echo "Booting..."
+done
+
+# Get VM IP address
+greenprint "Get VM IP address"
+IGNITION_SIMPLIFIED_VM_IP=$(sudo virsh domifaddr "${IGNITION_SIMPLIFIED_VM_NAME}" | grep ipv4 | awk '{print $4}' | sed 's/\/24//')
+
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for _ in $(seq 0 30); do
+    RESULTS=$(wait_for_ssh_up "$IGNITION_SIMPLIFIED_VM_IP" "$IGNITION_USER")
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${IGNITION_SIMPLIFIED_VM_IP}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for _ in $(seq 0 30); do
+    RESULTS=$(wait_for_ssh_up "$IGNITION_SIMPLIFIED_VM_IP" "$IGNITION_USER")
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+# Check image installation result
+check_result
+
+# Get ostree commit value.
+greenprint "🕹 Get ostree commit value"
+INSTALL_HASH=$(curl "${PROD_REPO_2_URL}/refs/heads/${OSTREE_REF}")
+
+# Add instance IP address into /etc/ansible/hosts
+tee "${TEMPDIR}"/inventory > /dev/null << EOF
+[ostree_guest]
+${IGNITION_SIMPLIFIED_VM_IP}
+[ostree_guest:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_user=${IGNITION_USER}
+ansible_private_key_file=${SSH_KEY}
+ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+ansible_become_method=sudo
+ansible_become_pass=${IGNITION_USER_PASSWORD}
+EOF
+
+# Test IoT/Edge OS
+sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" -e ignition="true" check-ostree.yaml || RESULTS=0
+check_result
+
+# Remove simplified installer ISO file
+sudo rm -rf "/var/lib/libvirt/images/${SIMPLIFIED_FILENAME}"
+
+# Clean up VM
+greenprint "🧹 Clean up ignition simplified VM"
+if [[ $(sudo virsh domstate "${IGNITION_SIMPLIFIED_VM_NAME}") == "running" ]]; then
+    sudo virsh destroy "${IGNITION_SIMPLIFIED_VM_NAME}"
+fi
+sudo virsh undefine "${IGNITION_SIMPLIFIED_VM_NAME}" --nvram
+sudo virsh vol-delete --pool images "${IGNITION_SIMPLIFIED_IMAGE_PATH}"
+
+# No upgrade test for ignition firstboot on simplified installer image
 
 ##################################################################
 ##
