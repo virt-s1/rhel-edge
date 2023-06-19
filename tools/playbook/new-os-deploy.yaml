@@ -8,16 +8,9 @@
     cloud_profile: "rhos-01"
     os_network:
       rhos-01: "shared_net_9"
-      rhos-d: "provider_net_shared_2"
+      rhos-0x: "provider_net_shared_2"
 
   tasks:
-    - name: create keypair for rhel-edge test
-      openstack.cloud.keypair:
-        cloud: "{{ cloud_profile }}"
-        state: present
-        name: "debugging"
-        public_key_file: key/ostree_key.pub
-
     - name: "deploy RHEL instance"
       openstack.cloud.server:
         cloud: "{{ cloud_profile }}"
