@@ -424,7 +424,7 @@ check_result () {
 # Setup CodeReady Containers
 setup_crc () {
     # cert crc pull secret file
-    echo "$CRC_PULL_SECRET" > /tmp/crc_pull_secret_file
+    echo "$CRC_PULL_SECRET" > "${TEMPDIR}/crc_pull_secret_file"
     # Download CRC first
     wget -4 https://developers.redhat.com/content-gateway/rest/mirror/pub/openshift-v4/clients/crc/latest/crc-linux-amd64.tar.xz
     sudo tar xf crc-linux-amd64.tar.xz -C /usr/bin --strip-components 1
@@ -436,7 +436,7 @@ setup_crc () {
     crc config set kubeadmin-password foobar
     crc config set skip-check-daemon-systemd-sockets true
     crc config set skip-check-daemon-systemd-unit true
-    crc config set pull-secret-file /tmp/crc_pull_secret_file
+    crc config set pull-secret-file "${TEMPDIR}/crc_pull_secret_file"
 
     # Start CRC
     crc setup
