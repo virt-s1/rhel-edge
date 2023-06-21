@@ -932,6 +932,23 @@
           pause:
             seconds: 10
 
+        # debug "Failed to connect to the host via ssh: ssh: connect to host 192.168.100.51 port 22: No route to host" issue
+        # in reboot task
+        - name: debug - wait for connection to become reachable/usable
+          wait_for_connection:
+            delay: 30
+
+        - name: debug - waits until instance is reachable
+          wait_for:
+            host: "{{ ansible_all_ipv4_addresses[0] }}"
+            port: 22
+            search_regex: OpenSSH
+            delay: 10
+          register: result_rollback
+          until: result_rollback is success
+          retries: 6
+          delay: 10
+
         - name: reboot to deploy new ostree commit
           reboot:
             post_reboot_delay: 10
