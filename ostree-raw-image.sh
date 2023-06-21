@@ -54,18 +54,21 @@ sudo mkdir -p /etc/osbuild-composer/repositories
 case "${ID}-${VERSION_ID}" in
     "rhel-8.6")
         OSTREE_REF="rhel/8/${ARCH}/edge"
+        PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         ADD_SSSD="false"
         USER_IN_RAW="false"
         ;;
     "rhel-8.7")
         OSTREE_REF="rhel/8/${ARCH}/edge"
+        PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8.7"
         ADD_SSSD="true"
         USER_IN_RAW="false"
         ;;
     "rhel-8.8")
         OSTREE_REF="rhel/8/${ARCH}/edge"
+        PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         ADD_SSSD="true"
         USER_IN_RAW="true"
@@ -73,6 +76,7 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "rhel-8.9")
         OSTREE_REF="rhel/8/${ARCH}/edge"
+        PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         ADD_SSSD="true"
         USER_IN_RAW="true"
@@ -80,18 +84,21 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
         ADD_SSSD="false"
         USER_IN_RAW="false"
         ;;
     "rhel-9.1")
         OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.1"
         ADD_SSSD="true"
         USER_IN_RAW="false"
         ;;
     "rhel-9.2")
         OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
         ADD_SSSD="true"
         USER_IN_RAW="true"
@@ -99,6 +106,7 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "rhel-9.3")
         OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
         ADD_SSSD="true"
         USER_IN_RAW="true"
@@ -106,6 +114,7 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
+        PARENT_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos-stream8"
         ADD_SSSD="true"
         USER_IN_RAW="true"
@@ -115,6 +124,7 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
+        PARENT_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
         ADD_SSSD="true"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
@@ -228,6 +238,10 @@ build_image() {
     if [ $# -eq 3 ]; then
         repo_url=$3
         sudo composer-cli --json compose start-ostree --ref "$OSTREE_REF" --url "$repo_url" "$blueprint_name" "$image_type" | tee "$COMPOSE_START"
+    elif [ $# -eq 4 ]; then
+        repo_url=$3
+        parent_ref=$4
+        sudo composer-cli --json compose start-ostree --ref "$OSTREE_REF" --parent "$parent_ref" --url "$repo_url" "$blueprint_name" "$image_type" | tee "$COMPOSE_START"
     else
         sudo composer-cli --json compose start-ostree --ref "$OSTREE_REF" "$blueprint_name" "$image_type" | tee "$COMPOSE_START"
     fi
@@ -595,6 +609,143 @@ EOF
     podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
     check_result
 
+    ##################################################################
+    ##
+    ## Build rebased ostree repo
+    ##
+    ##################################################################
+
+    # Write a blueprint for ostree image.
+    # NB: no ssh key in the upgrade commit because there is no home dir
+    tee "$BLUEPRINT_FILE" > /dev/null << EOF
+name = "rebase"
+description = "An rebase rhel-edge container image"
+version = "0.0.2"
+modules = []
+groups = []
+
+[[packages]]
+name = "python3"
+version = "*"
+
+[[packages]]
+name = "wget"
+version = "*"
+
+[customizations.kernel]
+name = "kernel-rt"
+
+[[customizations.user]]
+name = "admin"
+description = "Administrator account"
+password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl."
+home = "/home/admin/"
+groups = ["wheel"]
+EOF
+
+    # For BZ#2088459, RHEL 8.6 and 9.0 will not have new release which fix this issue
+    # RHEL 8.6 and 9.0 will not include sssd package in blueprint
+    if [[ "${ADD_SSSD}" == "true" ]]; then
+        tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[packages]]
+name = "sssd"
+version = "*"
+EOF
+    fi
+
+    greenprint "📄 rebase blueprint"
+    cat "$BLUEPRINT_FILE"
+
+    # Prepare the blueprint for the compose.
+    greenprint "📋 Preparing rebase blueprint"
+    sudo composer-cli blueprints push "$BLUEPRINT_FILE"
+    sudo composer-cli blueprints depsolve rebase
+
+    # Build upgrade image.
+    OSTREE_REF="test/redhat/x/${ARCH}/edge"
+    build_image rebase  "${CONTAINER_TYPE}" "$PROD_REPO_URL" "$PARENT_REF"
+
+    # Download the image
+    greenprint "📥 Downloading the rebase image"
+    sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
+
+    # Clear stage repo running env
+    greenprint "🧹 Clearing stage repo running env"
+    # Remove any status containers if exist
+    sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f
+    # Remove all images
+    sudo podman rmi -f -a
+
+    # Deal with stage repo container
+    greenprint "🗜 Extracting image"
+    IMAGE_FILENAME="${COMPOSE_ID}-${CONTAINER_FILENAME}"
+    sudo podman pull "oci-archive:${IMAGE_FILENAME}"
+    sudo podman images
+    # Clear image file
+    sudo rm -f "$IMAGE_FILENAME"
+
+    # Run edge stage repo
+    greenprint "🛰 Running edge stage repo"
+    # Get image id to run image
+    EDGE_IMAGE_ID=$(sudo podman images --filter "dangling=true" --format "{{.ID}}")
+    sudo podman run -d --name rhel-edge --network edge --ip "$STAGE_REPO_ADDRESS" "$EDGE_IMAGE_ID"
+    # Wait for container to be running
+    until [ "$(sudo podman inspect -f '{{.State.Running}}' rhel-edge)" == "true" ]; do
+        sleep 1;
+    done;
+
+    # Pull upgrade to prod mirror
+    greenprint "⛓ Pull rebase to prod mirror"
+    sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage "$OSTREE_REF"
+
+    # Get ostree commit value.
+    greenprint "🕹 Get ostree rebase commit value"
+    REBASE_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
+
+    # Clean compose and blueprints.
+    greenprint "🧽 Clean up rebase blueprint and compose"
+    sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
+    sudo composer-cli blueprints delete rebase > /dev/null
+
+    # Rebase to new REF.
+    greenprint "🗳 Rebase to new ostree REF"
+    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${BIOS_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S rpm-ostree rebase ${REF_PREFIX}:${OSTREE_REF}"
+    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${BIOS_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
+
+    # Sleep 10 seconds here to make sure vm restarted already
+    sleep 10
+
+    for _ in $(seq 0 30); do
+        RESULTS="$(wait_for_ssh_up $BIOS_GUEST_ADDRESS)"
+        if [[ $RESULTS == 1 ]]; then
+            echo "SSH is ready now! 🥳"
+            break
+        fi
+        sleep 10
+    done
+
+    check_result
+
+    # Add instance IP address into /etc/ansible/hosts
+    tee "${TEMPDIR}"/inventory > /dev/null << EOF
+[ostree_guest]
+${BIOS_GUEST_ADDRESS}
+
+[ostree_guest:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_user=admin
+ansible_private_key_file=${SSH_KEY}
+ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+ansible_become=yes
+ansible_become_method=sudo
+ansible_become_pass=${EDGE_USER_PASSWORD}
+EOF
+
+    # Test IoT/Edge OS
+    podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${REBASE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
+
+    check_result
+
     # Clean up BIOS VM
     greenprint "🧹 Clean up BIOS VM"
     if [[ $(sudo virsh domstate "${IMAGE_KEY}-bios") == "running" ]]; then
@@ -604,6 +755,15 @@ EOF
     sudo virsh vol-delete --pool images "${IMAGE_KEY}-bios.qcow2"
 else
     greenprint "Skipping BIOS boot for Fedora IoT (not supported)"
+fi
+
+# Re configure OSTREE_REF because it's change to "test/redhat/x/${ARCH}/edge" by above rebase test
+if [[ "$ID" == fedora ]]; then
+    OSTREE_REF="${ID}/${VERSION_ID}/${ARCH}/iot"
+elif [[ "$VERSION_ID" == 8* ]]; then
+    OSTREE_REF="${ID}/8/${ARCH}/edge"
+else
+    OSTREE_REF="${ID}/9/${ARCH}/edge"
 fi
 
 ##################################################################
