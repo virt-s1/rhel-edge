@@ -13,8 +13,7 @@ jobs:
             endsWith(github.event.comment.body, '/test-cs8-virt') ||
             endsWith(github.event.comment.body, '/test-cs8-ng') ||
             endsWith(github.event.comment.body, '/test-cs8-raw') ||
-            endsWith(github.event.comment.body, '/test-cs8-simplified') ||
-            endsWith(github.event.comment.body, '/test-cs8-rebase')) }}
+            endsWith(github.event.comment.body, '/test-cs8-simplified') }}
     runs-on: ubuntu-latest
     steps:
       - name: Query author repository permissions
@@ -364,85 +363,6 @@ jobs:
         if: ${{ always() }}
         with:
           name: edge-simplified-installer-cs8
-          path: |
-            *.json
-            *.log
-
-  pre-edge-rebase-cs8:
-    needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-cs8') ||
-            endsWith(github.event.comment.body, '/test-cs8-rebase')) }}
-    runs-on: ubuntu-latest
-    env:
-      STATUS_NAME: edge-rebase-cs8
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Runner has been deploying'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  edge-rebase-cs8:
-    needs: [pr-info, pre-edge-rebase-cs8]
-    runs-on: [kite, x86_64, gcp, centos-stream-8, medium]
-    env:
-      STATUS_NAME: edge-rebase-cs8
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Test has been running...'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Clone repository
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.pr-info.outputs.sha }}
-          fetch-depth: 0
-
-      - name: run ostree-rebase.sh
-        run: ./ostree-rebase.sh
-        timeout-minutes: 90
-
-      - name: Set non cancelled result status
-        if: ${{ !cancelled() }}
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: ${{ job.status }}
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set cancelled result status
-        if: ${{ cancelled() }}
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: error
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/upload-artifact@v3
-        if: ${{ always() }}
-        with:
-          name: edge-rebase-cs8
           path: |
             *.json
             *.log
