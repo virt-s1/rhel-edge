@@ -13,7 +13,7 @@ jobs:
             endsWith(github.event.comment.body, '/test-rhel-8-8-virt') ||
             endsWith(github.event.comment.body, '/test-rhel-8-8-ng') ||
             endsWith(github.event.comment.body, '/test-rhel-8-8-raw') ||
-            endsWith(github.event.comment.body, '/test-rhel-8-8-simplified') }}
+            endsWith(github.event.comment.body, '/test-rhel-8-8-simplified')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Query author repository permissions
