@@ -929,7 +929,7 @@
           until: install_result is success
 
         - name: reboot to deploy new ostree commit
-          reboot:
+          command: systemctl reboot -q --wait
           become: yes
           ignore_errors: yes
           ignore_unreachable: yes
