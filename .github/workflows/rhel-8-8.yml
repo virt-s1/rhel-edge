@@ -372,24 +372,3 @@ jobs:
           path: |
             *.json
             *.log
-
-  pre-edge-rebase-88:
-    needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-rhel-8-8') ||
-            endsWith(github.event.comment.body, '/test-rhel-8-8-rebase')) }}
-    runs-on: ubuntu-latest
-    env:
-      STATUS_NAME: edge-rebase-8.8
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Runner has been deploying...'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
