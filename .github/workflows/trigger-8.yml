@@ -11,7 +11,6 @@ on:
 
 env:
   COMPOSE_URL_86: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-8/nightly/updates/RHEL-8"
-  COMPOSE_URL_87: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-8/nightly/updates/RHEL-8"
   COMPOSE_URL_88: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-8/nightly/updates/RHEL-8"
   COMPOSE_URL_89: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-8/nightly/RHEL-8"
 
@@ -54,37 +53,6 @@ jobs:
           fi
 
           echo "rhel86_compose=$COMPOSE_ID_86" >> $GITHUB_OUTPUT
-
-      - name: Check RHEL 8.7 compose
-        id: check_compose_id_87
-        run: |
-          curl -s ${COMPOSE_URL_87}/latest-RHEL-8.7.0/STATUS --output STATUS_87
-          STATUS_87=$(cat STATUS_87)
-          if [[ "$STATUS_87" == "FINISHED" ]]; then
-              curl -s ${COMPOSE_URL_87}/latest-RHEL-8.7.0/COMPOSE_ID --output COMPOSE_ID_87
-              COMPOSE_ID_87=$(cat COMPOSE_ID_87)
-              TESTED_COMPOSE_87=( $( cat compose/compose.87 ) )
-              if [[ " ${TESTED_COMPOSE_87[*]} " =~ "$COMPOSE_ID_87" ]]; then
-                  COMPOSE_ID_87="false"
-              fi
-          else
-              COMPOSE_ID_87="false"
-          fi
-
-          if [[ "$COMPOSE_ID_87" != "false" ]]; then
-              OSBUILD_VERSION_87=$(curl -s "${COMPOSE_URL_87}/${COMPOSE_ID_87}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
-              OSBUILD_COMPOSER_VERSION_87=$(curl -s "${COMPOSE_URL_87}/${COMPOSE_ID_87}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
-              COMPOSER_CLI_VERSION_87=$(curl -s "${COMPOSE_URL_87}/${COMPOSE_ID_87}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
-              echo "osbuild_version_87=$OSBUILD_VERSION_87" >> $GITHUB_OUTPUT
-              echo "osbuild_composer_version_87=$OSBUILD_COMPOSER_VERSION_87" >> $GITHUB_OUTPUT
-              echo "composer_cli_version_87=$COMPOSER_CLI_VERSION_87" >> $GITHUB_OUTPUT
-          else
-              echo "osbuild_version_87=Null" >> $GITHUB_OUTPUT
-              echo "osbuild_composer_version_87=Null" >> $GITHUB_OUTPUT
-              echo "composer_cli_version_87=Null" >> $GITHUB_OUTPUT
-          fi
-
-          echo "rhel87_compose=$COMPOSE_ID_87" >> $GITHUB_OUTPUT
 
       - name: Check RHEL 8.8 compose
         id: check_compose_id_88
@@ -150,15 +118,11 @@ jobs:
 
     outputs:
       rhel86_compose: ${{ steps.check_compose_id_86.outputs.rhel86_compose }}
-      rhel87_compose: ${{ steps.check_compose_id_87.outputs.rhel87_compose }}
       rhel88_compose: ${{ steps.check_compose_id_88.outputs.rhel88_compose }}
       rhel89_compose: ${{ steps.check_compose_id_89.outputs.rhel89_compose }}
       osbuild_version_86: ${{ steps.check_compose_id_86.outputs.osbuild_version_86 }}
       osbuild_composer_version_86: ${{ steps.check_compose_id_86.outputs.osbuild_composer_version_86 }}
       composer_cli_version_86: ${{ steps.check_compose_id_86.outputs.composer_cli_version_86 }}
-      osbuild_version_87: ${{ steps.check_compose_id_87.outputs.osbuild_version_87 }}
-      osbuild_composer_version_87: ${{ steps.check_compose_id_87.outputs.osbuild_composer_version_87 }}
-      composer_cli_version_87: ${{ steps.check_compose_id_87.outputs.composer_cli_version_87 }}
       osbuild_version_88: ${{ steps.check_compose_id_88.outputs.osbuild_version_88 }}
       osbuild_composer_version_88: ${{ steps.check_compose_id_88.outputs.osbuild_composer_version_88 }}
       composer_cli_version_88: ${{ steps.check_compose_id_88.outputs.composer_cli_version_88 }}
@@ -225,67 +189,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: RHEL Compose Test
           column-name: RHEL-8-6
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-
-  rhel-8-7:
-    needs: check-compose
-    if: ${{ needs.check-compose.outputs.rhel87_compose != 'false' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Add new compose id in compose.87
-        run: |
-          compose_id="${{ needs.check-compose.outputs.rhel87_compose }}"
-          echo $compose_id >> compose/compose.87
-          cat compose/compose.87
-
-      - name: Get current date
-        id: date
-        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-
-      - name: Create Pull Request
-        id: cpr
-        uses: peter-evans/create-pull-request@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "${{ needs.check-compose.outputs.rhel87_compose }} - ${{ steps.date.outputs.date }}"
-          committer: cloudkitebot <henrywangxf1@gmail.com>
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          branch: cpr
-          branch-suffix: random
-          delete-branch: true
-          title: "${{ needs.check-compose.outputs.rhel87_compose }} - ${{ steps.date.outputs.date }}"
-          labels: auto-merge,RHEL-8.7.0
-          body: |
-            RHEL 8.7 compose ${{ needs.check-compose.outputs.rhel87_compose }}
-            - Date: ${{ steps.date.outputs.date }}
-            - Packages:
-                - ${{ needs.check-compose.outputs.osbuild_version_87 }}
-                - ${{ needs.check-compose.outputs.osbuild_composer_version_87 }}
-                - ${{ needs.check-compose.outputs.composer_cli_version_87 }}
-
-      - name: Enable Pull Request Automerge
-        if: steps.cpr.outputs.pull-request-operation == 'created'
-        uses: peter-evans/enable-pull-request-automerge@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
-          merge-method: rebase
-
-      - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v2
-        with:
-          token: ${{ secrets.PAT }}
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-          body: /test-rhel-8-7
-
-      - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          project-name: RHEL Compose Test
-          column-name: RHEL-8-7
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
 
   rhel-8-8:
