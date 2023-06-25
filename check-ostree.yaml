@@ -921,15 +921,7 @@
     - name: install sanely failing health check unit to test red boot status behavior
       block:
         - name: install sanely failing health check unit to test red boot status behavior
-          command: rpm-ostree install --cache-only https://kite-webhook-prod.s3.amazonaws.com/greenboot-failing-unit-1.0-1.el8.noarch.rpm
-          become: yes
-          register: install_result
-          retries: 30  # due to https://github.com/osbuild/osbuild-composer/issues/2492
-          delay: 2
-          until: install_result is success
-
-        - name: reboot to deploy new ostree commit
-          command: systemctl reboot -q --wait
+          command: rpm-ostree install --cache-only https://kite-webhook-prod.s3.amazonaws.com/greenboot-failing-unit-1.0-1.el8.noarch.rpm --reboot
           become: yes
           ignore_errors: yes
           ignore_unreachable: yes
