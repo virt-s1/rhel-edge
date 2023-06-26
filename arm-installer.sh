@@ -422,7 +422,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Build edge/iot-container image.
-sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e image_type="$CONTAINER_IMAGE_TYPE" -e quay_repo="$QUAY_REPO" -e ostree_ref="$OSTREE_REF" build-image.yaml || RESULTS=0
+sudo podman run --annotation run.oci.keep_original_groups=1 --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e image_type="$CONTAINER_IMAGE_TYPE" -e quay_repo="$QUAY_REPO" -e ostree_ref="$OSTREE_REF" build-image.yaml || RESULTS=0
 
 # For fedora which does not support auto uploading container image
 if [[ $CONTAINER_PUSHING_FEAT == "false" ]]; then
@@ -483,7 +483,7 @@ EOF
 
 # Build edge/iot-container image.
 # Test --url arg following by URL with tailling slash for bz#1942029
-sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e image_type="$INSTALLER_IMAGE_TYPE" -e repo_url="$PROD_REPO_URL_2" -e ostree_ref="$OSTREE_REF" build-image.yaml || RESULTS=0
+sudo podman run --annotation run.oci.keep_original_groups=1 --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e image_type="$INSTALLER_IMAGE_TYPE" -e repo_url="$PROD_REPO_URL_2" -e ostree_ref="$OSTREE_REF" build-image.yaml || RESULTS=0
 
 # Copy image back from builder VM.
 scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i "$SSH_KEY" "${SSH_USER}@${BUILDER_VM_IP}:/home/admin/*-installer.iso" "${TEMPDIR}/edge-installer.iso"
@@ -577,7 +577,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
+sudo podman run --annotation run.oci.keep_original_groups=1 --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
 check_result
 
 ##################################################
@@ -655,7 +655,7 @@ EOF
 
 # Build edge/iot-commit upgrade image
 # Test --url arg following by URL without tailling slash for bz#1942029
-sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e upgrade="true" -e image_type="$CONTAINER_IMAGE_TYPE" -e ostree_ref="$OSTREE_REF" -e repo_url="$PROD_REPO_URL" build-image.yaml || RESULTS=0
+sudo podman run --annotation run.oci.keep_original_groups=1 --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e upgrade="true" -e image_type="$CONTAINER_IMAGE_TYPE" -e ostree_ref="$OSTREE_REF" -e repo_url="$PROD_REPO_URL" build-image.yaml || RESULTS=0
 
 # Copy image back from builder VM.
 scp -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i "$SSH_KEY" "${SSH_USER}@${BUILDER_VM_IP}:/home/admin/*-container.tar" "${TEMPDIR}/edge-container.tar"
@@ -723,7 +723,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo podman run --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
+sudo podman run --annotation run.oci.keep_original_groups=1 --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
