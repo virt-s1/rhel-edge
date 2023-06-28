@@ -926,6 +926,11 @@
           ignore_errors: yes
           ignore_unreachable: yes
 
+        - name: delay 10 seconds before reboot to make system stable
+          pause:
+            seconds: 10
+          delegate_to: 127.0.0.1
+
         - name: wait for connection to become reachable/usable
           wait_for_connection:
             delay: 30
