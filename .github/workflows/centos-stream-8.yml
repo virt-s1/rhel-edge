@@ -335,7 +335,7 @@ jobs:
 
       - name: run ostree-simplified-installer.sh
         run: ./ostree-simplified-installer.sh
-        timeout-minutes: 120
+        timeout-minutes: 150
 
       - name: Set non cancelled result status
         if: ${{ !cancelled() }}

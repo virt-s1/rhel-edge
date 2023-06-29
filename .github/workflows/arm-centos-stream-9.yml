@@ -119,7 +119,7 @@ jobs:
       - name: run arm-simplified.sh
         if: always()
         run: ./arm-simplified.sh centos-stream-9
-        timeout-minutes: 120
+        timeout-minutes: 150
 
       - name: run arm-ignition.sh
         if: always()
@@ -470,7 +470,7 @@ jobs:
 
       - name: run arm-simplified.sh
         run: ./arm-simplified.sh centos-stream-9
-        timeout-minutes: 120
+        timeout-minutes: 150
 
       - name: Set non cancelled result status
         if: ${{ !cancelled() }}
