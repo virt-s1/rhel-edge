@@ -14,6 +14,12 @@ sudo dnf install -y fdo-admin-cli python3-pip
 sudo pip3 install yq
 # Start fdo-aio to have /etc/fdo/aio folder
 sudo systemctl enable --now fdo-aio
+# Wait until config file serviceinfo_api_server.yml exists
+# to avoid file not available to use flaky issue
+until [ -f /etc/fdo/aio/configs/serviceinfo_api_server.yml ]
+do
+    sleep 2
+done
 # Prepare service api server config file
 sudo /usr/local/bin/yq -iy '.service_info.diskencryption_clevis |= [{disk_label: "/dev/vda4", reencrypt: true, binding: {pin: "tpm2", config: "{}"}}]' /etc/fdo/aio/configs/serviceinfo_api_server.yml
 sudo systemctl restart fdo-aio
