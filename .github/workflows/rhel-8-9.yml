@@ -341,7 +341,7 @@ jobs:
         run: ./ostree-simplified-installer.sh
         env:
           DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
-        timeout-minutes: 120
+        timeout-minutes: 150
 
       - name: Set non cancelled result status
         if: ${{ !cancelled() }}

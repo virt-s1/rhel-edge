@@ -125,7 +125,7 @@ jobs:
         run: ./arm-simplified.sh rhel-9-3
         env:
           DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
-        timeout-minutes: 120
+        timeout-minutes: 150
 
       - name: run arm-ignition.sh
         if: always()
@@ -484,7 +484,7 @@ jobs:
         run: ./arm-simplified.sh rhel-9-3
         env:
           DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
-        timeout-minutes: 120
+        timeout-minutes: 150
 
       - name: Set non cancelled result status
         if: ${{ !cancelled() }}
