@@ -37,6 +37,7 @@ RHEL for Edge test from QE is more like an integration test. The test flow align
     - Check FDO onboarding and status (simplified-installer only)
     - Check LVM PV and LV, and check growfs (raw-image and simplified-installer only)
     - Check auto rollback with [`greenboot`](https://github.com/fedora-iot/greenboot.git) when failure is detected
+    - Check ignition configurations (raw-image and simplified-installer only)
 
 ## RHEL-Edge CI
 
@@ -80,7 +81,7 @@ Test suites in scenario:
 2. [`ostree-ng.sh`](ostree-ng.sh) and [`arm-installer.sh`](arm-installer.sh): edge-container/iot-container and edge-installer/iot-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, CentOS Stream 9 and Fedora
 3. [`ostree-raw-image.sh`](ostree-raw-image.sh) and [`arm-raw.sh`](arm-raw.sh): edge-raw-image/iot-raw-image(raw) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, CentOS Stream 9, and Fedora
 4. [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh) and [`arm-simplified.sh`](arm-simplified.sh): edge-simplified-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
-5. [`ostree-rebase.sh`](ostree-rebase.sh) and [`arm-rebase.sh`](arm-rebase.sh): Different ostree ref rebase test on RHEL 8.x and CentOS Stream 8
+5. [`arm-rebase.sh`](arm-rebase.sh): Different ostree ref rebase test on RHEL 8.x and CentOS Stream 8
 6. [`ostree-8-to-9.sh`](ostree-8-to-9.sh): RHEL 8/CentOS Stream 8 Edge system upgrade to RHEL 9/CentOS Stream 9 Edge system test
 6. [`ostree-9-to-9.sh`](ostree-9-to-9.sh): RHEL 9/CentOS Stream 9 Edge system upgrade and rebase to RHEL 9/CentOS Stream 9 Edge system test
 7. [`minimal-raw.sh`](minimal-raw.sh) and [`arm-minimal.sh`](arm-minimal.sh): RPM based system test (Not ostree)
@@ -100,8 +101,8 @@ To run RHEL for Edge test on ARM server, a bare metal ARM server is required.
 
 #### Supported OS
 
-    RHEL 8.6/8.7/8.8
-    RHEL 9.0/9.1/9.2
+    RHEL 8.6/8.8/8.9
+    RHEL 9.0/9.2/9.3
     CentOS Stream 8
     CentOS Stream 9
     Fedora 37 (Simplified-installer not supported)
@@ -116,7 +117,6 @@ To run RHEL for Edge test on ARM server, a bare metal ARM server is required.
     $ DOWNLOAD_NODE="hello-world.com" OCP4_TOKEN=abcdefg QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./ostree-ng.sh
     $ DOWNLOAD_NODE="hello-world.com" DOCKERHUB_USERNAME=rhel-edge DOCKERHUB_PASSWORD=123456 ./ostree-raw-image.sh
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-simplified-installer.sh
-    $ DOWNLOAD_NODE="hello-world.com" ./ostree-rebase.sh
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-8-to-9.sh
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-9-to-9.sh
     $ ./minimal-raw.sh (Fedora 37 and above)
@@ -132,7 +132,7 @@ To run RHEL for Edge test on ARM server, a bare metal ARM server is required.
     $ DOWNLOAD_NODE="hello-world.com" ./arm-ignition.sh <centos-stream-9 or rhel-9-2>
     $ DOWNLOAD_NODE="hello-world.com" ./arm-minimal.sh <fedora-37 or fedora-38>
 
-    <test os> can be one of "rhel-8-8", "rhel-9-2", "centos-stream-8", "centos-stream-9", "fedora-37", "fedora-38"
+    <test os> can be one of "rhel-9-3", "centos-stream-9", "fedora-38"
 
 ### Test Configuration
 
