@@ -196,6 +196,12 @@ groups = []
 name = "python3"
 version = "*"
 
+# Required by Fedora rawhide
+# Fix https://github.com/virt-s1/rhel-edge/issues/3531
+[[packages]]
+name = "python3-dnf"
+version = "*"
+
 [[packages]]
 name = "wget"
 version = "*"
