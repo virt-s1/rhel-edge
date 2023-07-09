@@ -27,7 +27,6 @@ INSTALLER_FILENAME=installer.iso
 PROD_REPO_URL=http://192.168.100.1/repo
 PROD_REPO_URL_2="${PROD_REPO_URL}/"
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
-ON_GCP="false"
 ANSIBLE_USER="installeruser"
 # Container image registry pushing feature
 CONTAINER_PUSHING_FEAT="false"
@@ -129,10 +128,6 @@ case "${ID}-${VERSION_ID}" in
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos-stream8"
-        sudo dnf install -y dmidecode
-        sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
-        # for debugging on openstack
-        # sudo dmidecode -s system-product-name | grep "OpenStack Compute" && ON_GCP="true"
         CONTAINER_PUSHING_FEAT="true"
         EMBEDDED_CONTAINER="true"
         DIRS_FILES_CUSTOMIZATION="true"
@@ -142,10 +137,6 @@ case "${ID}-${VERSION_ID}" in
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
-        sudo dnf install -y dmidecode
-        sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
-        # for debugging on openstack
-        # sudo dmidecode -s system-product-name | grep "OpenStack Compute" && ON_GCP="true"
         NEW_MKKSISO="true"
         CONTAINER_PUSHING_FEAT="true"
         EMBEDDED_CONTAINER="true"
@@ -156,8 +147,6 @@ case "${ID}-${VERSION_ID}" in
     "fedora-37")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
         INSTALLER_IMAGE_TYPE=fedora-iot-installer
-        sudo dnf install -y dmidecode
-        sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
         OSTREE_REF="fedora/37/${ARCH}/iot"
         OS_VARIANT="fedora37"
         ANSIBLE_OS_NAME="fedora"
@@ -167,8 +156,6 @@ case "${ID}-${VERSION_ID}" in
     "fedora-38")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
         INSTALLER_IMAGE_TYPE=fedora-iot-installer
-        sudo dnf install -y dmidecode
-        sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
         OSTREE_REF="fedora/38/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
         ANSIBLE_OS_NAME="fedora"
@@ -178,8 +165,6 @@ case "${ID}-${VERSION_ID}" in
     "fedora-39")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
         INSTALLER_IMAGE_TYPE=fedora-iot-installer
-        sudo dnf install -y dmidecode
-        sudo dmidecode -s system-product-name | grep "Google Compute Engine" && ON_GCP="true"
         OSTREE_REF="fedora/39/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"
         ANSIBLE_OS_NAME="fedora"
@@ -190,11 +175,6 @@ case "${ID}-${VERSION_ID}" in
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
 esac
-
-# Re-define STAGE_OCP4_REPO_URL for CRC on GCP
-if [[ $ON_GCP == "true" ]]; then
-    STAGE_OCP4_REPO_URL="http://${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}-default.apps-crc.testing/repo/"
-fi
 
 # Colorful output.
 function greenprint {
@@ -419,28 +399,6 @@ check_result () {
         clean_up
         exit 1
     fi
-}
-
-# Setup CodeReady Containers
-setup_crc () {
-    # cert crc pull secret file
-    echo "$CRC_PULL_SECRET" > "${TEMPDIR}/crc_pull_secret_file"
-    # Download CRC first
-    wget -4 https://developers.redhat.com/content-gateway/rest/mirror/pub/openshift-v4/clients/crc/latest/crc-linux-amd64.tar.xz
-    sudo tar xf crc-linux-amd64.tar.xz -C /usr/bin --strip-components 1
-    rm -f crc-linux-amd64.tar.xz
-
-    # Configure CRC
-    crc config set consent-telemetry no
-    crc config set disable-update-check true
-    crc config set kubeadmin-password foobar
-    crc config set skip-check-daemon-systemd-sockets true
-    crc config set skip-check-daemon-systemd-unit true
-    crc config set pull-secret-file "${TEMPDIR}/crc_pull_secret_file"
-
-    # Start CRC
-    crc setup
-    crc start
 }
 
 # Install edge installer vm through http boot
@@ -705,14 +663,7 @@ sudo podman network inspect edge >/dev/null 2>&1 || sudo podman network create -
 
 # Run stage repo in OCP4
 greenprint "Running stage repo in OCP4"
-if [[ $ON_GCP == "true" ]]; then
-    setup_crc
-    eval "$(crc oc-env)"
-    oc login https://api.crc.testing:6443 -u kubeadmin -p foobar
-else
-    oc login --token="${OCP4_TOKEN}" --server=https://api.ocp-c1.prod.psi.redhat.com:6443 -n rhel-edge --insecure-skip-tls-verify
-fi
-
+oc login --token="${OCP4_TOKEN}" --server=https://api.ocp-c1.prod.psi.redhat.com:6443 -n rhel-edge --insecure-skip-tls-verify
 oc process -f tools/edge-stage-server-template.yaml -p EDGE_STAGE_REPO_TAG="${QUAY_REPO_TAG}" -p EDGE_STAGE_SERVER_NAME="${STAGE_OCP4_SERVER_NAME}" | oc apply -f -
 
 for _ in $(seq 0 60); do
@@ -730,11 +681,7 @@ sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage-ocp4 "$OSTREE_REF"
 
 # Clean up OCP4
 greenprint "Clean up OCP4"
-if [[ $ON_GCP == "true" ]]; then
-    crc delete --force
-else
-    oc delete pod,rc,service,route,dc -l app="${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}"
-fi
+oc delete pod,rc,service,route,dc -l app="${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}"
 
 # Clean compose and blueprints.
 greenprint "🧹 Clean up compose"
