@@ -116,6 +116,17 @@ sudo systemctl enable --now osbuild-composer.socket
 greenprint "Start firewalld"
 sudo systemctl enable --now firewalld
 
+# Allow anyone in the wheel group to talk to libvirt.
+greenprint "🚪 Allowing users in wheel group to talk to libvirt"
+sudo tee /etc/polkit-1/rules.d/50-libvirt.rules > /dev/null << EOF
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.libvirt.unix.manage" &&
+        subject.isInGroup("adm")) {
+            return polkit.Result.YES;
+    }
+});
+EOF
+
 # Start libvirtd and test it.
 greenprint "🚀 Starting libvirt daemon"
 sudo systemctl start libvirtd
@@ -156,17 +167,6 @@ fi
 if [[ $(sudo virsh net-info integration | grep 'Active' | awk '{print $2}') == 'no' ]]; then
     sudo virsh net-start integration
 fi
-
-# Allow anyone in the wheel group to talk to libvirt.
-greenprint "🚪 Allowing users in wheel group to talk to libvirt"
-sudo tee /etc/polkit-1/rules.d/50-libvirt.rules > /dev/null << EOF
-polkit.addRule(function(action, subject) {
-    if (action.id == "org.libvirt.unix.manage" &&
-        subject.isInGroup("adm")) {
-            return polkit.Result.YES;
-    }
-});
-EOF
 
 # Basic weldr API status checking
 sudo composer-cli status show
