@@ -438,6 +438,11 @@ setup_crc () {
     crc config set skip-check-daemon-systemd-unit true
     crc config set pull-secret-file "${TEMPDIR}/crc_pull_secret_file"
 
+    # Restart libvirtd service to workaround Fedora rawhide(39) issue
+    if [[ "${VERSION_ID}" == "39" ]]; then
+        sudo systemctl restart libvirtd
+    fi
+
     # Start CRC
     crc setup
     crc start
