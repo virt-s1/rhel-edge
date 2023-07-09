@@ -148,7 +148,7 @@ jobs:
 
   edge-installer-cs9:
     needs: [pr-info, pre-edge-installer-cs9]
-    runs-on: [kite, x86_64, gcp, centos-stream-9, large]
+    runs-on: [kite, x86_64, rhos-01, centos-stream-9, large]
     env:
       STATUS_NAME: edge-installer-cs9
 
@@ -173,7 +173,7 @@ jobs:
       - name: run ostree-ng.sh
         run: ./ostree-ng.sh
         env:
-          CRC_PULL_SECRET: ${{ secrets.CRC_PULL_SECRET }}
+          OCP4_TOKEN: ${{ secrets.OCP4_TOKEN }}
           QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
           QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
         timeout-minutes: 120
