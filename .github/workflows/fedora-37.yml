@@ -145,7 +145,7 @@ jobs:
 
   iot-installer-f37:
     needs: [pr-info, pre-iot-installer-f37]
-    runs-on: [kite, x86_64, gcp, fedora-37, large]
+    runs-on: [kite, x86_64, rhos-01, fedora-37, large]
     env:
       STATUS_NAME: iot-installer-f37
 
@@ -170,7 +170,7 @@ jobs:
       - name: run ostree-ng.sh
         run: ./ostree-ng.sh
         env:
-          CRC_PULL_SECRET: ${{ secrets.CRC_PULL_SECRET }}
+          OCP4_TOKEN: ${{ secrets.OCP4_TOKEN }}
           QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
           QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
         timeout-minutes: 120
