@@ -44,7 +44,7 @@ repos:
 
 images:
   centos-stream-8: edge-centos-stream-8
-  centos-stream-9: edge-centos-stream-9
+  centos-stream-9: CentOS-Stream-9-latest
   rhel-8-4: RHEL-8.4.0-x86_64-nightly-latest
   rhel-8-5: RHEL-8.5.0-x86_64-nightly-latest
   rhel-8-6: RHEL-8.6.0-x86_64-nightly-latest
@@ -61,7 +61,7 @@ images:
   fedora-36: edge-fedora-36
   fedora-37: edge-fedora-37
   fedora-38: edge-fedora-38
-  fedora-rawhide: edge-fedora-rawhide
+  fedora-rawhide: Fedora-Cloud-Base-rawhide-latest
 
 image_url:
   centos-stream-9: https://composes.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/images
