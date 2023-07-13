@@ -45,7 +45,7 @@ curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-
 
 # Install required packages
 greenprint "Install required packages"
-sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli podman skopeo wget firewalld lorax xorriso curl jq expect qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm libvirt-daemon virt-install rpmdevtools
+sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli podman skopeo wget firewalld lorax xorriso curl jq expect qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm libvirt-daemon virt-install rpmdevtools createrepo_c
 
 # Customize repository
 sudo mkdir -p /etc/osbuild-composer/repositories
@@ -171,6 +171,9 @@ fi
 # Basic weldr API status checking
 sudo composer-cli status show
 
+# Simulate a third party repo here
+sudo mkdir -p /var/www/html/packages
+sudo curl -s -o /var/www/html/packages/greenboot-failing-unit-1.0-1.el8.noarch.rpm https://kite-webhook-prod.s3.amazonaws.com/greenboot-failing-unit-1.0-1.el8.noarch.rpm
 # RHEL for Edge package test
 if [ -e packages/package_ci_trigger ]; then
     source packages/package_ci_trigger
@@ -178,31 +181,16 @@ if [ -e packages/package_ci_trigger ]; then
     # Get package rpm download URL
     IFS=',' read -r -a package_rpms <<< "$PACKAGE_RPM_LIST"
 
-    # Download package rpms to /var/www/html/packages
-    sudo mkdir -p /var/www/html/packages
     for i in "${package_rpms[@]}"; do
         if [[ ${i} != *"debug"* && ${i} != *"devel"* ]]; then
             sudo wget -q "http://${DOWNLOAD_NODE}/brewroot/work/${i}" -P /var/www/html/packages
         fi
     done
-
-    # Make all packages as a repo
-    sudo dnf install -y createrepo_c
-    sudo createrepo_c /var/www/html/packages
-
-    # Create source configuration file
-    sudo tee "/tmp/source.toml" > /dev/null << EOF
-id = "packages"
-name = "packages"
-type = "yum-baseurl"
-url = "http://192.168.100.1/packages"
-check_gpg = false
-check_ssl = false
-system = false
-EOF
-
-    sudo composer-cli sources add "/tmp/source.toml"
 fi
+# Create the simulated repo
+sudo createrepo_c /var/www/html/packages
+# Reset selinux for /var/www/html/source
+sudo restorecon -Rv /var/www/html/packages
 
 # Source checking
 sudo composer-cli sources list
