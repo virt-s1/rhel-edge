@@ -168,6 +168,16 @@ if [[ $(sudo virsh net-info integration | grep 'Active' | awk '{print $2}') == '
     sudo virsh net-start integration
 fi
 
+# workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2213660
+# Another reference https://discussion.fedoraproject.org/t/libvirtd-stop-responding-after-some-time/84324/7
+if [[ "$VERSION_ID" == "9.3"  || "$VERSION_ID" == "9" ]]; then
+    sudo tee /etc/sysconfig/virtnetworkd << EOF > /dev/null
+VIRTNETWORKD_ARGS=
+EOF
+    sudo systemctl enable virtnetworkd.service
+    sudo systemctl restart virtnetworkd.service
+fi
+
 # Basic weldr API status checking
 sudo composer-cli status show
 
