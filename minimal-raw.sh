@@ -6,6 +6,7 @@ set -euox pipefail
 
 # Get OS data.
 source /etc/os-release
+ARCH=$(uname -m)
 
 # Set up variables.
 TEST_UUID=$(uuidgen)
@@ -91,6 +92,7 @@ get_compose_metadata () {
 
     # Move the JSON file into place.
     sudo cat "${TEMPDIR}"/"${COMPOSE_ID}".json | jq -M '.' | tee "$METADATA_FILE" > /dev/null
+    sudo rm -f "${TEMPDIR}"/"${COMPOSE_ID}".json
 }
 
 # Build ostree image.
@@ -240,6 +242,7 @@ if [[ "${VERSION_ID}" == "37" || "${VERSION_ID}" == "38" ]]; then
 else
     sudo xz -d "${MINIMAL_RAW_FILENAME}"
     sudo qemu-img convert -f raw "${COMPOSE_ID}-${MINIMAL_RAW_DECOMPRESSED}" -O qcow2 "$LIBVIRT_IMAGE_PATH_UEFI"
+    sudo rm -f "${COMPOSE_ID}-${MINIMAL_RAW_DECOMPRESSED}"
 fi
 
 # Remove raw file
@@ -312,7 +315,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e download_node="$DOWNLOAD_NODE" check-minimal.yaml || RESULTS=0
+podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm "quay.io/rhel-edge/ansible-runner:${ARCH}" ansible-playbook -v -i /tmp/inventory -e download_node="$DOWNLOAD_NODE" check-minimal.yaml || RESULTS=0
 check_result
 
 # Final success clean up

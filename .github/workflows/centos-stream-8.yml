@@ -13,8 +13,8 @@ jobs:
             endsWith(github.event.comment.body, '/test-cs8-virt') ||
             endsWith(github.event.comment.body, '/test-cs8-ng') ||
             endsWith(github.event.comment.body, '/test-cs8-raw') ||
-            endsWith(github.event.comment.body, '/test-cs8-simplified') ||
-            endsWith(github.event.comment.body, '/test-cs8-minimal')) }}
+            endsWith(github.event.comment.body, '/test-cs8-minimal') ||
+            endsWith(github.event.comment.body, '/test-cs8-simplified')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Query author repository permissions
