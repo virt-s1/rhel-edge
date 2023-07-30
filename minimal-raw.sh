@@ -12,7 +12,8 @@ TEST_UUID=$(uuidgen)
 IMAGE_KEY="minimal-raw-${TEST_UUID}"
 UEFI_GUEST_ADDRESS=192.168.100.51
 MINIMAL_RAW_TYPE=minimal-raw
-MINIMAL_RAW_FILENAME=raw.img
+MINIMAL_RAW_DECOMPRESSED=raw.img
+MINIMAL_RAW_FILENAME=raw.img.xz
 # Workaround BZ#2108646
 BOOT_ARGS="uefi"
 
@@ -32,10 +33,10 @@ EDGE_USER_PASSWORD=foobar
 sudo mkdir -p /etc/osbuild-composer/repositories
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.8")
+    "rhel-8.9")
         OS_VARIANT="rhel8-unknown"
         ;;
-    "rhel-9.2")
+    "rhel-9.3")
         OS_VARIANT="rhel9-unknown"
         ;;
     "centos-8")
@@ -47,9 +48,11 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "fedora-37")
         OS_VARIANT="fedora37"
+        MINIMAL_RAW_FILENAME=raw.img
         ;;
     "fedora-38")
         OS_VARIANT="fedora-unknown"
+        MINIMAL_RAW_FILENAME=raw.img
         ;;
     "fedora-39")
         OS_VARIANT="fedora-rawhide"
@@ -229,11 +232,16 @@ build_image minimal-raw "${MINIMAL_RAW_TYPE}"
 # Download the image
 greenprint "📥 Downloading the minimal-raw image"
 sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
+LIBVIRT_IMAGE_PATH_UEFI=/var/lib/libvirt/images/"${IMAGE_KEY}-uefi.qcow2"
 MINIMAL_RAW_FILENAME="${COMPOSE_ID}-${MINIMAL_RAW_FILENAME}"
 
-greenprint "Extracting and converting the raw image to a qcow2 file"
-LIBVIRT_IMAGE_PATH_UEFI=/var/lib/libvirt/images/"${IMAGE_KEY}-uefi.qcow2"
-sudo qemu-img convert -f raw "$MINIMAL_RAW_FILENAME" -O qcow2 "$LIBVIRT_IMAGE_PATH_UEFI"
+if [[ "${VERSION_ID}" == "37" || "${VERSION_ID}" == "38" ]]; then
+    sudo qemu-img convert -f raw "$MINIMAL_RAW_FILENAME" -O qcow2 "$LIBVIRT_IMAGE_PATH_UEFI"
+else
+    sudo xz -d "${MINIMAL_RAW_FILENAME}"
+    sudo qemu-img convert -f raw "${COMPOSE_ID}-${MINIMAL_RAW_DECOMPRESSED}" -O qcow2 "$LIBVIRT_IMAGE_PATH_UEFI"
+fi
+
 # Remove raw file
 sudo rm -f "$MINIMAL_RAW_FILENAME"
 
@@ -304,7 +312,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory check-minimal.yaml || RESULTS=0
+podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e download_node="$DOWNLOAD_NODE" check-minimal.yaml || RESULTS=0
 check_result
 
 # Final success clean up
