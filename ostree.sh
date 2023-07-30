@@ -183,8 +183,8 @@ esac
 # For CentOS Stream test, do not use latest link but use COMPOSE ID URL instead to work around issue
 # https://bugzilla.redhat.com/show_bug.cgi?id=2065708
 if [[ "${ID}-${VERSION_ID}" == "centos-8" ]]; then
-    CURRENT_COMPOSE_CS8=$(curl -s "https://composes.centos.org/" | grep -ioE ">CentOS-Stream-8-.*/<" | tr -d '>/<' | tail -1)
-    BOOT_LOCATION="https://composes.centos.org/${CURRENT_COMPOSE_CS8}/compose/BaseOS/x86_64/os/"
+    CURRENT_COMPOSE_CS8=$(curl -s "https://composes.stream.centos.org/stream-8/production/" | grep -ioE ">CentOS-Stream-8-.*/<" | tr -d '>/<' | tail -1)
+    BOOT_LOCATION="https://composes.stream.centos.org/stream-8/production/${CURRENT_COMPOSE_CS8}/compose/BaseOS/x86_64/os/"
 fi
 if [[ "${ID}-${VERSION_ID}" == "centos-9" ]]; then
     CURRENT_COMPOSE_CS9=$(curl -s "https://composes.stream.centos.org/production/" | grep -ioE ">CentOS-Stream-9-.*/<" | tr -d '>/<' | tail -1)
