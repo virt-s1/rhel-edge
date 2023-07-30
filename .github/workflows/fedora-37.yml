@@ -333,6 +333,8 @@ jobs:
 
       - name: run minimal-raw.sh
         run: ./minimal-raw.sh
+        env:
+          DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
         timeout-minutes: 60
 
       - name: Set non cancelled result status
