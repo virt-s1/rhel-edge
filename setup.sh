@@ -194,11 +194,39 @@ if [ -e packages/package_ci_trigger ]; then
             sudo wget -q "http://${DOWNLOAD_NODE}/brewroot/work/${i}" -P /var/www/html/packages
         fi
     done
+
+    # Create the simulated repo
+    sudo createrepo_c /var/www/html/packages
+    # Reset selinux for /var/www/html/source
+    sudo restorecon -Rv /var/www/html/packages
+
+    # Create local repo to install packages
+    sudo tee "/etc/yum.repos.d/packages.repo" > /dev/null << EOF
+[packages]
+name = packages
+baseurl = file:///var/www/html/packages/
+enabled = 1
+gpgcheck = 0
+priority = 5
+EOF
+
+    # Check local repo working or not
+    sudo dnf info \
+        coreos-installer-dracut \
+        greenboot \
+        ostree \
+        rpm-ostree \
+        fdo-rendezvous-server \
+        fdo-owner-onboarding-server \
+        fdo-owner-cli \
+        fdo-manufacturing-server \
+        fdo-admin-cli
+else
+    # Create the simulated repo
+    sudo createrepo_c /var/www/html/packages
+    # Reset selinux for /var/www/html/source
+    sudo restorecon -Rv /var/www/html/packages
 fi
-# Create the simulated repo
-sudo createrepo_c /var/www/html/packages
-# Reset selinux for /var/www/html/source
-sudo restorecon -Rv /var/www/html/packages
 
 # Source checking
 sudo composer-cli sources list

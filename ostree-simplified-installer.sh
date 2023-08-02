@@ -8,21 +8,44 @@ set -euox pipefail
 source /etc/os-release
 ARCH=$(uname -m)
 
-# Install fdo packages (This cannot be done in the setup.sh because fdo-admin-cli is not available on fedora)
-sudo dnf install -y fdo-admin-cli python3-pip
+# Install FDO packages (This cannot be done in the setup.sh because FDO packages are not available on fedora)
+sudo dnf install -y \
+    fdo-admin-cli \
+    fdo-rendezvous-server \
+    fdo-owner-onboarding-server \
+    fdo-owner-cli \
+    fdo-manufacturing-server \
+    python3-pip
+
+# Generate key and cert used by FDO
+sudo mkdir -p /etc/fdo/keys
+for obj in diun manufacturer device-ca owner; do
+    sudo fdo-admin-tool generate-key-and-cert --destination-dir /etc/fdo/keys "$obj"
+done
+
+# Copy configuration files
+sudo mkdir -p \
+    /etc/fdo/manufacturing-server.conf.d/ \
+    /etc/fdo/owner-onboarding-server.conf.d/ \
+    /etc/fdo/rendezvous-server.conf.d/ \
+    /etc/fdo/serviceinfo-api-server.conf.d/
+
+sudo cp files/fdo/manufacturing-server.yml /etc/fdo/manufacturing-server.conf.d/
+sudo cp files/fdo/owner-onboarding-server.yml /etc/fdo/owner-onboarding-server.conf.d/
+sudo cp files/fdo/rendezvous-server.yml /etc/fdo/rendezvous-server.conf.d/
+sudo cp files/fdo/serviceinfo-api-server.yml /etc/fdo/serviceinfo-api-server.conf.d/
+
 # Install yq to modify service api server config yaml file
 sudo pip3 install yq
-# Start fdo-aio to have /etc/fdo/aio folder
-sudo systemctl enable --now fdo-aio
-# Wait until config file serviceinfo_api_server.yml exists
-# to avoid file not available to use flaky issue
-until [ -f /etc/fdo/aio/configs/serviceinfo_api_server.yml ]
-do
-    sleep 2
-done
 # Prepare service api server config file
-sudo /usr/local/bin/yq -iy '.service_info.diskencryption_clevis |= [{disk_label: "/dev/vda4", reencrypt: true, binding: {pin: "tpm2", config: "{}"}}]' /etc/fdo/aio/configs/serviceinfo_api_server.yml
-sudo systemctl restart fdo-aio
+sudo /usr/local/bin/yq -iy '.service_info.diskencryption_clevis |= [{disk_label: "/dev/vda4", reencrypt: true, binding: {pin: "tpm2", config: "{}"}}]' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
+
+# Start FDO services
+sudo systemctl start \
+    fdo-owner-onboarding-server.service \
+    fdo-rendezvous-server.service \
+    fdo-manufacturing-server.service \
+    fdo-serviceinfo-api-server.service
 
 # Set up variables.
 TEST_UUID=$(uuidgen)
@@ -36,8 +59,8 @@ PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
 FDO_SERVER_ADDRESS=192.168.100.1
-DIUN_PUB_KEY_HASH=sha256:$(openssl x509 -fingerprint -sha256 -noout -in /etc/fdo/aio/keys/diun_cert.pem | cut -d"=" -f2 | sed 's/://g')
-DIUN_PUB_KEY_ROOT_CERTS=$(cat /etc/fdo/aio/keys/diun_cert.pem)
+DIUN_PUB_KEY_HASH=sha256:$(openssl x509 -fingerprint -sha256 -noout -in /etc/fdo/keys/diun_cert.pem | cut -d"=" -f2 | sed 's/://g')
+DIUN_PUB_KEY_ROOT_CERTS=$(cat /etc/fdo/keys/diun_cert.pem)
 CONTAINER_TYPE=edge-container
 CONTAINER_FILENAME=container.tar
 INSTALLER_TYPE=edge-simplified-installer
@@ -176,14 +199,16 @@ esac
 
 if [[ "$FDO_USER_ONBOARDING" == "true" ]]; then
     # FDO user does not have password, use ssh key and no sudo password instead
-    sudo /usr/local/bin/yq -iy '.service_info.initial_user |= {username: "fdouser", sshkeys: ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"]}' /etc/fdo/aio/configs/serviceinfo_api_server.yml
+    sudo /usr/local/bin/yq -iy '.service_info.initial_user |= {username: "fdouser", sshkeys: ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"]}' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
     # No sudo password required by ansible
     # Change to /etc/fdo folder to workaround issue https://bugzilla.redhat.com/show_bug.cgi?id=2026795#c24
     sudo tee /etc/fdo/fdouser > /dev/null << EOF
 fdouser ALL=(ALL) NOPASSWD: ALL
 EOF
-    sudo /usr/local/bin/yq -iy '.service_info.files |= [{path: "/etc/sudoers.d/fdouser", source_path: "/etc/fdo/fdouser"}]' /etc/fdo/aio/configs/serviceinfo_api_server.yml
-    sudo systemctl restart fdo-aio
+    sudo /usr/local/bin/yq -iy '.service_info.files |= [{path: "/etc/sudoers.d/fdouser", source_path: "/etc/fdo/fdouser"}]' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
+
+    # Restart fdo-serviceinfo-api-server.service
+    sudo systemctl restart fdo-serviceinfo-api-server.service
 fi
 
 # Colorful output.
