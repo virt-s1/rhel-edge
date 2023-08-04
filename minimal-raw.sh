@@ -53,7 +53,6 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "fedora-38")
         OS_VARIANT="fedora-unknown"
-        MINIMAL_RAW_FILENAME=raw.img
         ;;
     "fedora-39")
         OS_VARIANT="fedora-rawhide"
@@ -237,7 +236,7 @@ sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
 LIBVIRT_IMAGE_PATH_UEFI=/var/lib/libvirt/images/"${IMAGE_KEY}-uefi.qcow2"
 MINIMAL_RAW_FILENAME="${COMPOSE_ID}-${MINIMAL_RAW_FILENAME}"
 
-if [[ "${VERSION_ID}" == "37" || "${VERSION_ID}" == "38" ]]; then
+if [[ "${VERSION_ID}" == "37" ]]; then
     sudo qemu-img convert -f raw "$MINIMAL_RAW_FILENAME" -O qcow2 "$LIBVIRT_IMAGE_PATH_UEFI"
 else
     sudo xz -d "${MINIMAL_RAW_FILENAME}"
@@ -256,11 +255,6 @@ sudo composer-cli blueprints delete minimal-raw > /dev/null
 # Ensure SELinux is happy with our new images.
 greenprint "👿 Running restorecon on image directory"
 sudo restorecon -Rv /var/lib/libvirt/images/
-
-# Workaround bug https://bugzilla.redhat.com/show_bug.cgi?id=2213388
-if [[ "${VERSION_ID}" == "39" ]]; then
-    sudo systemctl restart libvirtd
-fi
 
 ##################################################################
 ##
