@@ -771,11 +771,6 @@ fi
 ## Install and test edge vm with edge-raw-image (UEFI)
 ##
 ##################################################################
-# Workaround bug https://bugzilla.redhat.com/show_bug.cgi?id=2213388
-if [[ "${VERSION_ID}" == "39" ]]; then
-    sudo systemctl restart libvirtd
-fi
-
 greenprint "💿 Installing raw image on UEFI VM"
 sudo virt-install  --name="${IMAGE_KEY}-uefi"\
                    --disk path="${LIBVIRT_IMAGE_PATH_UEFI}",format=qcow2 \
