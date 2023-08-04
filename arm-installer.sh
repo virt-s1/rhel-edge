@@ -129,7 +129,7 @@ clean_up () {
 
 # Variables before case
 BOOT_ARGS="uefi"
-# Fedora does not support embeded container in ostree commit
+# Fedora does not support embedded container in ostree commit
 EMBEDDED_CONTAINER="true"
 # Fedora does not support container image auto uploading
 CONTAINER_PUSHING_FEAT="true"
@@ -357,7 +357,7 @@ home = "/home/admin/"
 groups = ["wheel"]
 EOF
 
-# Fedora does not support embeded container in commit
+# Fedora does not support embedded container in commit
 if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]
@@ -601,7 +601,7 @@ name = "wget"
 version = "*"
 EOF
 
-# Fedora does not support embeded container in commit
+# Fedora does not support embedded container in commit
 if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]

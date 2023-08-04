@@ -71,7 +71,7 @@
       when: "'rt' in result_kernel.stdout"
 
     # first installed or upgraded
-    - name: determin which stage the checking is running on
+    - name: determine which stage the checking is running on
       shell: rpm-ostree status --json | jq '.deployments | length'
       register: result_stage
 
@@ -594,7 +594,7 @@
         - "'rt' not in result_kernel.stdout"
         - ansible_facts['architecture'] == "x86_64"
 
-    - name: check embeded container image with podman
+    - name: check embedded container image with podman
       command: podman images
       become: yes
       register: result_podman_images
@@ -677,7 +677,7 @@
               - podman_result is succeeded
               - "'Red Hat Enterprise Linux release' in podman_result.stdout"
             fail_msg: "failed run container with podman (root)"
-            success_msg: "running container with podman (root) successed"
+            success_msg: "running container with podman (root) succeeded"
       always:
         - set_fact:
             total_counter: "{{ total_counter | int + 1 }}"
@@ -711,7 +711,7 @@
               - podman_result is succeeded
               - "'Red Hat Enterprise Linux release' in podman_result.stdout"
             fail_msg: "failed run container with podman (non-root)"
-            success_msg: "running container with podman (non-root) successed"
+            success_msg: "running container with podman (non-root) succeeded"
       always:
         - set_fact:
             total_counter: "{{ total_counter | int + 1 }}"
@@ -746,7 +746,7 @@
               - "'Fedora Linux 36 (Container Image)' in fminimal_container_result.stdout"
               - "'Trying to pull' not in fminimal_container_result.stdout"
             fail_msg: "failed run fedora-minimal container with podman"
-            success_msg: "running fedora-minimal container with podman successed"
+            success_msg: "running fedora-minimal container with podman succeeded"
       always:
         - set_fact:
             total_counter: "{{ total_counter | int + 1 }}"
@@ -780,7 +780,7 @@
               - faarch64_container_result is succeeded
               - "'Trying to pull' not in faarch64_container_result.stdout"
             fail_msg: "failed run fedora-aarch64 container with podman"
-            success_msg: "running fedora-aarch64 container with podman successed"
+            success_msg: "running fedora-aarch64 container with podman succeeded"
       always:
         - set_fact:
             total_counter: "{{ total_counter | int + 1 }}"

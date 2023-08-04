@@ -143,7 +143,7 @@
               - podman_result is succeeded
               - "'Red Hat Enterprise Linux release' in podman_result.stdout"
             fail_msg: "failed run container with podman (root)"
-            success_msg: "running container with podman (root) successed"
+            success_msg: "running container with podman (root) succeeded"
       always:
         - set_fact:
             total_counter: "{{ total_counter | int + 1 }}"
@@ -168,7 +168,7 @@
               - podman_result is succeeded
               - "'Red Hat Enterprise Linux release' in podman_result.stdout"
             fail_msg: "failed run container with podman (non-root)"
-            success_msg: "running container with podman (non-root) successed"
+            success_msg: "running container with podman (non-root) succeeded"
       always:
         - set_fact:
             total_counter: "{{ total_counter | int + 1 }}"

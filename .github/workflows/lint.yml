@@ -7,14 +7,29 @@ on:
       - "*"
 
 jobs:
+  commitlint:
+    name: "📇 commitlint"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: wagoid/commitlint-github-action@v5
+
+  spellcheck:
+    name: "📋 spellcheck"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: codespell-project/actions-codespell@v1
+        with:
+          check_filenames: true
+          ignore_words_list: bu
+
   shellcheck:
     name: "🔭 Shellcheck"
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-
-      - name: Run ShellCheck
-        uses: ludeeus/action-shellcheck@master
+      - uses: ludeeus/action-shellcheck@master
         env:
           SHELLCHECK_OPTS: -e SC1091 -e SC2002 -e SC2317
 
@@ -23,19 +38,6 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-
-      - name: Run yamllint
-        uses: ibiqlik/action-yamllint@v3
+      - uses: ibiqlik/action-yamllint@v3
         with:
           config_file: .yamllint.yml
-
-  build-container:
-    name: "⛏ build container"
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Build container
-        run: |
-          sudo apt-get install -y podman
-          podman build -t ansible-runner:latest -f tools/Dockerfile.ansible.x86_64
