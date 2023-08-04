@@ -49,7 +49,6 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "fedora-37")
         OS_VARIANT="fedora37"
-        MINIMAL_RAW_FILENAME=raw.img
         ;;
     "fedora-38")
         OS_VARIANT="fedora-unknown"
@@ -236,13 +235,9 @@ sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
 LIBVIRT_IMAGE_PATH_UEFI=/var/lib/libvirt/images/"${IMAGE_KEY}-uefi.qcow2"
 MINIMAL_RAW_FILENAME="${COMPOSE_ID}-${MINIMAL_RAW_FILENAME}"
 
-if [[ "${VERSION_ID}" == "37" ]]; then
-    sudo qemu-img convert -f raw "$MINIMAL_RAW_FILENAME" -O qcow2 "$LIBVIRT_IMAGE_PATH_UEFI"
-else
-    sudo xz -d "${MINIMAL_RAW_FILENAME}"
-    sudo qemu-img convert -f raw "${COMPOSE_ID}-${MINIMAL_RAW_DECOMPRESSED}" -O qcow2 "$LIBVIRT_IMAGE_PATH_UEFI"
-    sudo rm -f "${COMPOSE_ID}-${MINIMAL_RAW_DECOMPRESSED}"
-fi
+sudo xz -d "${MINIMAL_RAW_FILENAME}"
+sudo qemu-img convert -f raw "${COMPOSE_ID}-${MINIMAL_RAW_DECOMPRESSED}" -O qcow2 "$LIBVIRT_IMAGE_PATH_UEFI"
+sudo rm -f "${COMPOSE_ID}-${MINIMAL_RAW_DECOMPRESSED}"
 
 # Remove raw file
 sudo rm -f "$MINIMAL_RAW_FILENAME"
