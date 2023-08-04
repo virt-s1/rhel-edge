@@ -164,6 +164,9 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_BLUEPRINT="true"
         BLUEPRINT_USER="simple"
         NO_FDO="true"
+        # workaround selinux bug https://bugzilla.redhat.com/show_bug.cgi?id=2026795
+        sudo setenforce 0
+        getenforce
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -191,6 +194,9 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_BLUEPRINT="true"
         BLUEPRINT_USER="simple"
         NO_FDO="true"
+        # workaround selinux bug https://bugzilla.redhat.com/show_bug.cgi?id=2026795
+        sudo setenforce 0
+        getenforce
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -637,6 +643,14 @@ groups = ["wheel"]
 EOF
 fi
 
+# workaround selinux bug https://bugzilla.redhat.com/show_bug.cgi?id=2026795
+if [[ "$VERSION_ID" == "9.3" || "$VERSION_ID" == "9" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[customizations.kernel]
+append = "enforcing=0"
+EOF
+fi
+
 greenprint "📄 installer blueprint"
 cat "$BLUEPRINT_FILE"
 
@@ -797,6 +811,14 @@ installation_device = "/dev/vda"
 manufacturing_server_url="http://${FDO_SERVER_ADDRESS}:8080"
 diun_pub_key_hash="${DIUN_PUB_KEY_HASH}"
 EOF
+
+# workaround selinux bug https://bugzilla.redhat.com/show_bug.cgi?id=2026795
+if [[ "$VERSION_ID" == "9.3" || "$VERSION_ID" == "9" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[customizations.kernel]
+append = "enforcing=0"
+EOF
+fi
 
 greenprint "📄 fdosshkey blueprint"
 cat "$BLUEPRINT_FILE"
@@ -1085,6 +1107,14 @@ manufacturing_server_url="http://${FDO_SERVER_ADDRESS}:8080"
 diun_pub_key_root_certs="""
 ${DIUN_PUB_KEY_ROOT_CERTS}"""
 EOF
+
+# workaround selinux bug https://bugzilla.redhat.com/show_bug.cgi?id=2026795
+if [[ "$VERSION_ID" == "9.3" || "$VERSION_ID" == "9" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[customizations.kernel]
+append = "enforcing=0"
+EOF
+fi
 
 greenprint "📄 fdosshkey blueprint"
 cat "$BLUEPRINT_FILE"
