@@ -574,7 +574,7 @@ home = "/home/admin/"
 groups = ["wheel"]
 EOF
 
-# RHEL 8.7 and 9.1 later support embeded container in commit
+# RHEL 8.7 and 9.1 later support embedded container in commit
 if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]
@@ -923,7 +923,7 @@ name = "kernel-rt"
 EOF
 fi
 
-# RHEL 8.7 and 9.1 later support embeded container in commit
+# RHEL 8.7 and 9.1 later support embedded container in commit
 if [[ "${CONTAINER_PUSHING_FEAT}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]

@@ -282,7 +282,7 @@ groups = ["wheel"]
 EOF
 fi
 
-# Fedora does not support embeded container in commit
+# Fedora does not support embedded container in commit
 if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]
@@ -499,7 +499,7 @@ groups = ["wheel"]
 EOF
 fi
 
-# Fedora does not support embeded container in commit
+# Fedora does not support embedded container in commit
 if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]

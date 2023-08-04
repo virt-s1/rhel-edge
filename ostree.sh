@@ -412,7 +412,7 @@ groups = ["wheel"]
 EOF
 fi
 
-# RHEL 8.7 and 9.1 later support embeded container in commit
+# RHEL 8.7 and 9.1 later support embedded container in commit
 if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]
@@ -621,7 +621,7 @@ version = "*"
 EOF
 fi
 
-# RHEL 8.7 and 9.1 later support embeded container in commit
+# RHEL 8.7 and 9.1 later support embedded container in commit
 if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[containers]]
