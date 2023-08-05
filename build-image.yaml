@@ -129,10 +129,14 @@
       changed_when: False
 
     - block:
+        # install fdo-client and fdo-init as a workaround of bug
+        # https://bugzilla.redhat.com/show_bug.cgi?id=2230537
         - name: install fdo-admin-cli and pip
           dnf:
             name:
               - fdo-admin-cli
+              - fdo-client
+              - fdo-init
               - python3-pip
             state: latest
           become: yes
@@ -152,7 +156,7 @@
           command: '/usr/local/bin/yq -iy ".service_info.diskencryption_clevis |= [{disk_label: \"/dev/vda3\", reencrypt: true, binding: {pin: \"tpm2\", config: \"{}\"}}]" /etc/fdo/aio/configs/serviceinfo_api_server.yml'
           become: yes
 
-        - name: restart fdo service
+        - name: restart fdo-aio service
           systemd:
             name: fdo-aio
             state: restarted
@@ -173,6 +177,15 @@
         - fdo_installed.rc == 1
         - image_type == "edge-simplified-installer" or image_type == "iot-simplified-installer"
         - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>=')) or (ansible_facts['distribution'] == 'CentOS' or ansible_facts ['distribution_version'] is version('9', '=='))
+
+    # disable selinux as a workaround of bug https://bugzilla.redhat.com/show_bug.cgi?id=2026795
+    - name: disable selinux
+      command: setenforce 0
+      become: yes
+      when:
+        - fdo_installed.rc == 1
+        - image_type == "edge-simplified-installer" or image_type == "iot-simplified-installer"
+        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.3', '==')) or (ansible_facts['distribution'] == 'CentOS' or ansible_facts ['distribution_version'] is version('9', '=='))
 
     - name: restart fdo service
       systemd:

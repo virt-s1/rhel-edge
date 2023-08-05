@@ -369,6 +369,14 @@ manufacturing_server_url="http://${BUILDER_VM_IP}:8080"
 diun_pub_key_insecure="true"
 EOF
 
+# workaround selinux bug https://bugzilla.redhat.com/show_bug.cgi?id=2026795
+if [[ "$TEST_OS" == "rhel-9-3" || "$TEST_OS" == "centos-stream-9" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[customizations.kernel]
+append = "enforcing=0"
+EOF
+fi
+
 # Build edge/iot-simplified-installer image.
 sudo podman run --annotation run.oci.keep_original_groups=1 --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e image_type="$SIMPLIFIED_IMAGE_TYPE" -e repo_url="$PROD_REPO_URL" -e ostree_ref="$OSTREE_REF" build-image.yaml || RESULTS=0
 
@@ -523,6 +531,14 @@ manufacturing_server_url="http://${BUILDER_VM_IP}:8080"
 diun_pub_key_hash="${DIUN_PUB_KEY_HASH}"
 EOF
 
+# workaround selinux bug https://bugzilla.redhat.com/show_bug.cgi?id=2026795
+if [[ "$TEST_OS" == "rhel-9-3" || "$TEST_OS" == "centos-stream-9" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[customizations.kernel]
+append = "enforcing=0"
+EOF
+fi
+
 # Create inventory file
 tee "${TEMPDIR}"/inventory > /dev/null << EOF
 [builder]
@@ -668,6 +684,14 @@ manufacturing_server_url="http://${BUILDER_VM_IP}:8080"
 diun_pub_key_root_certs="""
 ${DIUN_PUB_KEY_ROOT_CERTS}"""
 EOF
+
+# workaround selinux bug https://bugzilla.redhat.com/show_bug.cgi?id=2026795
+if [[ "$TEST_OS" == "rhel-9-3" || "$TEST_OS" == "centos-stream-9" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[customizations.kernel]
+append = "enforcing=0"
+EOF
+fi
 
 # Create inventory file
 tee "${TEMPDIR}"/inventory > /dev/null << EOF
