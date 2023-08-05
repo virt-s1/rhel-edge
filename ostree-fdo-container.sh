@@ -25,10 +25,7 @@ PROD_REPO_URL=http://192.168.100.1/repo
 PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
-FDO_MANUFACTURING_ADDRESS=192.168.200.50
-FDO_OWNER_ONBOARDING_ADDRESS=192.168.200.51
-FDO_RENDEZVOUS_ADDRESS=192.168.200.52
-FDO_SERVICEINFO_API_ADDRESS=192.168.200.53
+FDO_MANUFACTURING_ADDRESS=192.168.100.1
 CONTAINER_TYPE=edge-container
 CONTAINER_FILENAME=container.tar
 INSTALLER_TYPE=edge-simplified-installer
@@ -45,6 +42,8 @@ COMPOSE_INFO=${TEMPDIR}/compose-info-${IMAGE_KEY}.json
 SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5)
 SSH_KEY=key/ostree_key
 SSH_KEY_PUB=$(cat "${SSH_KEY}".pub)
+
+FDO_USER=fdouser
 EDGE_USER_PASSWORD=foobar
 SYSROOT_RO="true"
 
@@ -77,6 +76,7 @@ get_compose_metadata () {
 
     # Move the JSON file into place.
     sudo cat "${TEMPDIR}"/"${COMPOSE_ID}".json | jq -M '.' | tee "$METADATA_FILE" > /dev/null
+    sudo rm -f "${TEMPDIR}"/"${COMPOSE_ID}".json
 }
 
 # Build ostree image.
@@ -101,7 +101,6 @@ build_image() {
     fi
 
     COMPOSE_ID=$(jq -r '.[0].body.build_id' "$COMPOSE_START")
-    #COMPOSE_ID=$(jq -r '.body.build_id' "$COMPOSE_START")
 
     # Wait for the compose to finish.
     greenprint "⏱ Waiting for compose to finish: ${COMPOSE_ID}"
@@ -109,7 +108,6 @@ build_image() {
         sudo composer-cli --json compose info "${COMPOSE_ID}" | tee "$COMPOSE_INFO" > /dev/null
 
         COMPOSE_STATUS=$(jq -r '.[0].body.queue_status' "$COMPOSE_INFO")
-        #COMPOSE_STATUS=$(jq -r '.body.queue_status' "$COMPOSE_INFO")
 
         # Is the compose finished?
         if [[ $COMPOSE_STATUS != RUNNING ]] && [[ $COMPOSE_STATUS != WAITING ]]; then
@@ -148,7 +146,7 @@ wait_for_ssh_up () {
 
 # Wait for FDO onboarding finished.
 wait_for_fdo () {
-    SSH_STATUS=$(sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@"${1}" "id -u fdouser > /dev/null 2>&1 && echo -n READY")
+    SSH_STATUS=$(sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@"${1}" "id -u $FDO_USER > /dev/null 2>&1 && echo -n READY")
     if [[ $SSH_STATUS == READY ]]; then
         echo 1
     else
@@ -228,10 +226,10 @@ DIUN_PUB_KEY_HASH=sha256:$(openssl x509 -fingerprint -sha256 -noout -in aio/keys
 greenprint "🔧 Prepare FDO key and configuration files for FDO containers"
 mkdir -p fdo/keys
 cp aio/keys/* fdo/keys/
-cp data/fdo/manufacturing-server.yml fdo/
-cp data/fdo/owner-onboarding-server.yml fdo/
-cp data/fdo/rendezvous-server.yml fdo/
-cp data/fdo/serviceinfo-api-server.yml fdo/
+cp files/fdo/manufacturing-server.yml fdo/
+cp files/fdo/owner-onboarding-server.yml fdo/
+cp files/fdo/rendezvous-server.yml fdo/
+cp files/fdo/serviceinfo-api-server.yml fdo/
 
 # FDO user does not have password, use ssh key and no sudo password instead
 sudo /usr/local/bin/yq -iy '.service_info.initial_user |= {username: "fdouser", sshkeys: ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"]}' fdo/serviceinfo-api-server.yml
@@ -243,36 +241,32 @@ sudo /usr/local/bin/yq -iy '.service_info.files |= [{path: "/etc/sudoers.d/fdous
 
 greenprint "🔧 Starting fdo manufacture server"
 sudo podman run -d \
-  --ip "$FDO_MANUFACTURING_ADDRESS" \
   --name manufacture-server \
-  --network edge \
+  --network host \
   -v "$PWD"/fdo/:/etc/fdo/:z \
   -p 8080:8080 \
   "quay.io/fido-fdo/manufacturing-server:nightly" 
 
 greenprint "🔧 Starting fdo owner onboarding server"
 sudo podman run -d \
-  --ip "$FDO_OWNER_ONBOARDING_ADDRESS" \
   --name owner-onboarding-server \
-  --network edge \
+  --network host \
   -v "$PWD"/fdo/:/etc/fdo/:z \
   -p 8081:8081 \
   "quay.io/fido-fdo/owner-onboarding-server:nightly" 
 
 greenprint "🔧 Starting fdo rendezvous server"
 sudo podman run -d \
-  --ip "$FDO_RENDEZVOUS_ADDRESS" \
   --name rendezvous-server \
-  --network edge \
+  --network host \
   -v "$PWD"/fdo/:/etc/fdo/:z \
   -p 8082:8082 \
   "quay.io/fido-fdo/rendezvous-server:nightly" 
 
 greenprint "🔧 Starting fdo serviceinfo api server"
 sudo podman run -d \
-  --ip "$FDO_SERVICEINFO_API_ADDRESS" \
   --name serviceinfo-api-server \
-  --network edge \
+  --network host \
   -v "$PWD"/fdo/:/etc/fdo/:z \
   -p 8083:8083 \
   "quay.io/fido-fdo/serviceinfo-api-server:nightly" 
@@ -282,15 +276,15 @@ until [ "$(curl -X POST http://${FDO_MANUFACTURING_ADDRESS}:8080/ping)" == "pong
     sleep 1;
 done;
 
-until [ "$(curl -X POST http://${FDO_OWNER_ONBOARDING_ADDRESS}:8081/ping)" == "pong" ]; do
+until [ "$(curl -X POST http://${FDO_MANUFACTURING_ADDRESS}:8081/ping)" == "pong" ]; do
     sleep 1;
 done;
 
-until [ "$(curl -X POST http://${FDO_RENDEZVOUS_ADDRESS}:8082/ping)" == "pong" ]; do
+until [ "$(curl -X POST http://${FDO_MANUFACTURING_ADDRESS}:8082/ping)" == "pong" ]; do
     sleep 1;
 done;
 
-until [ "$(curl -X POST http://${FDO_SERVICEINFO_API_ADDRESS}:8083/ping)" == "pong" ]; do
+until [ "$(curl -X POST http://${FDO_MANUFACTURING_ADDRESS}:8083/ping)" == "pong" ]; do
     sleep 1;
 done;
 
@@ -380,6 +374,9 @@ password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHB
 key = "${SSH_KEY_PUB}"
 home = "/home/admin/"
 groups = ["wheel"]
+
+[customizations.kernel]
+append = "enforcing=0"
 EOF
 
 greenprint "📄 installer blueprint"
@@ -434,19 +431,6 @@ sudo virsh start "${IMAGE_KEY}-insecure"
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
-for _ in $(seq 0 30); do
-    RESULTS="$(wait_for_ssh_up $INSECURE_GUEST_ADDRESS)"
-    if [[ $RESULTS == 1 ]]; then
-        echo "SSH is ready now! 🥳"
-        break
-    fi
-    sleep 10
-done
-
-# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${INSECURE_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
-# Sleep 10 seconds here to make sure vm restarted already
-sleep 10
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $INSECURE_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
@@ -516,6 +500,9 @@ password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHB
 key = "${SSH_KEY_PUB}"
 home = "/home/admin/"
 groups = ["wheel"]
+
+[customizations.kernel]
+append = "enforcing=0"
 EOF
 
 greenprint "📄 fdosshkey blueprint"
@@ -576,14 +563,11 @@ for _ in $(seq 0 30); do
     sleep 10
 done
 
-# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${PUB_KEY_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
-# Sleep 10 seconds here to make sure vm restarted already
-sleep 10
-for _ in $(seq 0 30); do
-    RESULTS="$(wait_for_ssh_up $PUB_KEY_GUEST_ADDRESS)"
+greenprint "Waiting for FDO user onboarding finished"
+for _ in $(seq 0 60); do
+    RESULTS=$(wait_for_fdo "$PUB_KEY_GUEST_ADDRESS")
     if [[ $RESULTS == 1 ]]; then
-        echo "SSH is ready now! 🥳"
+        echo "FDO user is ready to use! 🥳"
         break
     fi
     sleep 10
@@ -602,35 +586,12 @@ ${PUB_KEY_GUEST_ADDRESS}
 
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=fdouser
+ansible_user=${FDO_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 ansible_become=yes 
 ansible_become_method=sudo
 EOF
-
-# Workaround to fix edge-simplified-installer test failure (ansible runs before fdouser is created)
-# Bug link: https://github.com/osbuild/osbuild-composer/pull/3378#issuecomment-1502633131
-# greenprint "🕹 Check if user 'fdouser' exist in edge vm"
-# for _ in $(seq 0 60); do
-#     FDOUSER_EXIST=$(ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@$PUB_KEY_GUEST_ADDRESS "grep fdouser /etc/passwd")
-#     if [[ ${FDOUSER_EXIST} =~ "fdouser" ]]; then
-#         echo "fdouser has been created"
-#         break
-#     else
-#         echo "fdouser has not been created yet"
-#         sleep 10
-#     fi
-# done
-greenprint "Waiting for FDO user onboarding finished"
-for _ in $(seq 0 60); do
-    RESULTS=$(wait_for_fdo "$PUB_KEY_GUEST_ADDRESS")
-    if [[ $RESULTS == 1 ]]; then
-        echo "FDO user is ready to use! 🥳"
-        break
-    fi
-    sleep 10
-done
 
 # Test IoT/Edge OS
 sudo podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
@@ -674,6 +635,9 @@ password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHB
 key = "${SSH_KEY_PUB}"
 home = "/home/admin/"
 groups = ["wheel"]
+
+[customizations.kernel]
+append = "enforcing=0"
 EOF
 
 greenprint "📄 fdosshkey blueprint"
@@ -734,14 +698,11 @@ for _ in $(seq 0 30); do
     sleep 10
 done
 
-# Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${ROOT_CERT_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
-# Sleep 10 seconds here to make sure vm restarted already
-sleep 10
-for _ in $(seq 0 30); do
-    RESULTS="$(wait_for_ssh_up $ROOT_CERT_GUEST_ADDRESS)"
+greenprint "Waiting for FDO user onboarding finished"
+for _ in $(seq 0 60); do
+    RESULTS=$(wait_for_fdo "$ROOT_CERT_GUEST_ADDRESS")
     if [[ $RESULTS == 1 ]]; then
-        echo "SSH is ready now! 🥳"
+        echo "FDO user is ready to use! 🥳"
         break
     fi
     sleep 10
@@ -759,7 +720,7 @@ tee "${TEMPDIR}"/inventory > /dev/null << EOF
 ${ROOT_CERT_GUEST_ADDRESS}
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=admin
+ansible_user=${FDO_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 ansible_become=yes
