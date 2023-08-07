@@ -283,7 +283,7 @@ tag_describe_resource () {
 # Get instance type
 get_instance_type () {
     arch=$1
-    
+
     if [[ $arch == x86_64 ]]; then
         allInstanceTypes=("t2.medium" \
             "t3.medium" \

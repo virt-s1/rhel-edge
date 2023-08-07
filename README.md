@@ -10,7 +10,7 @@ RHEL for Edge test from QE is more like an integration test. The test flow align
 
     - Build RHEL 8 and RHEL 9 x86_64 images at OpenStack VM
     - Build CentOS Stream 8, CentOS Stream 9 and Fedora x86_64 images at Google Cloud VM
-    - Build ARM images on bare metal ARM server at beaker
+    - Build ARM images on bare metal ARM server or ARM VM at beaker
 
 2. RHEL for Edge image installation
 
@@ -20,6 +20,7 @@ RHEL for Edge test from QE is more like an integration test. The test flow align
     - `edge-raw-image/iot-raw-image`: Boot from raw image with KVM
     - `edge-simplified-installer`: Install from `edge-simplified-installer` ISO
     - `minimal-raw`: Boot from RPM based raw image with KVM
+    - `edge-ami`: Image for AWS ec2 instance
 
 3. RHEL for Edge system upgrade
 
@@ -86,6 +87,7 @@ Test suites in scenario:
 6. [`ostree-9-to-9.sh`](ostree-9-to-9.sh): RHEL 9/CentOS Stream 9 Edge system upgrade and rebase to RHEL 9/CentOS Stream 9 Edge system test
 7. [`minimal-raw.sh`](minimal-raw.sh) and [`arm-minimal.sh`](arm-minimal.sh): RPM based system test (Not ostree)
 8. [`ostree-ignition.sh`](ostree-ignition.sh) and [`arm-ignition.sh`](arm-ignition.sh): Ignition test for simplified installer and raw image
+8. [`ostree-ami-image.sh`](ostree-ami-image.sh): AWS ec2 instance image test
 
 ### Test environment
 
@@ -121,6 +123,7 @@ To run RHEL for Edge test on ARM server, a bare metal ARM server is required.
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-9-to-9.sh
     $ ./minimal-raw.sh (Fedora 37 and above)
     $ DOWNLOAD_NODE="hello-world.com" ./ostree-ignition.sh
+    $ DOWNLOAD_NODE="hello-world.com" ./ostree-ami-image.sh
 
 #### For ARM64
 
