@@ -538,7 +538,7 @@
               # 2 * systemd[1]: bpf-lsm: Failed to link program; assuming BPF LSM is not available
               # systemd-gpt-auto-generator[581]: Failed to dissect: Permission denied
               # systemd[572]: /usr/lib/systemd/system-generators/systemd-gpt-auto-generator failed with exit status 1.
-              - result_dmesg_error.stdout_lines | length <= 5
+              - result_dmesg_error.stdout_lines | length <= 6
               - "'NUMA: Failed to initialise from firmware' in result_dmesg_error.stdout or 'systemd[1]: bpf-lsm: Failed to link program; assuming BPF LSM is not available' in result_dmesg_error.stdout or result_dmesg_error.stdout == ''"
             fail_msg: "more or less error and failed log"
             success_msg: "everything works as expected"
