@@ -21,7 +21,7 @@ CONTAINER_FILENAME=container.tar
 RAW_TYPE=edge-ami
 RAW_FILENAME=image.raw
 ANSIBLE_OS_NAME="redhat"
-BUCKET_NAME="test-bucket-${TEST_UUID}"
+BUCKET_NAME="rhel-edge-${TEST_UUID}"
 BUCKET_URL="s3://${BUCKET_NAME}"
 OBJECT_URL="http://${BUCKET_NAME}.s3.${AWS_DEFAULT_REGION}.amazonaws.com"
 
@@ -58,27 +58,6 @@ esac
 # Colorful output.
 function greenprint {
     echo -e "\033[1;32m${1}\033[0m"
-}
-
-# Compare rpm package version
-function nvrGreaterOrEqual {
-    local rpm_name=$1
-    local min_version=$2
-
-    set +e
-
-    rpm_version=$(rpm -q --qf "%{version}" "${rpm_name}")
-    rpmdev-vercmp "${rpm_version}" "${min_version}" 1>&2
-    if [ "$?" != "12" ]; then
-        # 0 - rpm_version == min_version
-        # 11 - rpm_version > min_version
-        # 12 - rpm_version < min_version
-        set -e
-        return
-    fi
-
-    set -e
-    false
 }
 
 # Get the compose log.
@@ -129,22 +108,14 @@ build_image() {
         sudo composer-cli --json compose start-ostree --ref "$OSTREE_REF" "$blueprint_name" "$image_type" | tee "$COMPOSE_START"
     fi
 
-    if nvrGreaterOrEqual "weldr-client" "35.6"; then
-        COMPOSE_ID=$(jq -r '.[0].body.build_id' "$COMPOSE_START")
-    else
-        COMPOSE_ID=$(jq -r '.body.build_id' "$COMPOSE_START")
-    fi
+    COMPOSE_ID=$(jq -r '.[0].body.build_id' "$COMPOSE_START")
 
     # Wait for the compose to finish.
     greenprint "⏱ Waiting for compose to finish: ${COMPOSE_ID}"
     while true; do
         sudo composer-cli --json compose info "${COMPOSE_ID}" | tee "$COMPOSE_INFO" > /dev/null
 
-        if nvrGreaterOrEqual "weldr-client" "35.6"; then
-            COMPOSE_STATUS=$(jq -r '.[0].body.queue_status' "$COMPOSE_INFO")
-        else
-            COMPOSE_STATUS=$(jq -r '.body.queue_status' "$COMPOSE_INFO")
-        fi
+        COMPOSE_STATUS=$(jq -r '.[0].body.queue_status' "$COMPOSE_INFO")
 
         # Is the compose finished?
         if [[ $COMPOSE_STATUS != RUNNING ]] && [[ $COMPOSE_STATUS != WAITING ]]; then
@@ -201,43 +172,21 @@ clean_up () {
 
     # Deregister edge AMI image
     aws ec2 deregister-image --image-id "${AMI_ID}"
-    
+
     # Remove snapshot
     aws ec2 delete-snapshot --snapshot-id "${SNAPSHOT_ID}"
-    
+
     # Delete Key Pair
     aws ec2 delete-key-pair --key-name "${AMI_KEY_NAME}"
-    
+
     # Terminate running instance
     if [[ -v INSTANCE_ID ]]; then
         aws ec2 terminate-instances --instance-ids "${INSTANCE_ID}"
         sleep 60
     fi
-    
-    # Clean up local folder
-    sudo rm -rf "${CONTAINERS_FILE}" "${IMPORT_SNAPSHOT_INFO}" "${IMPORT_SNAPSHOT_TASK}" "${AMI_FILENAME}" "${REGISTERED_AMI_ID}" "${INSTANCE_OUT_INFO}" "${MARKET_OPTIONS}" "${IGW_OUTPUT}" "${RT_OUTPUT}" "${SG_OUTPUT}" "${SUBNET_OUTPUT}" "${VPC_OUTPUT}"
-    
+
     # Remove bucket content and bucket itself quietly
     aws s3 rb "${BUCKET_URL}" --force > /dev/null
-    
-    # Remove subnet
-    aws ec2 delete-subnet --subnet-id "${SUBN_ID}"
-    
-    # Remove Security Groups
-    aws ec2 delete-security-group --group-id "${SEC_GROUP_ID}"
-    
-    # Remove Route Table
-    aws ec2 delete-route-table --route-table-id "${RT_ID}"
-    
-    # Detach Internet gateway from VPC
-    aws ec2 detach-internet-gateway --internet-gateway-id "${IGW_ID}" --vpc-id "${VPC_ID}"
-    
-    # Remove Internet gateway
-    aws ec2 delete-internet-gateway --internet-gateway-id "${IGW_ID}"
-    
-    # Delete VPC
-    aws ec2 delete-vpc --vpc-id "${VPC_ID}"
-
 }
 
 # Test result checking
@@ -252,32 +201,54 @@ check_result () {
     fi
 }
 
-# AWS EC2 AMI tagging function
-tag_ec2_ami () {
-    ami_id=$1
-    
-    greenprint "Add custom tags to EC2 ami"
-    aws ec2 create-tags \
-      --resources "${ami_id}" --tags Key=Project,Value=rhel-edge
-    aws ec2 create-tags \
-      --resources "${ami_id}" --tags Key=ImageType,Value=edge-ami
-    aws ec2 create-tags \
-      --resources "${ami_id}" --tags Key=BuildBy,Value=osbuild-composer
+# Configure AWS EC2 network
+add_vpc () {
+    # Network setup
+    greenprint "VPC Network setup."
 
-}
+    # Create VPC
+    VPC_OUTPUT=vpc_output.json
+    aws ec2 create-vpc --tag-specification 'ResourceType=vpc,Tags=[{Key=Name,Value=kite-ci}]' --cidr-block 172.32.0.0/16 --region="${AWS_DEFAULT_REGION}" | tee "${VPC_OUTPUT}" > /dev/null
+    VPC_ID=$(jq -r '.Vpc.VpcId' < "${VPC_OUTPUT}")
+    rm -f "$VPC_OUTPUT"
 
-# AWS EC2 instance tagging function
-tag_ec2_instance () {
-    instance_id=$1
+    # Create VPC Internet Gateway
+    IGW_OUTPUT=igw_output.json
+    aws ec2 create-internet-gateway --tag-specifications 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=kite-ci}]' | tee "${IGW_OUTPUT}" > /dev/null
+    IGW_ID=$(jq -r '.InternetGateway.InternetGatewayId' < "${IGW_OUTPUT}")
+    rm -f "$IGW_OUTPUT"
 
-    aws ec2 create-tags \
-      --resources "${instance_id}" --tags Key=Project,Value=rhel-edge
-}
+    # Attach internet gateway 
+    aws ec2 attach-internet-gateway --vpc-id "${VPC_ID}" --internet-gateway-id "${IGW_ID}"
 
-tag_describe_resource () {
-    res_id=$1
-    aws ec2 describe-tags \
-    --filters "Name=resource-id,Values=${res_id}"
+    # Add default route in route table for all vpc subnets
+    # Create route table
+    RT_OUTPUT=route_table_out.json
+    aws ec2 create-route-table --vpc-id "${VPC_ID}" --tag-specifications 'ResourceType=route-table,Tags=[{Key=Name,Value=kite-ci}]' | tee "${RT_OUTPUT}" > /dev/null
+    RT_ID=$(jq -r '.RouteTable.RouteTableId' < "${RT_OUTPUT}")
+    aws ec2 create-route --route-table-id "${RT_ID}" --destination-cidr-block 0.0.0.0/0 --gateway-id "${IGW_ID}"
+    rm -f "$RT_OUTPUT"
+
+    ALL_ZONES=( "us-east-1a" "us-east-1b" "us-east-1c" "us-east-1d" "us-east-1e" "us-east-1f" )
+    LENGTH=${#ALL_ZONES[@]}
+    for (( j=0; j<LENGTH; j++ ))
+    do
+        # Create Subnet for VPC
+        SUBNET_OUTPUT=sub_net_output.json
+        aws ec2 create-subnet --vpc-id "${VPC_ID}" --cidr-block "172.32.3${j}.0/24" --availability-zone "${ALL_ZONES[$j]}" --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=kite-ci}]' | tee "${SUBNET_OUTPUT}"
+        SUBN_ID=$(jq -r '.Subnet.SubnetId' < "${SUBNET_OUTPUT}")
+        rm -f "$SUBNET_OUTPUT"
+        # Associate route table to subnet
+        aws ec2 associate-route-table --route-table-id "${RT_ID}" --subnet-id "${SUBN_ID}"
+    done
+
+    # Security Group setup
+    SG_OUTPUT=sec_group.json
+    aws ec2 create-security-group --group-name kite-ci-sg --description "kite ci edge-ami security group" --vpc-id "${VPC_ID}" --tag-specifications 'ResourceType=security-group,Tags=[{Key=Name,Value=kite-ci}]' | tee "${SG_OUTPUT}"
+    SEC_GROUP_ID=$(jq -r '.GroupId' < "${SG_OUTPUT}")
+    # Allow inbound ssh connections
+    aws ec2 authorize-security-group-ingress --group-id "${SEC_GROUP_ID}" --protocol tcp --port 22 --cidr 0.0.0.0/0 --tag-specifications 'ResourceType=security-group-rule,Tags=[{Key=Name,Value=kite-ci}]'
+    rm -f "$SG_OUTPUT"
 }
 
 # Get instance type
@@ -540,6 +511,7 @@ sudo chown admin:admin "${AMI_FILENAME}"
 # Upload ami to AWS S3 bucket
 greenprint "📂 Upload raw ami to S3 bucket"
 aws s3 cp --quiet "${AMI_FILENAME}" "${BUCKET_URL}/" --acl public-read
+rm -f "$AMI_FILENAME"
 
 # Clean compose and blueprints.
 greenprint "🧹 Clean up raw blueprint and compose"
@@ -560,23 +532,27 @@ EOF
 # Import the image as an EBS snapshot into EC2
 IMPORT_SNAPSHOT_INFO=output_snapshot_info.json
 aws ec2 import-snapshot --description "RHEL edge ami snapshot" --disk-container file://"${CONTAINERS_FILE}" > "${IMPORT_SNAPSHOT_INFO}"
-IMPORT_TASK_ID=$(cat "${IMPORT_SNAPSHOT_INFO}" | jq -r '.ImportTaskId')
+IMPORT_TASK_ID=$(jq -r '.ImportTaskId' < "${IMPORT_SNAPSHOT_INFO}")
+rm -f "$IMPORT_SNAPSHOT_INFO" "$CONTAINERS_FILE"
 
 # Monitor snapshot status
 greenprint "Check import status of the snapshot"
 IMPORT_SNAPSHOT_TASK=output_snapshot_task.json
 while true; do
     aws ec2 describe-import-snapshot-tasks --import-task-ids "${IMPORT_TASK_ID}" | tee "${IMPORT_SNAPSHOT_TASK}" > /dev/null
-    IMPORT_STATUS=$(cat "${IMPORT_SNAPSHOT_TASK}" | jq -r '.ImportSnapshotTasks[].SnapshotTaskDetail.Status')
+    IMPORT_STATUS=$(jq -r '.ImportSnapshotTasks[].SnapshotTaskDetail.Status' < "${IMPORT_SNAPSHOT_TASK}")
 
     # Has the snapshot finished?
     if [[ $IMPORT_STATUS != active ]]; then
         break
     fi
-    
+
     # Wait 5 seconds and try again.
     sleep 5
 done
+SNAPSHOT_ID=$(jq -r '.ImportSnapshotTasks[].SnapshotTaskDetail.SnapshotId' < "${IMPORT_SNAPSHOT_TASK}")
+aws ec2 create-tags --resources "${SNAPSHOT_ID}" --tags Key=Name,Value=rhel-edge-ci
+rm -f "$IMPORT_SNAPSHOT_TASK"
 
 if [[ $IMPORT_STATUS != completed ]]; then
   echo "Something went wrong with the snapshot. 😢"
@@ -589,58 +565,13 @@ fi
 greenprint "Share ssh public key with AWS"
 AMI_KEY_NAME="edge-ami-key-${TEST_UUID}"
 # Clean previous configured keypair
-aws ec2 delete-key-pair --key-name "${AMI_KEY_NAME}"
-aws ec2 import-key-pair --key-name "${AMI_KEY_NAME}" --public-key-material fileb://"${SSH_KEY}".pub
+aws ec2 import-key-pair --key-name "${AMI_KEY_NAME}" --public-key-material fileb://"${SSH_KEY}".pub --tag-specification 'ResourceType=key-pair,Tags=[{Key=Name,Value=rhel-edge-ci}]'
 
-# Network setup
-greenprint "VPC Network setup."
-
-# Create VPC
-VPC_OUTPUT=vpc_output.json
-aws ec2 create-vpc --cidr-block 172.32.0.0/16 --region="${AWS_DEFAULT_REGION}" | tee "${VPC_OUTPUT}" > /dev/null
-VPC_ID=$(cat "${VPC_OUTPUT}" | jq -r '.Vpc.VpcId')
-
-# Create VPC Internet Gateway
-IGW_OUTPUT=igw_output.json
-aws ec2 create-internet-gateway | tee "${IGW_OUTPUT}" > /dev/null
-IGW_ID=$(cat "${IGW_OUTPUT}" | jq -r '.InternetGateway.InternetGatewayId')
-
-# Attach internet gateway 
-aws ec2 attach-internet-gateway --vpc-id "${VPC_ID}" --internet-gateway-id "${IGW_ID}"
-
-# Create Subnet for VPC
-SUBNET_OUTPUT=sub_net_output.json
-aws ec2 create-subnet --vpc-id "${VPC_ID}" --cidr-block 172.32.32.0/24 | tee "${SUBNET_OUTPUT}"
-SUBN_ID=$(cat "${SUBNET_OUTPUT}" | jq -r '.Subnet.SubnetId')
-
-# Add default route in route table for all vpc subnets
-# Create route table
-RT_OUTPUT=route_table_out.json
-aws ec2 create-route-table --vpc-id "${VPC_ID}" | tee "${RT_OUTPUT}" > /dev/null
-RT_ID=$(cat "${RT_OUTPUT}" | jq -r '.RouteTable.RouteTableId')
-aws ec2 create-route --route-table-id "${RT_ID}" --destination-cidr-block 0.0.0.0/0 --gateway-id "${IGW_ID}"
-# Associate route table to subnet
-aws ec2 associate-route-table --route-table-id "${RT_ID}" --subnet-id "${SUBN_ID}"
-
-# Security Group setup
-SG_OUTPUT=sec_group.json
-aws ec2 create-security-group --group-name mysecuritygroup --description "edge-ami security group" --vpc-id "${VPC_ID}" | tee "${SG_OUTPUT}"
-SEC_GROUP_ID=$(cat "${SG_OUTPUT}" | jq -r '.GroupId')
-# Allow inbound ssh connections
-aws ec2 authorize-security-group-ingress --group-id "${SEC_GROUP_ID}" --protocol tcp --port 22 --cidr 0.0.0.0/0
-
-# Create instance market options
-MARKET_OPTIONS=spot-options.json
-tee "${MARKET_OPTIONS}" > /dev/null << EOF
-{
-  "MarketType": "spot",
-  "SpotOptions": {
-    "MaxPrice": "0.1",
-    "SpotInstanceType": "one-time",
-    "InstanceInterruptionBehavior": "terminate"
-  }
-}
-EOF
+# Create ec2 network
+EXISTED_VPC=$(aws ec2 describe-vpcs --filters="Name=tag:Name,Values=kite-ci" --output json --query "Vpcs")
+if [[ "$EXISTED_VPC" == "[]" ]]; then
+    add_vpc
+fi
 
 ##################################################################
 ##
@@ -651,7 +582,6 @@ EOF
 greenprint "Register AMI, create image from snapshot."
 REGISTERED_AMI_NAME="edge_ami-${TEST_UUID}"
 REGISTERED_AMI_ID=output_ami_id.json
-SNAPSHOT_ID=$(cat "${IMPORT_SNAPSHOT_TASK}" | jq -r '.ImportSnapshotTasks[].SnapshotTaskDetail.SnapshotId')
 if [[ "${ARCH}" == x86_64 ]]; then
     IMG_ARCH="${ARCH}"
 elif [[ "${ARCH}" == aarch64 ]]; then
@@ -668,9 +598,22 @@ aws ec2 register-image \
     --boot-mode uefi-preferred \
     --output json > "${REGISTERED_AMI_ID}"
 
-AMI_ID=$(cat "${REGISTERED_AMI_ID}" | jq -r '.ImageId')
-tag_ec2_ami "${AMI_ID}"
-tag_describe_resource "${AMI_ID}"
+AMI_ID=$(jq -r '.ImageId' < "${REGISTERED_AMI_ID}")
+aws ec2 create-tags --resources "${AMI_ID}" --tags Key=Name,Value=rhel-edge-ci
+rm -f "$REGISTERED_AMI_ID"
+
+# Create instance market options
+MARKET_OPTIONS=spot-options.json
+tee "${MARKET_OPTIONS}" > /dev/null << EOF
+{
+  "MarketType": "spot",
+  "SpotOptions": {
+    "MaxPrice": "0.1",
+    "SpotInstanceType": "one-time",
+    "InstanceInterruptionBehavior": "terminate"
+  }
+}
+EOF
 
 # Launch Instance
 greenprint "💻 Launch instance from AMI"
@@ -678,14 +621,25 @@ for _ in $(seq 0 9); do
     RESULTS=0
     INSTANCE_OUT_INFO=instance_output_info.json
     INSTANCE_TYPE=$(get_instance_type "${ARCH}")
+    ZONE_LIST=$(aws ec2 describe-instance-type-offerings --location-type availability-zone --filters="Name=instance-type,Values=${INSTANCE_TYPE}" --query "InstanceTypeOfferings")
+    if [[ "$ZONE_LIST" == "[]" ]]; then
+        greenprint "No available $INSTANCE_TYPE in this region"
+        break
+    else
+        ZONE_NAME=$(echo "$ZONE_LIST" | jq -r ".[0].Location")
+    fi
+    SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=kite-ci" "Name=availabilityZone,Values=${ZONE_NAME}" | jq -r ".Subnets[0].SubnetId")
+    SEC_GROUP_ID=$(aws ec2 describe-security-groups --filters="Name=tag:Name,Values=kite-ci" --output json | jq -r ".SecurityGroups[0].GroupId")
     aws ec2 run-instances \
         --image-id "${AMI_ID}" \
         --count 1 \
         --instance-type "${INSTANCE_TYPE}" \
+        --placement AvailabilityZone="${ZONE_NAME}" \
+        --tag-specification 'ResourceType=instance,Tags=[{Key=Name,Value=rhel-edge-ci}]' \
         --instance-market-options file://"${MARKET_OPTIONS}" \
         --key-name "${AMI_KEY_NAME}" \
         --security-group-ids "${SEC_GROUP_ID}" \
-        --subnet-id "${SUBN_ID}" \
+        --subnet-id "${SUBNET_ID}" \
         --associate-public-ip-address > "${INSTANCE_OUT_INFO}" 2>&1 || :
     if ! grep -iqE 'unsupported|InsufficientInstanceCapacity' "${INSTANCE_OUT_INFO}"; then
         echo "Instance type supported!"
@@ -704,9 +658,8 @@ sleep 5
 
 # get instance public ip
 INSTANCE_ID=$(jq -r '.Instances[].InstanceId' "${INSTANCE_OUT_INFO}")
-tag_ec2_instance "${INSTANCE_ID}"
-tag_describe_resource "${INSTANCE_ID}"
 PUBLIC_GUEST_ADDRESS=$(aws ec2 describe-instances --instance-ids "${INSTANCE_ID}" --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
+rm -f "$MARKET_OPTIONS" "$INSTANCE_OUT_INFO"
 
 # Check for ssh ready to go.
 greenprint "🛃 Checking for SSH is ready to go"
