@@ -124,7 +124,7 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="centos/8/${ARCH}/edge"
         USER_IN_COMMIT="true"
         OS_VARIANT="centos-stream8"
-        CUT_DIRS=5
+        CUT_DIRS=7
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
         FIREWALL_FEATURE="true"
