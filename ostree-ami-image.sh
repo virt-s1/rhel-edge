@@ -599,6 +599,7 @@ aws ec2 register-image \
     --output json > "${REGISTERED_AMI_ID}"
 
 AMI_ID=$(jq -r '.ImageId' < "${REGISTERED_AMI_ID}")
+aws ec2 wait image-available --image-ids "$AMI_ID"
 aws ec2 create-tags --resources "${AMI_ID}" --tags Key=Name,Value=rhel-edge-ci
 rm -f "$REGISTERED_AMI_ID"
 
