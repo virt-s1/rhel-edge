@@ -654,11 +654,13 @@ cat "${INSTANCE_OUT_INFO}"
 # Check instance has been deployed correctly
 check_result
 
+INSTANCE_ID=$(jq -r '.Instances[].InstanceId' "${INSTANCE_OUT_INFO}")
+
 # wait for instance running
-sleep 5
+aws ec2 wait instance-running \
+    --instance-ids "$INSTANCE_ID"
 
 # get instance public ip
-INSTANCE_ID=$(jq -r '.Instances[].InstanceId' "${INSTANCE_OUT_INFO}")
 PUBLIC_GUEST_ADDRESS=$(aws ec2 describe-instances --instance-ids "${INSTANCE_ID}" --query 'Reservations[*].Instances[*].PublicIpAddress' --output text)
 rm -f "$MARKET_OPTIONS" "$INSTANCE_OUT_INFO"
 
