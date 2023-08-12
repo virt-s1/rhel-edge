@@ -68,7 +68,7 @@ jobs:
 
   iot-commit-f39:
     needs: [pr-info, pre-iot-commit-f39]
-    runs-on: [kite, x86_64, gcp, fedora-f39, medium]
+    runs-on: [kite, x86_64, gcp, fedora-39, medium]
     env:
       STATUS_NAME: iot-commit-f39
 
@@ -146,7 +146,7 @@ jobs:
 
   iot-installer-f39:
     needs: [pr-info, pre-iot-installer-f39]
-    runs-on: [kite, x86_64, rhos-01, fedora-f39, large]
+    runs-on: [kite, x86_64, rhos-01, fedora-39, large]
     env:
       STATUS_NAME: iot-installer-f39
 
@@ -228,7 +228,7 @@ jobs:
 
   iot-raw-image-f39:
     needs: [pr-info, pre-iot-raw-image-f39]
-    runs-on: [kite, x86_64, gcp, fedora-f39, medium]
+    runs-on: [kite, x86_64, gcp, fedora-39, medium]
     env:
       STATUS_NAME: iot-raw-image-f39
 
@@ -310,7 +310,7 @@ jobs:
 
   minimal-raw-f39:
     needs: [pr-info, pre-minimal-raw-f39]
-    runs-on: [kite, x86_64, gcp, fedora-f39, medium]
+    runs-on: [kite, x86_64, gcp, fedora-39, medium]
     env:
       STATUS_NAME: minimal-raw-f39
 
@@ -390,7 +390,7 @@ jobs:
 
   arm-minimal-f39:
     needs: [pr-info, pre-arm-minimal-f39]
-    runs-on: [kite, aarch64, beaker, fedora-f39]
+    runs-on: [kite, aarch64, beaker, fedora-39]
     env:
       STATUS_NAME: arm-minimal-f39
 
