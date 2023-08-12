@@ -52,9 +52,9 @@ Considering Upstream CI environment and test duration, the Upstream CI only cove
 
 ### Downstream CI
 
-[RHEL 8, RHEL 9, CentOS Stream 8 and CentOS Stream 9 report dashboard](https://github.com/virt-s1/rhel-edge/projects/1)
+[RHEL 8/9, CentOS Stream 8/9 report dashboard](https://github.com/virt-s1/rhel-edge/projects/1)
 
-[Fedora rawhide report dashboard](https://github.com/virt-s1/rhel-edge/projects/2)
+[Fedora report dashboard](https://github.com/virt-s1/rhel-edge/projects/2)
 
 [Package greenboot, fido-device-onboard, rust-coreos-installer, rpm-ostree, ostree report](https://github.com/virt-s1/rhel-edge/projects/3)
 
@@ -66,9 +66,11 @@ CI for this repository is to test `test code`. It's triggered by PR in this repo
 
 Test of this CI includes:
 
-1. [Shellcheck](https://www.shellcheck.net/): running on Github
-2. [Yaml lint](https://yamllint.readthedocs.io/en/stable/): running on Github
-3. [Edge tests](https://github.com/virt-s1/rhel-edge/blob/main/CI.md#rhel-for-edge-ci): running on Github
+1. [commit lint](https://www.conventionalcommits.org/en/v1.0.0/)
+2. [spell check](https://github.com/codespell-project/codespell)
+3. [Shellcheck](https://www.shellcheck.net/): running on Github
+4. [Yaml lint](https://yamllint.readthedocs.io/en/stable/): running on Github
+5. [Edge tests](https://github.com/virt-s1/rhel-edge/blob/main/CI.md#rhel-for-edge-ci): running on Github
 
 RHEL-Edge CI details can be found from [CI doc](CI.md)
 
