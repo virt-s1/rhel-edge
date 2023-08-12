@@ -91,6 +91,9 @@ case "${ID}-${VERSION_ID}" in
     "fedora-39")
         sudo cp files/fedora-39.json /etc/osbuild-composer/repositories/fedora-39.json
         ;;
+    "fedora-40")
+        sudo cp files/fedora-40.json /etc/osbuild-composer/repositories/fedora-40.json
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
