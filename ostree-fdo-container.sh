@@ -6,9 +6,6 @@ set -euox pipefail
 
 source /etc/os-release
 ARCH=$(uname -m)
-OSTREE_REF="centos/9/${ARCH}/edge"
-OS_VARIANT="centos-stream9"
-BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
 
 # Install python3-pip
 sudo dnf install -y python3-pip
@@ -46,6 +43,22 @@ SSH_KEY_PUB=$(cat "${SSH_KEY}".pub)
 FDO_USER=fdouser
 EDGE_USER_PASSWORD=foobar
 SYSROOT_RO="true"
+
+case "${ID}-${VERSION_ID}" in
+    "rhel-9.3")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        BOOT_ARGS="uefi"
+        ;;
+    "centos-9")
+        OSTREE_REF="centos/9/${ARCH}/edge"
+        OS_VARIANT="centos-stream9"
+        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
+        ;;
+    *)
+        echo "unsupported distro: ${ID}-${VERSION_ID}"
+        exit 1;;
+esac
 
 # Colorful output.
 function greenprint {
@@ -245,7 +258,7 @@ sudo podman run -d \
   --network host \
   -v "$PWD"/fdo/:/etc/fdo/:z \
   -p 8080:8080 \
-  "quay.io/fido-fdo/manufacturing-server:nightly" 
+  "${FDO_REGISTRY}/${MANUFACTURING_SERVER_NAME}:latest"
 
 greenprint "🔧 Starting fdo owner onboarding server"
 sudo podman run -d \
@@ -253,7 +266,7 @@ sudo podman run -d \
   --network host \
   -v "$PWD"/fdo/:/etc/fdo/:z \
   -p 8081:8081 \
-  "quay.io/fido-fdo/owner-onboarding-server:nightly" 
+  "${FDO_REGISTRY}/${OWNER_ONBOARDING_SERVER_NAME}:latest"
 
 greenprint "🔧 Starting fdo rendezvous server"
 sudo podman run -d \
@@ -261,7 +274,7 @@ sudo podman run -d \
   --network host \
   -v "$PWD"/fdo/:/etc/fdo/:z \
   -p 8082:8082 \
-  "quay.io/fido-fdo/rendezvous-server:nightly" 
+  "${FDO_REGISTRY}/${RENDEZVOUS_SERVER_NAME}:latest"
 
 greenprint "🔧 Starting fdo serviceinfo api server"
 sudo podman run -d \
@@ -269,7 +282,7 @@ sudo podman run -d \
   --network host \
   -v "$PWD"/fdo/:/etc/fdo/:z \
   -p 8083:8083 \
-  "quay.io/fido-fdo/serviceinfo-api-server:nightly" 
+  "${FDO_REGISTRY}/${SERVICEINFO_API_SERVER_NAME}:latest"
 
 # Wait for fdo containers to be up and running
 until [ "$(curl -X POST http://${FDO_MANUFACTURING_ADDRESS}:8080/ping)" == "pong" ]; do
