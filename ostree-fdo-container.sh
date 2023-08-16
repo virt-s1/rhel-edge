@@ -253,36 +253,44 @@ EOF
 sudo /usr/local/bin/yq -iy '.service_info.files |= [{path: "/etc/sudoers.d/fdouser", source_path: "/etc/fdo/fdouser"}]' fdo/serviceinfo-api-server.yml
 
 greenprint "🔧 Starting fdo manufacture server"
-sudo podman run -d \
-  --name manufacture-server \
-  --network host \
-  -v "$PWD"/fdo/:/etc/fdo/:z \
-  -p 8080:8080 \
-  "${FDO_REGISTRY}/${MANUFACTURING_SERVER_NAME}:latest"
+sudo podman run \
+    --tls-verify=false \
+    -d \
+    --name manufacture-server \
+    --network host \
+    -v "$PWD"/fdo/:/etc/fdo/:z \
+    -p 8080:8080 \
+    "${FDO_REGISTRY}/${MANUFACTURING_SERVER_NAME}:latest"
 
 greenprint "🔧 Starting fdo owner onboarding server"
-sudo podman run -d \
-  --name owner-onboarding-server \
-  --network host \
-  -v "$PWD"/fdo/:/etc/fdo/:z \
-  -p 8081:8081 \
-  "${FDO_REGISTRY}/${OWNER_ONBOARDING_SERVER_NAME}:latest"
+sudo podman run \
+    --tls-verify=false \
+    -d \
+    --name owner-onboarding-server \
+    --network host \
+    -v "$PWD"/fdo/:/etc/fdo/:z \
+    -p 8081:8081 \
+    "${FDO_REGISTRY}/${OWNER_ONBOARDING_SERVER_NAME}:latest"
 
 greenprint "🔧 Starting fdo rendezvous server"
-sudo podman run -d \
-  --name rendezvous-server \
-  --network host \
-  -v "$PWD"/fdo/:/etc/fdo/:z \
-  -p 8082:8082 \
-  "${FDO_REGISTRY}/${RENDEZVOUS_SERVER_NAME}:latest"
+sudo podman run \
+    --tls-verify=false \
+    -d \
+    --name rendezvous-server \
+    --network host \
+    -v "$PWD"/fdo/:/etc/fdo/:z \
+    -p 8082:8082 \
+    "${FDO_REGISTRY}/${RENDEZVOUS_SERVER_NAME}:latest"
 
 greenprint "🔧 Starting fdo serviceinfo api server"
-sudo podman run -d \
-  --name serviceinfo-api-server \
-  --network host \
-  -v "$PWD"/fdo/:/etc/fdo/:z \
-  -p 8083:8083 \
-  "${FDO_REGISTRY}/${SERVICEINFO_API_SERVER_NAME}:latest"
+sudo podman run \
+    --tls-verify=false \
+    -d \
+    --name serviceinfo-api-server \
+    --network host \
+    -v "$PWD"/fdo/:/etc/fdo/:z \
+    -p 8083:8083 \
+    "${FDO_REGISTRY}/${SERVICEINFO_API_SERVER_NAME}:latest"
 
 # Wait for fdo containers to be up and running
 until [ "$(curl -X POST http://${FDO_MANUFACTURING_ADDRESS}:8080/ping)" == "pong" ]; do
