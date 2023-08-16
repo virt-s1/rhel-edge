@@ -150,7 +150,7 @@ jobs:
 
   fdo-container-official:
     needs: [pr-info, pre-fdo-container-official]
-    runs-on: [kite, x86_64, rhos-01, rhel-9-3, medium]
+    runs-on: [kite, x86_64, rhos-01, rhel-9-3, large]
     env:
       STATUS_NAME: fdo-container-official
 
