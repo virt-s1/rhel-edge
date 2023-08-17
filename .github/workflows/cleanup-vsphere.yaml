@@ -1,0 +1,25 @@
+---
+name: Vsphere cleanup job
+
+on:
+  workflow_dispatch:
+  schedule:
+    # run at 10:00 every Sunday
+    - cron: '0 10 * * 0'
+
+jobs:
+  cleanup-vsphere:
+    runs-on: [kite, x86_64, rhos-01, rhel-9-3, medium]
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Setup govc
+        run: sudo curl -L -o - "https://github.com/vmware/govmomi/releases/download/v0.30.5/govc_Linux_x86_64.tar.gz" | sudo tar -C /usr/local/bin -xvzf - govc
+      - name: Cleanup vsphere
+        run: python tools/vsphere-cleanup.py
+        env:
+          GOVC_URL: ${{ secrets.GOVC_URL }}
+          GOVC_USERNAME: ${{ secrets.GOVC_USERNAME }}
+          GOVC_PASSWORD: ${{ secrets.GOVC_PASSWORD }}
+          GOVC_INSECURE: true
+        timeout-minutes: 30
