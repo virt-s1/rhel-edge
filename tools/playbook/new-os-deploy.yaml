@@ -3,7 +3,7 @@
   gather_facts: no
   become: no
   vars:
-    date_label: "{{ lookup('pipe', 'date +%y%m%d') }}"
+    date_label: "{{ lookup('pipe', 'date +%y%m%d%H%M%S') }}"
     flavor: "ci.standard.large"
     cloud_profile: "rhos-01"
     os_network:
