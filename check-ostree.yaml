@@ -919,6 +919,14 @@
       when:
         - fdo_credential == "true"
 
+    # Check FDO client avc log
+    - name: check FDO client avc logs
+      command: ausearch -m avc -m user_avc -m selinux_err -i
+      ignore_errors: yes
+      become: yes
+      when:
+        - fdo_credential == "true"
+
     # case: check rollback function if boot error found
     - name: install sanely failing health check unit to test red boot status behavior
       block:
@@ -1074,6 +1082,14 @@
       when:
         - fdo_credential == "true"
 
+    # Check FDO client avc log
+    - name: check FDO client avc logs
+      command: ausearch -m avc -m user_avc -m selinux_err -i
+      ignore_errors: yes
+      become: yes
+      when:
+        - fdo_credential == "true"
+
     # Check re-encryption status on x86_64
     - name: wait for FDO re-encryption
       block:
@@ -1117,6 +1133,14 @@
     - name: check fdo-client-linuxapp logs
       command: journalctl -u fdo-client-linuxapp
       register: result_fdo_client_linuxapp_journalctl
+      become: yes
+      when:
+        - fdo_credential == "true"
+
+    # Check FDO client avc log
+    - name: check FDO client avc logs
+      command: ausearch -m avc -m user_avc -m selinux_err -i
+      ignore_errors: yes
       become: yes
       when:
         - fdo_credential == "true"
