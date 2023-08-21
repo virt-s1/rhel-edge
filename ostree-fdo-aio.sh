@@ -8,49 +8,25 @@ set -euox pipefail
 source /etc/os-release
 ARCH=$(uname -m)
 
-# Install FDO packages (This cannot be done in the setup.sh because FDO packages are not available on fedora)
-sudo dnf install -y \
-    fdo-admin-cli \
-    fdo-rendezvous-server \
-    fdo-owner-onboarding-server \
-    fdo-owner-cli \
-    fdo-manufacturing-server \
-    python3-pip
-
-# Generate key and cert used by FDO
-sudo mkdir -p /etc/fdo/keys
-for obj in diun manufacturer device-ca owner; do
-    sudo fdo-admin-tool generate-key-and-cert --destination-dir /etc/fdo/keys "$obj"
-done
-
-# Copy configuration files
-sudo mkdir -p \
-    /etc/fdo/manufacturing-server.conf.d/ \
-    /etc/fdo/owner-onboarding-server.conf.d/ \
-    /etc/fdo/rendezvous-server.conf.d/ \
-    /etc/fdo/serviceinfo-api-server.conf.d/
-
-sudo cp files/fdo/manufacturing-server.yml /etc/fdo/manufacturing-server.conf.d/
-sudo cp files/fdo/owner-onboarding-server.yml /etc/fdo/owner-onboarding-server.conf.d/
-sudo cp files/fdo/rendezvous-server.yml /etc/fdo/rendezvous-server.conf.d/
-sudo cp files/fdo/serviceinfo-api-server.yml /etc/fdo/serviceinfo-api-server.conf.d/
-
+# Install fdo packages (This cannot be done in the setup.sh because fdo-admin-cli is not available on fedora)
+sudo dnf install -y fdo-admin-cli python3-pip
 # Install yq to modify service api server config yaml file
 sudo pip3 install yq
+# Start fdo-aio to have /etc/fdo/aio folder
+sudo systemctl enable --now fdo-aio
+# Wait until config file serviceinfo_api_server.yml exists
+# to avoid file not available to use flaky issue
+until [ -f /etc/fdo/aio/configs/serviceinfo_api_server.yml ]
+do
+    sleep 2
+done
 # Prepare service api server config file
-sudo /usr/local/bin/yq -iy '.service_info.diskencryption_clevis |= [{disk_label: "/dev/vda4", reencrypt: true, binding: {pin: "tpm2", config: "{}"}}]' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
-
-# Start FDO services
-sudo systemctl start \
-    fdo-owner-onboarding-server.service \
-    fdo-rendezvous-server.service \
-    fdo-manufacturing-server.service \
-    fdo-serviceinfo-api-server.service
+sudo /usr/local/bin/yq -iy '.service_info.diskencryption_clevis |= [{disk_label: "/dev/vda4", reencrypt: true, binding: {pin: "tpm2", config: "{}"}}]' /etc/fdo/aio/configs/serviceinfo_api_server.yml
+sudo systemctl restart fdo-aio
 
 # Set up variables.
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="ostree-installer-${TEST_UUID}"
-NOFDO_GUEST_ADDRESS=192.168.100.50
 HTTP_GUEST_ADDRESS=192.168.100.50
 PUB_KEY_GUEST_ADDRESS=192.168.100.51
 ROOT_CERT_GUEST_ADDRESS=192.168.100.52
@@ -59,8 +35,8 @@ PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
 FDO_SERVER_ADDRESS=192.168.100.1
-DIUN_PUB_KEY_HASH=sha256:$(openssl x509 -fingerprint -sha256 -noout -in /etc/fdo/keys/diun_cert.pem | cut -d"=" -f2 | sed 's/://g')
-DIUN_PUB_KEY_ROOT_CERTS=$(cat /etc/fdo/keys/diun_cert.pem)
+DIUN_PUB_KEY_HASH=sha256:$(openssl x509 -fingerprint -sha256 -noout -in /etc/fdo/aio/keys/diun_cert.pem | cut -d"=" -f2 | sed 's/://g')
+DIUN_PUB_KEY_ROOT_CERTS=$(cat /etc/fdo/aio/keys/diun_cert.pem)
 CONTAINER_TYPE=edge-container
 CONTAINER_FILENAME=container.tar
 INSTALLER_TYPE=edge-simplified-installer
@@ -88,9 +64,6 @@ BLUEPRINT_USER="admin"
 # Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
 # It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
 SYSROOT_RO="false"
-
-# No FDO and Ignition in simplified installer is only supported started from 8.8 and 9.2
-NO_FDO="false"
 
 # Prepare osbuild-composer repository file
 sudo mkdir -p /etc/osbuild-composer/repositories
@@ -120,7 +93,6 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_NAME="image.raw.xz"
         USER_IN_BLUEPRINT="true"
         BLUEPRINT_USER="simple"
-        NO_FDO="true"
         sudo mkdir -p /var/lib/fdo
         ;;
     "rhel-8.9")
@@ -130,7 +102,6 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_NAME="image.raw.xz"
         USER_IN_BLUEPRINT="true"
         BLUEPRINT_USER="simple"
-        NO_FDO="true"
         sudo mkdir -p /var/lib/fdo
         ;;
     "rhel-9.0")
@@ -157,7 +128,6 @@ case "${ID}-${VERSION_ID}" in
         FDO_USER_ONBOARDING="true"
         USER_IN_BLUEPRINT="true"
         BLUEPRINT_USER="simple"
-        NO_FDO="true"
         sudo mkdir -p /var/lib/fdo
         ;;
     "rhel-9.3")
@@ -170,7 +140,6 @@ case "${ID}-${VERSION_ID}" in
         FDO_USER_ONBOARDING="true"
         USER_IN_BLUEPRINT="true"
         BLUEPRINT_USER="simple"
-        NO_FDO="true"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -184,7 +153,6 @@ case "${ID}-${VERSION_ID}" in
         # sometimes the file /usr/share/edk2/ovmf/OVMF_VARS.fd got deleted after virt-install
         # a workaround for this issue
         sudo cp /usr/share/edk2/ovmf/OVMF_VARS.fd /tmp/
-        NO_FDO="true"
         sudo mkdir -p /var/lib/fdo
         ;;
     "centos-9")
@@ -198,7 +166,6 @@ case "${ID}-${VERSION_ID}" in
         FDO_USER_ONBOARDING="true"
         USER_IN_BLUEPRINT="true"
         BLUEPRINT_USER="simple"
-        NO_FDO="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -207,16 +174,14 @@ esac
 
 if [[ "$FDO_USER_ONBOARDING" == "true" ]]; then
     # FDO user does not have password, use ssh key and no sudo password instead
-    sudo /usr/local/bin/yq -iy '.service_info.initial_user |= {username: "fdouser", sshkeys: ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"]}' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
+    sudo /usr/local/bin/yq -iy '.service_info.initial_user |= {username: "fdouser", sshkeys: ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"]}' /etc/fdo/aio/configs/serviceinfo_api_server.yml
     # No sudo password required by ansible
     # Change to /etc/fdo folder to workaround issue https://bugzilla.redhat.com/show_bug.cgi?id=2026795#c24
     sudo tee /var/lib/fdo/fdouser > /dev/null << EOF
 fdouser ALL=(ALL) NOPASSWD: ALL
 EOF
-    sudo /usr/local/bin/yq -iy '.service_info.files |= [{path: "/etc/sudoers.d/fdouser", source_path: "/var/lib/fdo/fdouser"}]' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
-
-    # Restart fdo-serviceinfo-api-server.service
-    sudo systemctl restart fdo-serviceinfo-api-server.service
+    sudo /usr/local/bin/yq -iy '.service_info.files |= [{path: "/etc/sudoers.d/fdouser", source_path: "/var/lib/fdo/fdouser"}]' /etc/fdo/aio/configs/serviceinfo_api_server.yml
+    sudo systemctl restart fdo-aio
 fi
 
 # Colorful output.
@@ -488,127 +453,6 @@ sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage "$OSTREE_REF"
 greenprint "🧽 Clean up container blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete container > /dev/null
-
-if [[ "$NO_FDO" == "true" ]]; then
-##################################################################
-##
-## Build edge-simplified-installer without FDO
-##
-##################################################################
-
-    tee "$BLUEPRINT_FILE" > /dev/null << EOF
-name = "simplified"
-description = "A rhel-edge simplified-installer image"
-version = "0.0.1"
-modules = []
-groups = []
-
-[customizations]
-installation_device = "/dev/vda"
-EOF
-
-    greenprint "📄 No FDO, No ignition blueprint"
-    cat "$BLUEPRINT_FILE"
-
-    # Prepare the blueprint for the compose.
-    greenprint "📋 Preparing simplified blueprint"
-    sudo composer-cli blueprints push "$BLUEPRINT_FILE"
-    sudo composer-cli blueprints depsolve simplified
-
-    # Build fdorootcert image.
-    build_image simplified "${INSTALLER_TYPE}" "${PROD_REPO_URL}"
-
-    # Download the image
-    greenprint "📥 Downloading the simplified image"
-    sudo composer-cli compose image "${COMPOSE_ID}" > /dev/null
-    ISO_FILENAME="${COMPOSE_ID}-${INSTALLER_FILENAME}"
-    sudo mv "${ISO_FILENAME}" /var/lib/libvirt/images
-
-    # Clean compose and blueprints.
-    greenprint "🧹 Clean up simplified blueprint and compose"
-    sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
-    sudo composer-cli blueprints delete simplified > /dev/null
-
-    # Create qcow2 file for virt install.
-    greenprint "🖥 Create qcow2 file for virt install"
-    LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-simplified.qcow2
-    sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
-
-    greenprint "💿 Install no FDO and ignition simplified ISO on UEFI VM"
-    sudo virt-install  --name="${IMAGE_KEY}-simplified"\
-                    --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
-                    --ram 3072 \
-                    --vcpus 2 \
-                    --network network=integration,mac=34:49:22:B0:83:30 \
-                    --os-type linux \
-                    --os-variant ${OS_VARIANT} \
-                    --cdrom "/var/lib/libvirt/images/${ISO_FILENAME}" \
-                    --boot "${BOOT_ARGS}" \
-                    --tpm backend.type=emulator,backend.version=2.0,model=tpm-crb \
-                    --nographics \
-                    --noautoconsole \
-                    --wait=-1 \
-                    --noreboot
-
-    # Start VM.
-    greenprint "💻 Start UEFI VM"
-    sudo virsh start "${IMAGE_KEY}-simplified"
-
-    # Check for ssh ready to go.
-    greenprint "🛃 Checking for SSH is ready to go"
-    for _ in $(seq 0 30); do
-        RESULTS="$(wait_for_ssh_up $NOFDO_GUEST_ADDRESS)"
-        if [[ $RESULTS == 1 ]]; then
-            echo "SSH is ready now! 🥳"
-            break
-        fi
-        sleep 10
-    done
-
-    # Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
-    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${NOFDO_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
-    # Sleep 10 seconds here to make sure vm restarted already
-    sleep 10
-    for _ in $(seq 0 30); do
-        RESULTS="$(wait_for_ssh_up $NOFDO_GUEST_ADDRESS)"
-        if [[ $RESULTS == 1 ]]; then
-            echo "SSH is ready now! 🥳"
-            break
-        fi
-        sleep 10
-    done
-
-    # Check image installation result
-    check_result
-
-    greenprint "🕹 Get ostree install commit value"
-    INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
-
-    # Add instance IP address into /etc/ansible/hosts
-    tee "${TEMPDIR}"/inventory > /dev/null << EOF
-[ostree_guest]
-${NOFDO_GUEST_ADDRESS}
-[ostree_guest:vars]
-ansible_python_interpreter=/usr/bin/python3
-ansible_user=admin
-ansible_private_key_file=${SSH_KEY}
-ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-ansible_become=yes
-ansible_become_method=sudo
-ansible_become_pass=${EDGE_USER_PASSWORD}
-EOF
-
-    # Test IoT/Edge OS
-    podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
-    check_result
-
-    greenprint "🧹 Clean up VM"
-    if [[ $(sudo virsh domstate "${IMAGE_KEY}-simplified") == "running" ]]; then
-        sudo virsh destroy "${IMAGE_KEY}-simplified"
-    fi
-    sudo virsh undefine "${IMAGE_KEY}-simplified" --nvram
-    sudo virsh vol-delete --pool images "$IMAGE_KEY-simplified.qcow2"
-fi
 
 ######################################################################
 ##
@@ -934,7 +778,6 @@ sudo ausearch -m avc -m user_avc -m selinux_err -i || true
 
 # Remove simplified installer ISO file
 sudo rm -rf "/var/lib/libvirt/images/${ISO_FILENAME}"
-
 
 ##################################################################
 ##
