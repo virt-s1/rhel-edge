@@ -391,7 +391,7 @@ jobs:
 
   edge-minimal-cs8:
     needs: [pr-info, pre-edge-minimal-cs8]
-    runs-on: [kite, x86_64, gcp, centos-stream-8, medium]
+    runs-on: [kite, x86_64, rhos-01, centos-stream-8, medium]
     env:
       STATUS_NAME: edge-minimal-cs8
 
