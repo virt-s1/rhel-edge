@@ -51,9 +51,9 @@ IGNITION_USER_PASSWORD=foobar
 
 SYSROOT_RO="true"
 
-DATACENTER_70="Datacenter7.0-AMD"
-DATASTORE_70="datastore-21"
-DATACENTER_70_POOL="/Datacenter7.0-AMD/host/Cluster7.0-AMD/Resources"
+DATACENTER_70="Datacenter7.0"
+DATASTORE_70="datastore-95"
+DATACENTER_70_POOL="/Datacenter7.0/host/Cluster7.0/Resources"
 DATACENTER_67="Datacenter6.7"
 DATASTORE_67="datastore-225"
 DATACENTER_67_POOL="/Datacenter6.7/host/Cluster6.7/Resources"
@@ -191,8 +191,8 @@ clean_up () {
     sudo systemctl disable --now httpd
 
     # Remove vm
-    govc vm.destroy -dc="Datacenter6.7" "${DC67_VSPHERE_VM_NAME}"
-    govc vm.destroy -dc="Datacenter7.0-AMD" "${DC70_VSPHERE_VM_NAME}"
+    govc vm.destroy -dc="${DATACENTER_67}" "${DC67_VSPHERE_VM_NAME}"
+    govc vm.destroy -dc="${DATACENTER_70}" "${DC70_VSPHERE_VM_NAME}"
 }
 
 # Test result checking
@@ -440,7 +440,7 @@ govc datastore.cp -dc="${DATACENTER_70}" -ds="${DATASTORE_70}" -dc-target="${DAT
 ##################################################################
 # Create vm with vmdk image
 greenprint "📋 Create vm in vsphere datacenter 7.0-AMD"
-DC70_VSPHERE_VM_NAME="${COMPOSE_ID}-70"
+DC70_VSPHERE_VM_NAME="edge-${COMPOSE_ID}-70"
 govc vm.create -dc="${DATACENTER_70}" -ds="${DATASTORE_70}" -pool="${DATACENTER_70_POOL}" \
     -net="VM Network" -net.adapter=vmxnet3 -disk.controller=pvscsi -on=false -c=2 -m=4096 \
     -g="${GUEST_ID_DC70}" -firmware=efi "${DC70_VSPHERE_VM_NAME}"
@@ -501,7 +501,7 @@ check_result
 ##################################################################
 # Create vm with vmdk image
 greenprint "📋 Create vm in vsphere datacenter 6.7"
-DC67_VSPHERE_VM_NAME="${COMPOSE_ID}-67"
+DC67_VSPHERE_VM_NAME="edge-${COMPOSE_ID}-67"
 govc vm.create -dc="${DATACENTER_67}" -ds="${DATASTORE_67}" -pool="${DATACENTER_67_POOL}" \
     -net="VM Network" -net.adapter=vmxnet3 -disk.controller=pvscsi -on=false -c=2 -m=4096 \
     -g="${GUEST_ID_DC67}" -firmware=efi "${DC67_VSPHERE_VM_NAME}"
