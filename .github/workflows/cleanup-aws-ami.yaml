@@ -1,0 +1,22 @@
+---
+name: AWS edge ami cleanup job
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run every four hours
+    - cron: '0 */4 * * *'
+
+jobs:
+  cleanup-ami:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v3
+      - name: Cleanup aws resources
+        run: ./tools/aws-ami-cleanup.sh
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        timeout-minutes: 60
