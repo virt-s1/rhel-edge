@@ -46,7 +46,7 @@ greenprint "Checking AWS S3 Idle Buckets 🪣"
 aws s3 ls \
     | grep -e "${UPSTREAM_PREFIX_NAME}" \
     -e "${DOWNSTREAM_PREFIX_NAME}" \
-    > "${BUCKET_LIST}"
+    > "${BUCKET_LIST}" || :
 if [[ -z $(cat "${BUCKET_LIST}") ]]; then
     echo "No buckets to remove"
 else
