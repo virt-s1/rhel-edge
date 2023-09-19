@@ -49,9 +49,6 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
         BOOT_ARGS="uefi"
-        sudo wget http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/RHEL-9.3.0-20230915.0/compose/AppStream/x86_64/os/Packages/fdo-{admin-cli,client,init,manufacturing-server,owner-cli,owner-onboarding-server,rendezvous-server}-0.4.12-4.el9_2.x86_64.rpm -P /var/www/html/packages
-        sudo createrepo_c /var/www/html/packages
-        sudo restorecon -Rv /var/www/html/packages
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
