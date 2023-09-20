@@ -178,11 +178,6 @@ sudo composer-cli status show
 sudo mkdir -p /var/www/html/packages
 sudo curl -s -o /var/www/html/packages/greenboot-failing-unit-1.0-1.el8.noarch.rpm https://kite-webhook-prod.s3.amazonaws.com/greenboot-failing-unit-1.0-1.el8.noarch.rpm
 
-# workaround for bug https://issues.redhat.com/browse/RHEL-4992
-if [[ "$VERSION_ID" == "9.3" ]]; then
-    sudo wget http://download-node-02.eng.bos.redhat.com/rhel-9/nightly/RHEL-9/RHEL-9.3.0-20230915.0/compose/AppStream/x86_64/os/Packages/fdo-{admin-cli,client,init,manufacturing-server,owner-cli,owner-onboarding-server,rendezvous-server}-0.4.12-4.el9_2.x86_64.rpm -P /var/www/html/packages
-fi
-
 # RHEL for Edge package CI test
 if [ -e packages/package_ci_trigger ]; then
     source packages/package_ci_trigger
