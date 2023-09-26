@@ -9,6 +9,8 @@ on:
 
 jobs:
   cleanup-ami:
+    # Do not run this job on any fork repos
+    if: github.repository == 'virt-s1/rhel-edge'
     runs-on: ubuntu-latest
     steps:
       - name: Clone repository
