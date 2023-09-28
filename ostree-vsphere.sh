@@ -51,23 +51,23 @@ IGNITION_USER_PASSWORD=foobar
 
 SYSROOT_RO="true"
 
-DATACENTER_70="Datacenter7.0-AMD"
-DATASTORE_70="datastore-21"
-DATACENTER_70_POOL="/Datacenter7.0-AMD/host/Cluster7.0-AMD/Resources"
-DATACENTER_67="Datacenter6.7"
-DATASTORE_67="datastore-225"
-DATACENTER_67_POOL="/Datacenter6.7/host/Cluster6.7/Resources"
+DATACENTER_70="Datacenter7.0"
+DATASTORE_70="datastore-80"
+DATACENTER_70_POOL="/Datacenter7.0/host/Automation/Resources"
+# DATACENTER_67="Datacenter6.7"
+# DATASTORE_67="datastore-225"
+# DATACENTER_67_POOL="/Datacenter6.7/host/Cluster6.7/Resources"
 
 # Workdaround for creating rhel9 and centos9 on dc67, change guest_id to 8
 case "${ID}-${VERSION_ID}" in
     "rhel-9"* )
         OSTREE_REF="rhel/9/${ARCH}/edge"
-        GUEST_ID_DC67="rhel8_64Guest"
+        # GUEST_ID_DC67="rhel8_64Guest"
         GUEST_ID_DC70="rhel9_64Guest"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
-        GUEST_ID_DC67="centos8_64Guest"
+        # GUEST_ID_DC67="centos8_64Guest"
         GUEST_ID_DC70="centos9_64Guest"
         ;;
     *)
@@ -191,8 +191,8 @@ clean_up () {
     sudo systemctl disable --now httpd
 
     # Remove vm
-    govc vm.destroy -dc="Datacenter6.7" "${DC67_VSPHERE_VM_NAME}"
-    govc vm.destroy -dc="Datacenter7.0-AMD" "${DC70_VSPHERE_VM_NAME}"
+    # govc vm.destroy -dc="Datacenter6.7" "${DC67_VSPHERE_VM_NAME}"
+    govc vm.destroy -dc="${DATACENTER_70}" "${DC70_VSPHERE_VM_NAME}"
 }
 
 # Test result checking
@@ -429,9 +429,9 @@ sudo composer-cli blueprints delete vmdk > /dev/null
 ##################################################################
 greenprint "📋 Uploading vmdk image to vsphere datacenter 7.0"
 govc import.vmdk -dc="${DATACENTER_70}" -ds="${DATASTORE_70}" -pool="${DATACENTER_70_POOL}" "${VMDK_FILENAME}" > /dev/null
-greenprint "📋 Copying vmdk image to vsphere datacenter 6.7"
-govc datastore.mkdir -dc="${DATACENTER_67}" -ds="${DATASTORE_67}" "${COMPOSE_ID}-image"
-govc datastore.cp -dc="${DATACENTER_70}" -ds="${DATASTORE_70}" -dc-target="${DATACENTER_67}" -ds-target="${DATASTORE_67}" "${COMPOSE_ID}-image/${VMDK_FILENAME}" "${COMPOSE_ID}-image/${VMDK_FILENAME}" > /dev/null
+# greenprint "📋 Copying vmdk image to vsphere datacenter 6.7"
+# govc datastore.mkdir -dc="${DATACENTER_67}" -ds="${DATASTORE_67}" "${COMPOSE_ID}-image"
+# govc datastore.cp -dc="${DATACENTER_70}" -ds="${DATASTORE_70}" -dc-target="${DATACENTER_67}" -ds-target="${DATASTORE_67}" "${COMPOSE_ID}-image/${VMDK_FILENAME}" "${COMPOSE_ID}-image/${VMDK_FILENAME}" > /dev/null
 
 ##################################################################
 ##
@@ -439,7 +439,7 @@ govc datastore.cp -dc="${DATACENTER_70}" -ds="${DATASTORE_70}" -dc-target="${DAT
 ##
 ##################################################################
 # Create vm with vmdk image
-greenprint "📋 Create vm in vsphere datacenter 7.0-AMD"
+greenprint "📋 Create vm in vsphere datacenter 7.0"
 DC70_VSPHERE_VM_NAME="${COMPOSE_ID}-70"
 govc vm.create -dc="${DATACENTER_70}" -ds="${DATASTORE_70}" -pool="${DATACENTER_70_POOL}" \
     -net="VM Network" -net.adapter=vmxnet3 -disk.controller=pvscsi -on=false -c=2 -m=4096 \
@@ -499,61 +499,61 @@ check_result
 ## Create vm on datacenter6.7 and test it
 ##
 ##################################################################
-# Create vm with vmdk image
-greenprint "📋 Create vm in vsphere datacenter 6.7"
-DC67_VSPHERE_VM_NAME="${COMPOSE_ID}-67"
-govc vm.create -dc="${DATACENTER_67}" -ds="${DATASTORE_67}" -pool="${DATACENTER_67_POOL}" \
-    -net="VM Network" -net.adapter=vmxnet3 -disk.controller=pvscsi -on=false -c=2 -m=4096 \
-    -g="${GUEST_ID_DC67}" -firmware=efi "${DC67_VSPHERE_VM_NAME}"
-govc vm.disk.attach -dc="${DATACENTER_67}" -ds="${DATASTORE_67}" -vm "${DC67_VSPHERE_VM_NAME}" \
-    -link=false -disk="${COMPOSE_ID}-image/${VMDK_FILENAME}"
-govc vm.power -on -dc="${DATACENTER_67}" "${DC67_VSPHERE_VM_NAME}"
-DC67_GUEST_ADDRESS=$(govc vm.ip -v4 -dc="${DATACENTER_67}" -wait=10m "${DC67_VSPHERE_VM_NAME}")
-greenprint "🛃 Edge VM IP address is: ${DC67_GUEST_ADDRESS}"
+# # Create vm with vmdk image
+# greenprint "📋 Create vm in vsphere datacenter 6.7"
+# DC67_VSPHERE_VM_NAME="${COMPOSE_ID}-67"
+# govc vm.create -dc="${DATACENTER_67}" -ds="${DATASTORE_67}" -pool="${DATACENTER_67_POOL}" \
+#     -net="VM Network" -net.adapter=vmxnet3 -disk.controller=pvscsi -on=false -c=2 -m=4096 \
+#     -g="${GUEST_ID_DC67}" -firmware=efi "${DC67_VSPHERE_VM_NAME}"
+# govc vm.disk.attach -dc="${DATACENTER_67}" -ds="${DATASTORE_67}" -vm "${DC67_VSPHERE_VM_NAME}" \
+#     -link=false -disk="${COMPOSE_ID}-image/${VMDK_FILENAME}"
+# govc vm.power -on -dc="${DATACENTER_67}" "${DC67_VSPHERE_VM_NAME}"
+# DC67_GUEST_ADDRESS=$(govc vm.ip -v4 -dc="${DATACENTER_67}" -wait=10m "${DC67_VSPHERE_VM_NAME}")
+# greenprint "🛃 Edge VM IP address is: ${DC67_GUEST_ADDRESS}"
 
-# Run ansible check on edge vm
-# Check for ssh ready to go.
-greenprint "🛃 Checking for SSH is ready to go"
-for _ in $(seq 0 30); do
-    RESULTS="$(wait_for_ssh_up "${DC67_GUEST_ADDRESS}")"
-    if [[ $RESULTS == 1 ]]; then
-        echo "SSH is ready now! 🥳"
-        break
-    fi
-    sleep 10
-done
+# # Run ansible check on edge vm
+# # Check for ssh ready to go.
+# greenprint "🛃 Checking for SSH is ready to go"
+# for _ in $(seq 0 30); do
+#     RESULTS="$(wait_for_ssh_up "${DC67_GUEST_ADDRESS}")"
+#     if [[ $RESULTS == 1 ]]; then
+#         echo "SSH is ready now! 🥳"
+#         break
+#     fi
+#     sleep 10
+# done
 
-# Check image installation result
-check_result
+# # Check image installation result
+# check_result
 
-greenprint "🕹 Get ostree install commit value"
-INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
+# greenprint "🕹 Get ostree install commit value"
+# INSTALL_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
 
-tee "${TEMPDIR}"/inventory > /dev/null << EOF
-[ostree_guest]
-${DC67_GUEST_ADDRESS}
+# tee "${TEMPDIR}"/inventory > /dev/null << EOF
+# [ostree_guest]
+# ${DC67_GUEST_ADDRESS}
 
-[ostree_guest:vars]
-ansible_python_interpreter=/usr/bin/python3
-ansible_user=${IGNITION_USER}
-ansible_private_key_file=${SSH_KEY}
-ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-ansible_become=yes
-ansible_become_method=sudo
-ansible_become_pass=${IGNITION_USER_PASSWORD}
-EOF
+# [ostree_guest:vars]
+# ansible_python_interpreter=/usr/bin/python3
+# ansible_user=${IGNITION_USER}
+# ansible_private_key_file=${SSH_KEY}
+# ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+# ansible_become=yes
+# ansible_become_method=sudo
+# ansible_become_pass=${IGNITION_USER_PASSWORD}
+# EOF
 
-# Test IoT/Edge OS
-podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z \
-    --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory \
-    -e ignition="true" \
-    -e os_name=redhat \
-    -e ostree_commit="${INSTALL_HASH}" \
-    -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" \
-    -e fdo_credential="false" \
-    -e sysroot_ro="$SYSROOT_RO" \
-    check-ostree.yaml || RESULTS=0
-check_result
+# # Test IoT/Edge OS
+# podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z \
+#     --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory \
+#     -e ignition="true" \
+#     -e os_name=redhat \
+#     -e ostree_commit="${INSTALL_HASH}" \
+#     -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" \
+#     -e fdo_credential="false" \
+#     -e sysroot_ro="$SYSROOT_RO" \
+#     check-ostree.yaml || RESULTS=0
+# check_result
 
 ##################################################################
 ##
@@ -694,54 +694,54 @@ check_result
 ## Run upgrade test on datacenter6.7 intel
 ##
 ##################################################################
-greenprint "🗳 Upgrade ostree image/commit"
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${DC67_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${DC67_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
+# greenprint "🗳 Upgrade ostree image/commit"
+# sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${DC67_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
+# sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${DC67_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
 
-# Sleep 10 seconds here to make sure vm restarted already
-sleep 10
+# # Sleep 10 seconds here to make sure vm restarted already
+# sleep 10
 
-# Check for ssh ready to go.
-greenprint "🛃 Checking for SSH is ready to go"
-# shellcheck disable=SC2034  # Unused variables left for readability
-for _ in $(seq 0 30); do
-    RESULTS="$(wait_for_ssh_up "${DC67_GUEST_ADDRESS}")"
-    if [[ $RESULTS == 1 ]]; then
-        echo "SSH is ready now! 🥳"
-        break
-    fi
-    sleep 10
-done
+# # Check for ssh ready to go.
+# greenprint "🛃 Checking for SSH is ready to go"
+# # shellcheck disable=SC2034  # Unused variables left for readability
+# for _ in $(seq 0 30); do
+#     RESULTS="$(wait_for_ssh_up "${DC67_GUEST_ADDRESS}")"
+#     if [[ $RESULTS == 1 ]]; then
+#         echo "SSH is ready now! 🥳"
+#         break
+#     fi
+#     sleep 10
+# done
 
-# Check ostree upgrade result
-check_result
+# # Check ostree upgrade result
+# check_result
 
-# Add instance IP address into /etc/ansible/hosts
-tee "${TEMPDIR}"/inventory > /dev/null << EOF
-[ostree_guest]
-${DC67_GUEST_ADDRESS}
+# # Add instance IP address into /etc/ansible/hosts
+# tee "${TEMPDIR}"/inventory > /dev/null << EOF
+# [ostree_guest]
+# ${DC67_GUEST_ADDRESS}
 
-[ostree_guest:vars]
-ansible_python_interpreter=/usr/bin/python3
-ansible_user=${IGNITION_USER}
-ansible_private_key_file=${SSH_KEY}
-ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-ansible_become=yes
-ansible_become_method=sudo
-ansible_become_pass=${IGNITION_USER_PASSWORD}
-EOF
+# [ostree_guest:vars]
+# ansible_python_interpreter=/usr/bin/python3
+# ansible_user=${IGNITION_USER}
+# ansible_private_key_file=${SSH_KEY}
+# ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+# ansible_become=yes
+# ansible_become_method=sudo
+# ansible_become_pass=${IGNITION_USER_PASSWORD}
+# EOF
 
-# Test IoT/Edge OS
-podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z \
-    --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory \
-    -e ignition="true" \
-    -e os_name=redhat \
-    -e ostree_commit="${UPGRADE_HASH}" \
-    -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" \
-    -e fdo_credential="false" \
-    -e sysroot_ro="$SYSROOT_RO" \
-    check-ostree.yaml || RESULTS=0
-check_result
+# # Test IoT/Edge OS
+# podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z \
+#     --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory \
+#     -e ignition="true" \
+#     -e os_name=redhat \
+#     -e ostree_commit="${UPGRADE_HASH}" \
+#     -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" \
+#     -e fdo_credential="false" \
+#     -e sysroot_ro="$SYSROOT_RO" \
+#     check-ostree.yaml || RESULTS=0
+# check_result
 
 # Final success clean up
 clean_up

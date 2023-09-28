@@ -395,9 +395,6 @@ password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHB
 key = "${SSH_KEY_PUB}"
 home = "/home/admin/"
 groups = ["wheel"]
-
-[customizations.kernel]
-append = "enforcing=0"
 EOF
 
 greenprint "📄 installer blueprint"
@@ -521,9 +518,6 @@ password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHB
 key = "${SSH_KEY_PUB}"
 home = "/home/admin/"
 groups = ["wheel"]
-
-[customizations.kernel]
-append = "enforcing=0"
 EOF
 
 greenprint "📄 fdosshkey blueprint"
@@ -656,9 +650,6 @@ password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHB
 key = "${SSH_KEY_PUB}"
 home = "/home/admin/"
 groups = ["wheel"]
-
-[customizations.kernel]
-append = "enforcing=0"
 EOF
 
 greenprint "📄 fdosshkey blueprint"

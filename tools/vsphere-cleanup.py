@@ -8,8 +8,8 @@ GOVC_CREDENTIALS = "GOVC_URL=%s GOVC_USERNAME=%s GOVC_PASSWORD=%s GOVC_INSECURE=
     os.environ.get("GOVC_PASSWORD"),
     os.environ.get("GOVC_INSECURE")
 )
-DATACENTER_70 = "Datacenter7.0-AMD"
-DATACENTER_67 = "Datacenter6.7"
+DATACENTER_70 = "Datacenter7.0"
+# DATACENTER_67 = "Datacenter6.7"
 
 class VM:
     def __init__(self, name, date, dc) -> None:
@@ -20,7 +20,7 @@ class VM:
         vm_date = datetime.datetime.strptime(self.date, "%Y-%m-%d %H:%M:%S")
         current_date = datetime.datetime.now()
         age = current_date - vm_date
-        if age.days >= 3:
+        if age.days >= 2:
             return True
         return False
     def destroy(self):
@@ -32,7 +32,7 @@ def get_all_vms():
     vms = []
     name = ""
     date = ""
-    # Get edge vms in datacenter7.0-amd
+    # Get edge vms in datacenter7.0
     cmd = GOVC_CREDENTIALS + " govc vm.info -dc=%s *-70 > 70vm.txt" % (DATACENTER_70)
     os.system(cmd)
     with open("70vm.txt", "r") as f:
@@ -42,16 +42,16 @@ def get_all_vms():
             if "Boot time" in line.strip():
                 date = line[12:].strip()[0:19]
                 vms.append(VM(name, date, DATACENTER_70))
-    # Get edge vms in datacenter6.7
-    cmd = GOVC_CREDENTIALS + " govc vm.info -dc=%s *-67 > 67vm.txt" % (DATACENTER_67)
-    os.system(cmd)
-    with open("67vm.txt", "r") as f:
-        for line in f:
-            if "Name" in line.strip():
-                name = line[5:].strip()
-            if "Boot time" in line.strip():
-                date = line[12:].strip()[0:19]
-                vms.append(VM(name, date, DATACENTER_67))
+    # # Get edge vms in datacenter6.7
+    # cmd = GOVC_CREDENTIALS + " govc vm.info -dc=%s *-67 > 67vm.txt" % (DATACENTER_67)
+    # os.system(cmd)
+    # with open("67vm.txt", "r") as f:
+    #     for line in f:
+    #         if "Name" in line.strip():
+    #             name = line[5:].strip()
+    #         if "Boot time" in line.strip():
+    #             date = line[12:].strip()[0:19]
+    #             vms.append(VM(name, date, DATACENTER_67))
     return vms
 
 if __name__ == "__main__":
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         print("No edge vm found in vsphere, exit now")
         exit()
 
-    print("Found edge vms:")
+    print("Found existing edge vms:")
     for vm in vms:
         print("> Name:%s, Date:%s" % (vm.name, vm.date))
 
@@ -72,4 +72,4 @@ if __name__ == "__main__":
             vm.destroy()
             print("> VM %s is destroyed (date: %s)" % (vm.name, vm.date))
     if not destroy:
-        print("No expire VM found, exit now")
+        print("No expire edge vm found, exit now")

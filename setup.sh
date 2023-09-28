@@ -130,14 +130,6 @@ polkit.addRule(function(action, subject) {
 });
 EOF
 
-# workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2213660
-# Another reference https://discussion.fedoraproject.org/t/libvirtd-stop-responding-after-some-time/84324/7
-if [[ "$VERSION_ID" == "9.3"  || "$VERSION_ID" == "9" ]]; then
-    sudo tee /etc/sysconfig/libvirtd << EOF > /dev/null
-LIBVIRTD_ARGS=
-EOF
-fi
-
 # Start libvirtd and test it.
 greenprint "🚀 Starting libvirt daemon"
 sudo systemctl start libvirtd
@@ -185,7 +177,8 @@ sudo composer-cli status show
 # Simulate a third party repo here
 sudo mkdir -p /var/www/html/packages
 sudo curl -s -o /var/www/html/packages/greenboot-failing-unit-1.0-1.el8.noarch.rpm https://kite-webhook-prod.s3.amazonaws.com/greenboot-failing-unit-1.0-1.el8.noarch.rpm
-# RHEL for Edge package test
+
+# RHEL for Edge package CI test
 if [ -e packages/package_ci_trigger ]; then
     source packages/package_ci_trigger
 
@@ -197,14 +190,15 @@ if [ -e packages/package_ci_trigger ]; then
             sudo wget -q "http://${DOWNLOAD_NODE}/brewroot/work/${i}" -P /var/www/html/packages
         fi
     done
+fi
 
-    # Create the simulated repo
-    sudo createrepo_c /var/www/html/packages
-    # Reset selinux for /var/www/html/source
-    sudo restorecon -Rv /var/www/html/packages
+# Create the simulated repo
+sudo createrepo_c /var/www/html/packages
+# Reset selinux for /var/www/html/source
+sudo restorecon -Rv /var/www/html/packages
 
-    # Create local repo to install packages
-    sudo tee "/etc/yum.repos.d/packages.repo" > /dev/null << EOF
+# Create local repo to install packages
+sudo tee "/etc/yum.repos.d/packages.repo" > /dev/null << EOF
 [packages]
 name = packages
 baseurl = file:///var/www/html/packages/
@@ -213,23 +207,17 @@ gpgcheck = 0
 priority = 5
 EOF
 
-    # Check local repo working or not
-    sudo dnf info \
-        coreos-installer-dracut \
-        greenboot \
-        ostree \
-        rpm-ostree \
-        fdo-rendezvous-server \
-        fdo-owner-onboarding-server \
-        fdo-owner-cli \
-        fdo-manufacturing-server \
-        fdo-admin-cli
-else
-    # Create the simulated repo
-    sudo createrepo_c /var/www/html/packages
-    # Reset selinux for /var/www/html/source
-    sudo restorecon -Rv /var/www/html/packages
-fi
+# Check local repo working or not
+sudo dnf info \
+    coreos-installer-dracut \
+    greenboot \
+    ostree \
+    rpm-ostree \
+    fdo-rendezvous-server \
+    fdo-owner-onboarding-server \
+    fdo-owner-cli \
+    fdo-manufacturing-server \
+    fdo-admin-cli
 
 # Source checking
 sudo composer-cli sources list
