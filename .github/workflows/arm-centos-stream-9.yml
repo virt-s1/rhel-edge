@@ -68,6 +68,7 @@ jobs:
   arm-all-cs9:
     needs: [pr-info, pre-arm-all-cs9]
     runs-on: [kite, aarch64, beaker, fedora-37]
+    timeout-minutes: 420
     env:
       STATUS_NAME: arm-all-cs9
 
