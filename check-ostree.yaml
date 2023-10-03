@@ -601,7 +601,7 @@
       when:
         - embedded_container == "true"
 
-    - name: embded container should be listed by podman images
+    - name: embedded container should be listed by podman images
       block:
         - assert:
             that:

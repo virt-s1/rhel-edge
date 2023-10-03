@@ -68,6 +68,7 @@ jobs:
   arm-all-93:
     needs: [pr-info, pre-arm-all-93]
     runs-on: [kite, aarch64, beaker, fedora-37]
+    timeout-minutes: 420
     env:
       STATUS_NAME: arm-all-93
 
