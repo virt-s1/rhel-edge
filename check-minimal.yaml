@@ -63,18 +63,18 @@
         path: /var/log/journal
         state: directory
       become: yes
-      when: ansible_facts['distribution'] == 'RedHat' or ansible_facts['distribution'] == 'CentOS'
+      when: ansible_facts['distribution'] == 'RedHat' or ansible_facts['distribution'] == 'CentOS' or (ansible_facts['architecture'] == "aarch64" and ansible_facts['distribution_version'] == "39")
 
-    - name: enable persistent logging on RHEL 9 and CS9 only
+    - name: enable persistent logging on RHEL 9, CS9 and Fedora 39 for ARM
       command: journalctl --flush
       become: yes
-      when: ansible_facts['distribution_version'] == "9.3" or ansible_facts['distribution_version'] == "9"
+      when: ansible_facts['distribution_version'] == "9.3" or ansible_facts['distribution_version'] == "9" or (ansible_facts['architecture'] == "aarch64" and ansible_facts['distribution_version'] == "39")
 
     - name: add RHEL 9.3 BaseOS repository
       yum_repository:
         name: baseos
         description: RHEL repository
-        baseurl: "http://{{ download_node }}/rhel-9/nightly/RHEL-9/latest-RHEL-9.3.0/compose/BaseOS/{{ ansible_facts['architecture'] }}/os/"
+        baseurl: "http://{{ download_node }}/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.3.0/compose/BaseOS/{{ ansible_facts['architecture'] }}/os/"
         gpgcheck: no
         file: rhel_repo
       become: yes
@@ -84,7 +84,7 @@
       yum_repository:
         name: appstream
         description: RHEL repository
-        baseurl: "http://{{ download_node }}/rhel-9/nightly/RHEL-9/latest-RHEL-9.3.0/compose/AppStream/{{ ansible_facts['architecture'] }}/os/"
+        baseurl: "http://{{ download_node }}/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.3.0/compose/AppStream/{{ ansible_facts['architecture'] }}/os/"
         gpgcheck: no
         file: rhel_repo
       become: yes
@@ -94,7 +94,7 @@
       yum_repository:
         name: baseos
         description: RHEL repository
-        baseurl: "http://{{ download_node }}/rhel-8/nightly/RHEL-8/latest-RHEL-8.9.0/compose/BaseOS/{{ ansible_facts['architecture'] }}/os/"
+        baseurl: "http://{{ download_node }}/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.9.0/compose/BaseOS/{{ ansible_facts['architecture'] }}/os/"
         gpgcheck: no
         file: rhel_repo
       become: yes
@@ -104,7 +104,7 @@
       yum_repository:
         name: appstream
         description: RHEL repository
-        baseurl: "http://{{ download_node }}/rhel-8/nightly/RHEL-8/latest-RHEL-8.9.0/compose/AppStream/{{ ansible_facts['architecture'] }}/os/"
+        baseurl: "http://{{ download_node }}/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.9.0/compose/AppStream/{{ ansible_facts['architecture'] }}/os/"
         gpgcheck: no
         file: rhel_repo
       become: yes
