@@ -445,8 +445,9 @@ sudo rm -f "$IMAGE_FILENAME"
 
 # Run edge stage repo
 greenprint "🛰 Running edge stage repo"
+sudo podman info
 sudo podman pull --creds "${DOCKERHUB_USERNAME}:${DOCKERHUB_PASSWORD}" "${DOCKERHUB_REPO_URL}:${DOCKERHUB_REPO_TAG}"
-sudo podman run -d --name rhel-edge --network edge --ip "$STAGE_REPO_ADDRESS" "${DOCKERHUB_REPO_URL}:${DOCKERHUB_REPO_TAG}"
+sudo podman run --log-level debug -d --name rhel-edge --network edge --ip "$STAGE_REPO_ADDRESS" "${DOCKERHUB_REPO_URL}:${DOCKERHUB_REPO_TAG}"
 # Clear image file
 sudo rm -f "$IMAGE_FILENAME"
 
