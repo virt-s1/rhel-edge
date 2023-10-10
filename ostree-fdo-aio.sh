@@ -9,7 +9,33 @@ source /etc/os-release
 ARCH=$(uname -m)
 
 # Install fdo packages (This cannot be done in the setup.sh because fdo-admin-cli is not available on fedora)
-sudo dnf install -y fdo-admin-cli python3-pip
+# sudo dnf install -y fdo-admin-cli python3-pip
+sudo dnf install -y \
+    fdo-admin-cli \
+    fdo-rendezvous-server \
+    fdo-owner-onboarding-server \
+    fdo-owner-cli \
+    fdo-manufacturing-server \
+    python3-pip
+
+# Generate key and cert used by FDO
+sudo mkdir -p /etc/fdo/keys
+for obj in diun manufacturer device-ca owner; do
+    sudo fdo-admin-tool generate-key-and-cert --destination-dir /etc/fdo/keys "$obj"
+done
+
+# Copy configuration files
+sudo mkdir -p \
+    /etc/fdo/manufacturing-server.conf.d/ \
+    /etc/fdo/owner-onboarding-server.conf.d/ \
+    /etc/fdo/rendezvous-server.conf.d/ \
+    /etc/fdo/serviceinfo-api-server.conf.d/
+
+sudo cp files/fdo/manufacturing-server.yml /etc/fdo/manufacturing-server.conf.d/
+sudo cp files/fdo/owner-onboarding-server.yml /etc/fdo/owner-onboarding-server.conf.d/
+sudo cp files/fdo/rendezvous-server.yml /etc/fdo/rendezvous-server.conf.d/
+sudo cp files/fdo/serviceinfo-api-server.yml /etc/fdo/serviceinfo-api-server.conf.d/
+
 # Install yq to modify service api server config yaml file
 sudo pip3 install yq
 # Start fdo-aio to have /etc/fdo/aio folder
@@ -23,6 +49,13 @@ done
 # Prepare service api server config file
 sudo /usr/local/bin/yq -iy '.service_info.diskencryption_clevis |= [{disk_label: "/dev/vda4", reencrypt: true, binding: {pin: "tpm2", config: "{}"}}]' /etc/fdo/aio/configs/serviceinfo_api_server.yml
 sudo systemctl restart fdo-aio
+
+# Start FDO services
+sudo systemctl start \
+    fdo-owner-onboarding-server.service \
+    fdo-rendezvous-server.service \
+    fdo-manufacturing-server.service \
+    fdo-serviceinfo-api-server.service
 
 # Set up variables.
 TEST_UUID=$(uuidgen)
@@ -349,7 +382,7 @@ check_result () {
         greenprint "💚 Success"
     else
         greenprint "❌ Failed"
-        clean_up
+        # clean_up
         exit 1
     fi
 }
