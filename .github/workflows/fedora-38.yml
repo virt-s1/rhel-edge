@@ -416,7 +416,7 @@ jobs:
         run: ./ostree-iot-qcow2.sh
         env:
           DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
-        timeout-minutes: 60
+        timeout-minutes: 120
 
       - name: Set non cancelled result status
         if: ${{ !cancelled() }}
