@@ -96,7 +96,7 @@ jobs:
 
       - name: run arm-commit.sh
         run: ./arm-commit.sh fedora-38
-        timeout-minutes: 60
+        timeout-minutes: 120
 
       - name: run arm-installer.sh
         if: always()
@@ -106,14 +106,13 @@ jobs:
           QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
         timeout-minutes: 120
 
-      # comment raw image test due to bug https://bugzilla.redhat.com/show_bug.cgi?id=2189246
-      # - name: run arm-raw.sh
-      #   if: always()
-      #   run: ./arm-raw.sh fedora-38
-      #   env:
-      #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      #     DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-      #   timeout-minutes: 90
+      - name: run arm-raw.sh
+        if: always()
+        run: ./arm-raw.sh fedora-38
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+        timeout-minutes: 120
 
       - name: Set non cancelled result status
         if: ${{ !cancelled() }}
