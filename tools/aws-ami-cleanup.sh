@@ -15,6 +15,9 @@ BUCKET_LIST=bucket_list.json
 SNAPSHOT_LIST=snapshot_list.json
 IMAGES_LIST=images_list.json
 KEYPAIR_LIST=keypair_list.json
+INSTANCES_LIST=instances_list.json
+UPSTREAM_TAG="rhel-edge-ci"
+DOWNSTREAM_TAG="composer-ci"
 
 # Colorful output.
 function greenprint {
@@ -40,6 +43,40 @@ time_subtraction () {
 }
 
 greenprint "🧼 Cleaning up AWS resources in region ${AWS_DEFAULT_REGION}"
+
+# List Upstream and Downstream AWS EC2 instances
+greenprint "Checking AWS EC2 Idle Instances 🖥️"
+aws ec2 describe-instances \
+    --filters Name=tag:Name,Values=${UPSTREAM_TAG},${DOWNSTREAM_TAG} \
+    Name=instance-state-name,Values=running \
+    --query 'Reservations[*].Instances[*].InstanceId' \
+    --output text \
+    | sed -r 's/[\t]+|[ ]+/\n/g' \
+    > "${INSTANCES_LIST}" || :
+
+if [[ -z $(cat "${INSTANCES_LIST}") ]]; then
+    echo "No idle instances to remove"
+else
+    mapfile -t INSTANCE_ARRAY < "${INSTANCES_LIST}"
+    rm "${INSTANCES_LIST}"
+
+    for line in "${INSTANCE_ARRAY[@]}"; do
+        CREATION_DATE=$(
+            aws ec2 describe-instances \
+                --instance-ids "${line}" \
+                --output text \
+                --query 'Reservations[*].Instances[*].LaunchTime'
+        )
+        INSTANCE_AGE=$(time_subtraction "${CREATION_DATE}")
+        if [[ "${INSTANCE_AGE}" == 1 ]]; then
+            echo "Removing idle instance ${line}"
+            aws ec2 terminate-instances \
+                --instance-ids "${line}"
+            aws ec2 wait instance-terminated \
+                --instance-ids "${line}"
+        fi
+    done
+fi
 
 # List Upstream and Downstream Buckets
 greenprint "Checking AWS S3 Idle Buckets 🪣"
