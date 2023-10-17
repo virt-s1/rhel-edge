@@ -954,7 +954,7 @@
           register: result_rollback
           until: result_rollback is success
           retries: 6
-          delay: 10
+          delay: 30
 
         - assert:
             that:
