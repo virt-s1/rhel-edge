@@ -430,8 +430,8 @@ sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
 greenprint "💿 Install ostree image via installer(ISO) on UEFI VM"
 sudo virt-install  --name="${IMAGE_KEY}-insecure"\
                    --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
-                   --ram 3072 \
-                   --vcpus 2 \
+                   --ram 4096 \
+                   --vcpus 4 \
                    --network network=integration,mac=34:49:22:B0:83:30 \
                    --os-type linux \
                    --os-variant "${OS_VARIANT}" \
@@ -550,8 +550,8 @@ sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
 greenprint "💿 Install ostree image via installer(ISO) on UEFI VM"
 sudo virt-install  --name="${IMAGE_KEY}-fdosshkey"\
                    --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
-                   --ram 3072 \
-                   --vcpus 2 \
+                   --ram 4096 \
+                   --vcpus 4 \
                    --network network=integration,mac=34:49:22:B0:83:31 \
                    --os-type linux \
                    --os-variant "${OS_VARIANT}" \
@@ -682,8 +682,8 @@ sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
 greenprint "💿 Install ostree image via installer(ISO) on UEFI VM"
 sudo virt-install  --name="${IMAGE_KEY}-fdorootcert"\
                    --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
-                   --ram 3072 \
-                   --vcpus 2 \
+                   --ram 4096 \
+                   --vcpus 4 \
                    --network network=integration,mac=34:49:22:B0:83:32 \
                    --os-type linux \
                    --os-variant "${OS_VARIANT}" \
