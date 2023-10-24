@@ -9,6 +9,8 @@ on:
 
 jobs:
   cleanup-vsphere:
+    # Do not run this job on any fork repos
+    if: github.repository == 'virt-s1/rhel-edge'
     runs-on: [kite, x86_64, rhos-01, rhel-9-3, medium]
     steps:
       - name: Clone repository
