@@ -101,6 +101,18 @@ case "$TEST_OS" in
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.3.0/compose/BaseOS/aarch64/os/"
         SYSROOT_RO="true"
         ;;
+    "rhel-9-4")
+        IMAGE_TYPE="edge-commit"
+        sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-4-0.json
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g; s/REPLACE_ARCH_HERE/${ARCH}/g" tools/user-data.arch.94 | sudo tee "${CLOUD_INIT_DIR}/user-data"
+        OS_VARIANT="rhel9-unknown"
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OSTREE_REBASE_REF="rhel/9x/${ARCH}/edge"
+        GUEST_IMAGE_URL="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.4.0/compose/BaseOS/aarch64/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">rhel-guest-image-9.4-.*.qcow2<" | tr -d '><')
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.4.0/compose/BaseOS/aarch64/os/"
+        SYSROOT_RO="true"
+        ;;
     "centos-stream-8")
         IMAGE_TYPE="edge-commit"
         cp tools/user-data "$CLOUD_INIT_DIR"

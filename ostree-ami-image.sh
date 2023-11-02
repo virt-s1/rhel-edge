@@ -42,7 +42,7 @@ EDGE_USER_PASSWORD=foobar
 sudo mkdir -p /etc/osbuild-composer/repositories
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-9.3")
+    "rhel-9"*)
         OSTREE_REF="rhel/9/${ARCH}/edge"
         SYSROOT_RO="true"
         ;;
