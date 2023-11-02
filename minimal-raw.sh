@@ -34,10 +34,10 @@ EDGE_USER_PASSWORD=foobar
 sudo mkdir -p /etc/osbuild-composer/repositories
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.9")
+    "rhel-8"*)
         OS_VARIANT="rhel8-unknown"
         ;;
-    "rhel-9.3")
+    "rhel-9"*)
         OS_VARIANT="rhel9-unknown"
         ;;
     "centos-8")
