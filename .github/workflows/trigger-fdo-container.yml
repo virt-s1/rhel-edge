@@ -6,6 +6,8 @@ on:
   schedule:
     # run 8:05 every Sunday
     - cron: '5 8 * * 0'
+    # run 8:05 every Thursday
+    - cron: '5 8 * * 4'
     # run every day
     - cron: '0 3 * * *'
 
@@ -57,7 +59,7 @@ jobs:
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
 
   fdo-container-official:
-    if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule == '0 3 * * *'
+    if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule == '5 8 * * 4'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
