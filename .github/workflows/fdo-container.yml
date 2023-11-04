@@ -143,14 +143,14 @@ jobs:
           route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: pending
-          description: 'RHEL 9.3 - Runner has been deploying...'
+          description: 'RHEL 9.4 - Runner has been deploying...'
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   fdo-container-official:
     needs: [pr-info, pre-fdo-container-official]
-    runs-on: [kite, x86_64, rhos-01, rhel-9-3, large]
+    runs-on: [kite, x86_64, rhos-01, rhel-9-4, large]
     env:
       STATUS_NAME: fdo-container-official
 
@@ -161,7 +161,7 @@ jobs:
           route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: pending
-          description: 'RHEL 9.3 - Test has been running...'
+          description: 'RHEL 9.4 - Test has been running...'
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -190,7 +190,7 @@ jobs:
           route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: ${{ job.status }}
-          description: 'RHEL 9.3 - Test got ${{ job.status }}'
+          description: 'RHEL 9.4 - Test got ${{ job.status }}'
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -202,7 +202,7 @@ jobs:
           route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
           context: ${{ env.STATUS_NAME }}
           state: error
-          description: 'RHEL 9.3 - Test got error'
+          description: 'RHEL 9.4 - Test got error'
           target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
