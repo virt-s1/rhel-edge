@@ -35,12 +35,22 @@ jobs:
           fi
 
           if [[ "$COMPOSE_ID" != "false" ]]; then
+              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST
+              PR_LIST=$(cat PR_LIST)
+              cat $PR_LIST
+              if [[ $PR_LIST == *"$COMPOSE_ID"* ]]; then
+                  echo "pr_running=true" >> $GITHUB_OUTPUT
+              else
+                  echo "pr_running=false" >> $GITHUB_OUTPUT
+              fi
+
               OSBUILD_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
               OSBUILD_COMPOSER_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
               COMPOSER_CLI_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
               echo "osbuild_version=$OSBUILD_VERSION" >> $GITHUB_OUTPUT
               echo "osbuild_composer_version=$OSBUILD_COMPOSER_VERSION" >> $GITHUB_OUTPUT
               echo "composer_cli_version=$COMPOSER_CLI_VERSION" >> $GITHUB_OUTPUT
+
           else
               echo "osbuild_version=Null" >> $GITHUB_OUTPUT
               echo "osbuild_composer_version=Null" >> $GITHUB_OUTPUT
@@ -48,16 +58,19 @@ jobs:
           fi
 
           echo "rawhide_compose=$COMPOSE_ID" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     outputs:
       rawhide_compose: ${{ steps.check_compose_id.outputs.rawhide_compose }}
       osbuild_version: ${{ steps.check_compose_id.outputs.osbuild_version }}
       osbuild_composer_version: ${{ steps.check_compose_id.outputs.osbuild_composer_version }}
       composer_cli_version: ${{ steps.check_compose_id.outputs.composer_cli_version }}
+      pr_running: ${{ steps.check_compose_id.outputs.pr_running }}
 
   fedora-rawhide:
     needs: check-compose
-    if: ${{ needs.check-compose.outputs.rawhide_compose != 'false' }}
+    if: ${{ needs.check-compose.outputs.rawhide_compose != 'false' && needs.check-compose.outputs.pr_running == 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
