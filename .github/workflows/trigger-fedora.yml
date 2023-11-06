@@ -37,7 +37,6 @@ jobs:
           if [[ "$COMPOSE_ID" != "false" ]]; then
               gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST
               PR_LIST=$(cat PR_LIST)
-              cat $PR_LIST
               if [[ $PR_LIST == *"$COMPOSE_ID"* ]]; then
                   echo "pr_running=true" >> $GITHUB_OUTPUT
               else
