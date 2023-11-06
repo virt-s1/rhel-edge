@@ -41,6 +41,14 @@ jobs:
           fi
 
           if [[ "$COMPOSE_ID_90" != "false" ]]; then
+              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST_90
+              PR_LIST_90=$(cat PR_LIST_90)
+              if [[ $PR_LIST_90 == *"$COMPOSE_ID_90"* ]]; then
+                  echo "pr_running_90=true" >> $GITHUB_OUTPUT
+              else
+                  echo "pr_running_90=false" >> $GITHUB_OUTPUT
+              fi
+
               OSBUILD_VERSION_90=$(curl -s "${COMPOSE_URL_90}/${COMPOSE_ID_90}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
               OSBUILD_COMPOSER_VERSION_90=$(curl -s "${COMPOSE_URL_90}/${COMPOSE_ID_90}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
               COMPOSER_CLI_VERSION_90=$(curl -s "${COMPOSE_URL_90}/${COMPOSE_ID_90}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
@@ -54,6 +62,8 @@ jobs:
           fi
 
           echo "rhel90_compose=$COMPOSE_ID_90" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check RHEL 9.2 compose
         id: check_compose_id_92
@@ -72,6 +82,14 @@ jobs:
           fi
 
           if [[ "$COMPOSE_ID_92" != "false" ]]; then
+              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST_92
+              PR_LIST_92=$(cat PR_LIST_92)
+              if [[ $PR_LIST_92 == *"$COMPOSE_ID_92"* ]]; then
+                  echo "pr_running_92=true" >> $GITHUB_OUTPUT
+              else
+                  echo "pr_running_92=false" >> $GITHUB_OUTPUT
+              fi
+
               OSBUILD_VERSION_92=$(curl -s "${COMPOSE_URL_92}/${COMPOSE_ID_92}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
               OSBUILD_COMPOSER_VERSION_92=$(curl -s "${COMPOSE_URL_92}/${COMPOSE_ID_92}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
               COMPOSER_CLI_VERSION_92=$(curl -s "${COMPOSE_URL_92}/${COMPOSE_ID_92}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
@@ -85,6 +103,8 @@ jobs:
           fi
 
           echo "rhel92_compose=$COMPOSE_ID_92" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check RHEL 9.3 compose
         id: check_compose_id_93
@@ -103,6 +123,14 @@ jobs:
           fi
 
           if [[ "$COMPOSE_ID_93" != "false" ]]; then
+              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST_93
+              PR_LIST_93=$(cat PR_LIST_93)
+              if [[ $PR_LIST_93 == *"$COMPOSE_ID_93"* ]]; then
+                  echo "pr_running_93=true" >> $GITHUB_OUTPUT
+              else
+                  echo "pr_running_93=false" >> $GITHUB_OUTPUT
+              fi
+
               OSBUILD_VERSION_93=$(curl -s "${COMPOSE_URL_93}/${COMPOSE_ID_93}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
               OSBUILD_COMPOSER_VERSION_93=$(curl -s "${COMPOSE_URL_93}/${COMPOSE_ID_93}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
               COMPOSER_CLI_VERSION_93=$(curl -s "${COMPOSE_URL_93}/${COMPOSE_ID_93}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
@@ -116,6 +144,8 @@ jobs:
           fi
 
           echo "rhel93_compose=$COMPOSE_ID_93" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check RHEL 9.4 compose
         id: check_compose_id_94
@@ -134,6 +164,14 @@ jobs:
           fi
 
           if [[ "$COMPOSE_ID_94" != "false" ]]; then
+              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST_94
+              PR_LIST_94=$(cat PR_LIST_94)
+              if [[ $PR_LIST_94 == *"$COMPOSE_ID_94"* ]]; then
+                  echo "pr_running_94=true" >> $GITHUB_OUTPUT
+              else
+                  echo "pr_running_94=false" >> $GITHUB_OUTPUT
+              fi
+
               OSBUILD_VERSION_94=$(curl -s "${COMPOSE_URL_94}/${COMPOSE_ID_94}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
               OSBUILD_COMPOSER_VERSION_94=$(curl -s "${COMPOSE_URL_94}/${COMPOSE_ID_94}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
               COMPOSER_CLI_VERSION_94=$(curl -s "${COMPOSE_URL_94}/${COMPOSE_ID_94}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
@@ -147,6 +185,8 @@ jobs:
           fi
 
           echo "rhel94_compose=$COMPOSE_ID_94" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     outputs:
       rhel90_compose: ${{ steps.check_compose_id_90.outputs.rhel90_compose }}
@@ -165,10 +205,14 @@ jobs:
       osbuild_version_94: ${{ steps.check_compose_id_94.outputs.osbuild_version_94 }}
       osbuild_composer_version_94: ${{ steps.check_compose_id_94.outputs.osbuild_composer_version_94 }}
       composer_cli_version_94: ${{ steps.check_compose_id_94.outputs.composer_cli_version_94 }}
+      pr_running_90: ${{ steps.check_compose_id_90.outputs.pr_running_90 }}
+      pr_running_92: ${{ steps.check_compose_id_92.outputs.pr_running_92 }}
+      pr_running_93: ${{ steps.check_compose_id_93.outputs.pr_running_93 }}
+      pr_running_94: ${{ steps.check_compose_id_94.outputs.pr_running_94 }}
 
   rhel-9-0:
     needs: check-compose
-    if: ${{ needs.check-compose.outputs.rhel90_compose != 'false' }}
+    if: ${{ needs.check-compose.outputs.rhel90_compose != 'false' && needs.check-compose.outputs.pr_running_90 == 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -229,7 +273,7 @@ jobs:
 
   rhel-9-2:
     needs: check-compose
-    if: ${{ needs.check-compose.outputs.rhel92_compose != 'false' }}
+    if: ${{ needs.check-compose.outputs.rhel92_compose != 'false' && needs.check-compose.outputs.pr_running_92 == 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -290,7 +334,7 @@ jobs:
 
   rhel-9-3:
     needs: check-compose
-    if: ${{ needs.check-compose.outputs.rhel93_compose != 'false' }}
+    if: ${{ needs.check-compose.outputs.rhel93_compose != 'false' && needs.check-compose.outputs.pr_running_93 == 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -351,7 +395,7 @@ jobs:
 
   rhel-9-4:
     needs: check-compose
-    if: ${{ needs.check-compose.outputs.rhel94_compose != 'false' }}
+    if: ${{ needs.check-compose.outputs.rhel94_compose != 'false' && needs.check-compose.outputs.pr_running_94 == 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
