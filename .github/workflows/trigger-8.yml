@@ -24,6 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - run: sudo dnf install -y gh
+
       - name: Check RHEL 8.6 compose
         id: check_compose_id_86
         run: |

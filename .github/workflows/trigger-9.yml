@@ -24,6 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - run: sudo dnf install -y gh
+
       - name: Check RHEL 9.0 compose
         id: check_compose_id_90
         run: |
