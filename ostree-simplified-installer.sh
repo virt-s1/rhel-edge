@@ -39,7 +39,11 @@ sudo cp files/fdo/serviceinfo-api-server.yml /etc/fdo/serviceinfo-api-server.con
 sudo pip3 install yq
 # Prepare service api server config file
 sudo /usr/local/bin/yq -iy '.service_info.diskencryption_clevis |= [{disk_label: "/dev/vda4", reencrypt: true, binding: {pin: "tpm2", config: "{}"}}]' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
-
+# Fedora iot-simplified-installer uses /dev/vda3, https://github.com/osbuild/osbuild-composer/issues/3527
+if [[ "${ID}" == "fedora" ]]; then
+    echo "Change vda4 to vda3 for fedora in serviceinfo config file"
+    sudo sed -i 's/vda4/vda3/' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
+fi
 # Start FDO services
 sudo systemctl start \
     fdo-owner-onboarding-server.service \
@@ -91,6 +95,7 @@ SYSROOT_RO="false"
 
 # No FDO and Ignition in simplified installer is only supported started from 8.8 and 9.2
 NO_FDO="false"
+OS_NAME="redhat"
 
 # Prepare osbuild-composer repository file
 sudo mkdir -p /etc/osbuild-composer/repositories
@@ -103,13 +108,6 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/8/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
-        IMAGE_NAME="disk.img.xz"
-        sudo mkdir -p /var/lib/fdo
-        ;;
-    "rhel-8.7")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        PARENT_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8.7"
         IMAGE_NAME="disk.img.xz"
         sudo mkdir -p /var/lib/fdo
         ;;
@@ -147,13 +145,6 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
-        IMAGE_NAME="disk.img.xz"
-        sudo mkdir -p /var/lib/fdo
-        ;;
-    "rhel-9.1")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        PARENT_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9.1"
         IMAGE_NAME="disk.img.xz"
         sudo mkdir -p /var/lib/fdo
         ;;
@@ -215,6 +206,22 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="centos-stream9"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         IMAGE_NAME="image.raw.xz"
+        SYSROOT_RO="true"
+        ANSIBLE_USER=fdouser
+        FDO_USER_ONBOARDING="true"
+        USER_IN_BLUEPRINT="true"
+        BLUEPRINT_USER="simple"
+        NO_FDO="true"
+        ;;
+    "fedora-"*)
+        OSTREE_REF="fedora/${VERSION_ID}/${ARCH}/iot"
+        PARENT_REF="fedora/${VERSION_ID}/${ARCH}/iot"
+        OS_VARIANT="fedora-unknown"
+        IMAGE_NAME="image.raw.xz"
+        CONTAINER_TYPE="iot-container"
+        INSTALLER_TYPE="iot-simplified-installer"
+        REF_PREFIX="fedora-iot"
+        OS_NAME="fedora"
         SYSROOT_RO="true"
         ANSIBLE_USER=fdouser
         FDO_USER_ONBOARDING="true"
@@ -457,9 +464,6 @@ groups = []
 name = "python3"
 version = "*"
 
-[customizations.kernel]
-name = "kernel-rt"
-
 [[customizations.user]]
 name = "admin"
 description = "Administrator account"
@@ -468,6 +472,14 @@ key = "${SSH_KEY_PUB}"
 home = "/home/admin/"
 groups = ["wheel"]
 EOF
+
+# Fedora does not have kernel-rt
+if [[ "$ID" != "fedora" ]]; then
+    tee -a "$BLUEPRINT_FILE" >> /dev/null << EOF
+[customizations.kernel]
+name = "kernel-rt"
+EOF
+fi
 
 greenprint "📄 container blueprint"
 cat "$BLUEPRINT_FILE"
@@ -527,6 +539,14 @@ groups = []
 
 [customizations]
 installation_device = "/dev/vda"
+
+[[customizations.user]]
+name = "simple"
+description = "Administrator account"
+password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl."
+key = "${SSH_KEY_PUB}"
+home = "/home/simple/"
+groups = ["wheel"]
 EOF
 
     greenprint "📄 No FDO, No ignition blueprint"
@@ -588,7 +608,7 @@ EOF
     done
 
     # Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
-    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${NOFDO_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${BLUEPRINT_USER}@${NOFDO_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
     # Sleep 10 seconds here to make sure vm restarted already
     sleep 10
     for _ in $(seq 0 30); do
@@ -612,7 +632,7 @@ EOF
 ${NOFDO_GUEST_ADDRESS}
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=admin
+ansible_user=${BLUEPRINT_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 ansible_become=yes
@@ -621,7 +641,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
     # Test IoT/Edge OS
-    podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
+    podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
     check_result
 
     greenprint "🧹 Clean up VM"
@@ -763,7 +783,7 @@ for _ in $(seq 0 30); do
 done
 
 # Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${HTTP_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${BLUEPRINT_USER}@${HTTP_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
 for _ in $(seq 0 30); do
@@ -798,7 +818,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
+podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 
 # Check test result
 check_result
@@ -826,12 +846,27 @@ description = "A rhel-edge simplified-installer image"
 version = "0.0.1"
 modules = []
 groups = []
+
 [customizations]
 installation_device = "/dev/vda"
+
 [customizations.fdo]
 manufacturing_server_url="http://${FDO_SERVER_ADDRESS}:8080"
 diun_pub_key_hash="${DIUN_PUB_KEY_HASH}"
 EOF
+
+# Only RHEL 8.8, 9.2 and above support user in simplified installer bluepint
+if [[ "$USER_IN_BLUEPRINT" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[customizations.user]]
+name = "simple"
+description = "Administrator account"
+password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl."
+key = "${SSH_KEY_PUB}"
+home = "/home/simple/"
+groups = ["wheel"]
+EOF
+fi
 
 greenprint "📄 fdosshkey blueprint"
 cat "$BLUEPRINT_FILE"
@@ -897,7 +932,7 @@ for _ in $(seq 0 30); do
 done
 
 # Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${PUB_KEY_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${BLUEPRINT_USER}@${PUB_KEY_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
 for _ in $(seq 0 30); do
@@ -946,7 +981,7 @@ if [[ "$ANSIBLE_USER" == "fdouser" ]]; then
 fi
 
 # Test IoT/Edge OS
-podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
+podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 
 # Check test result
 check_result
@@ -980,9 +1015,6 @@ version = "*"
 name = "wget"
 version = "*"
 
-[customizations.kernel]
-name = "kernel-rt"
-
 [[customizations.user]]
 name = "admin"
 description = "Administrator account"
@@ -990,6 +1022,14 @@ password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHB
 home = "/home/admin/"
 groups = ["wheel"]
 EOF
+
+# Fedora does not have kernel-rt
+if [[ "$ID" != "fedora" ]]; then
+    tee -a "$BLUEPRINT_FILE" >> /dev/null << EOF
+[customizations.kernel]
+name = "kernel-rt"
+EOF
+fi
 
 greenprint "📄 rebase blueprint"
 cat "$BLUEPRINT_FILE"
@@ -1047,8 +1087,8 @@ sudo composer-cli blueprints delete rebase > /dev/null
 
 # Rebase to new REF.
 greenprint "🗳 Rebase to new ostree REF"
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${PUB_KEY_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S rpm-ostree rebase ${REF_PREFIX}:${OSTREE_REF}"
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${PUB_KEY_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" ${BLUEPRINT_USER}@${PUB_KEY_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S rpm-ostree rebase ${REF_PREFIX}:${OSTREE_REF}"
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" ${BLUEPRINT_USER}@${PUB_KEY_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
 
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
@@ -1085,7 +1125,7 @@ if [[ "$ANSIBLE_USER" == "fdouser" ]]; then
 fi
 
 # Test IoT/Edge OS
-podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${REBASE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
+podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${REBASE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 
 # Check test result
 check_result
@@ -1122,13 +1162,28 @@ description = "A rhel-edge simplified-installer image"
 version = "0.0.1"
 modules = []
 groups = []
+
 [customizations]
 installation_device = "/dev/vda"
+
 [customizations.fdo]
 manufacturing_server_url="http://${FDO_SERVER_ADDRESS}:8080"
 diun_pub_key_root_certs="""
 ${DIUN_PUB_KEY_ROOT_CERTS}"""
 EOF
+
+# Only RHEL 8.8, 9.2 and above support user in simplified installer bluepint
+if [[ "$USER_IN_BLUEPRINT" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
+[[customizations.user]]
+name = "simple"
+description = "Administrator account"
+password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl."
+key = "${SSH_KEY_PUB}"
+home = "/home/simple/"
+groups = ["wheel"]
+EOF
+fi
 
 greenprint "📄 fdosshkey blueprint"
 cat "$BLUEPRINT_FILE"
@@ -1194,7 +1249,7 @@ for _ in $(seq 0 30); do
 done
 
 # Reboot one more time to make /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${ROOT_CERT_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${BLUEPRINT_USER}@${ROOT_CERT_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
 for _ in $(seq 0 30); do
@@ -1218,7 +1273,7 @@ tee "${TEMPDIR}"/inventory > /dev/null << EOF
 ${ROOT_CERT_GUEST_ADDRESS}
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=admin
+ansible_user=${BLUEPRINT_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 ansible_become=yes
@@ -1227,7 +1282,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
+podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 
 # Check test result
 check_result
@@ -1258,9 +1313,6 @@ version = "*"
 name = "wget"
 version = "*"
 
-[customizations.kernel]
-name = "kernel-rt"
-
 [[customizations.user]]
 name = "admin"
 description = "Administrator account"
@@ -1268,6 +1320,14 @@ password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHB
 home = "/home/admin/"
 groups = ["wheel"]
 EOF
+
+# Fedora does not have kernel-rt
+if [[ "$ID" != "fedora" ]]; then
+    tee -a "$BLUEPRINT_FILE" >> /dev/null << EOF
+[customizations.kernel]
+name = "kernel-rt"
+EOF
+fi
 
 greenprint "📄 upgrade blueprint"
 cat "$BLUEPRINT_FILE"
@@ -1325,8 +1385,8 @@ sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete upgrade > /dev/null
 
 greenprint "🗳 Upgrade ostree image/commit"
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${ROOT_CERT_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${ROOT_CERT_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" ${BLUEPRINT_USER}@${ROOT_CERT_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" ${BLUEPRINT_USER}@${ROOT_CERT_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
 
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
@@ -1352,7 +1412,7 @@ ${ROOT_CERT_GUEST_ADDRESS}
 
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=admin
+ansible_user=${BLUEPRINT_USER}
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 ansible_become=yes
@@ -1361,7 +1421,7 @@ ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Test IoT/Edge OS
-podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=redhat -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
+podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 
 # Check test result
 check_result

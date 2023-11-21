@@ -213,6 +213,27 @@
       when:
         - "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
         - fdo_credential == "true"
+        - ansible_facts['distribution'] == 'RedHat'
+
+    # on fedora, it grows to 18.49G
+    - name: "pv size should bigger than 18G"
+      block:
+        - assert:
+            that:
+              - "'18' in result_pv_size.stdout"
+            fail_msg: "pv size is not bigger than 18G"
+            success_msg: "pv size is bigger than 18G"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when:
+        - "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
+        - fdo_credential == "true"
+        - ansible_facts['distribution'] == "Fedora"
 
     # raw image does not have coreos-installer to grow fs to 19G
     - name: "pv size should keep at 9G for raw image"
@@ -253,7 +274,28 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
+      when:
+        - "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
+        - ansible_facts['distribution'] == 'RedHat'
+
+    # lv size on fedora is 7.8G, https://github.com/osbuild/osbuild-composer/issues/3529
+    - name: "/sysroot lv size should be 7.8G on fedora"
+      block:
+        - assert:
+            that:
+              - "'7.8G' in result_sysroot_lv_size.stdout"
+            fail_msg: "lv size is not 7.8G"
+            success_msg: "lv size is 7.8G"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when:
+        - "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
+        - ansible_facts['distribution'] == "Fedora"
 
     # case: check /sysroot mount status
     - name: check /sysroot mount status
@@ -1108,6 +1150,7 @@
       when:
         - fdo_credential == "true"
         - ansible_facts['architecture'] == "x86_64"
+        - ansible_facts['distribution'] == 'RedHat'
 
     # Check re-encryption status on aarch64
     - name: wait for FDO re-encryption
@@ -1128,6 +1171,25 @@
       when:
         - fdo_credential == "true"
         - ansible_facts['architecture'] == "aarch64"
+
+    # Check re-encryption status on fedora
+    - name: wait for FDO re-encryption
+      block:
+        - shell: cryptsetup luksDump /dev/vda3
+          register: result
+          until: not result.stdout_lines is search("cipher_null-ecb")
+          retries: 30
+          delay: 60
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when:
+        - fdo_credential == "true"
+        - ansible_facts['distribution'] == "Fedora"
 
     # Check FDO status and task status
     - name: check fdo-client-linuxapp logs
