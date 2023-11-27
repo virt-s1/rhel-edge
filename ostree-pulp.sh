@@ -140,7 +140,7 @@ build_image() {
 
     # Did the compose finish with success?
     if [[ $COMPOSE_STATUS != FINISHED ]]; then
-        redprint "Something went wrong with the compose. 😢"
+        echo "Something went wrong with the compose. 😢"
         exit 1
     fi
 }
@@ -437,6 +437,119 @@ sudo podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z 
     -e os_name="${OS_NAME}" \
     -e ostree_ref="${OS_NAME}:${OSTREE_REF}" \
     -e ostree_commit="${INSTALL_HASH}" \
+    -e sysroot_ro="true" \
+    check-ostree.yaml || RESULTS=0 
+check_result
+
+##################################################
+##
+## ostree commit upload to pulp upgrade
+##
+##################################################
+
+# Write a blueprint for ostree image.
+tee "$BLUEPRINT_FILE" > /dev/null << EOF
+name = "upgrade"
+description = "An upgrade ostree image"
+version = "0.0.2"
+modules = []
+groups = []
+
+[[packages]]
+name = "python3"
+version = "*"
+
+[[packages]]
+name = "sssd"
+version = "*"
+
+[[packages]]
+name = "wget"
+version = "*"
+
+[[customizations.user]]
+name = "admin"
+description = "Administrator account"
+password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl."
+key = "${SSH_KEY_PUB}"
+home = "/home/admin/"
+groups = ["wheel"]
+EOF
+
+greenprint "📄 upgrade blueprint"
+cat "$BLUEPRINT_FILE"
+
+# Prepare the blueprint for the compose.
+greenprint "📋 Preparing blueprint"
+sudo composer-cli blueprints push "$BLUEPRINT_FILE"
+sudo composer-cli blueprints depsolve upgrade
+
+greenprint "🕹 Get ostree installed commit value"
+PARENT_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
+
+# Build upgrade image.
+build_image upgrade "$IMAGE_TYPE" test "$PULP_CONFIG_FILE" "$PROD_REPO_URL" "$PARENT_HASH"
+
+# Clean compose and blueprints.
+greenprint "Clean up osbuild-composer again"
+sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
+sudo composer-cli blueprints delete upgrade > /dev/null
+
+# Pull content from pulp to local repo
+greenprint "Pull upgrade commit from pulp to local repo"
+sudo ostree --repo="$PROD_REPO" pull --mirror edge-pulp "$OSTREE_REF"
+sudo ostree --repo="$PROD_REPO" static-delta generate "$OSTREE_REF"
+sudo ostree --repo="$PROD_REPO" summary -u
+
+# Ensure SELinux is happy with all objects files.
+greenprint "👿 Running restorecon on web server root folder"
+sudo restorecon -Rv "${PROD_REPO}" > /dev/null
+
+# Get ostree commit value.
+greenprint "🕹 Get ostree upgrade commit value"
+UPGRADE_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
+
+# Upgrade image/commit.
+greenprint "Upgrade ostree image/commit"
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${GUEST_ADDRESS}" 'sudo rpm-ostree upgrade || { sudo rpm-ostree status; sudo journalctl -b -r -u rpm-ostreed; exit 1; }'
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
+# Sleep 10 seconds here to make sure vm restarted already
+sleep 10
+
+# Check for ssh ready to go.
+greenprint "🛃 Checking for SSH is ready to go"
+for _ in $(seq 0 30); do
+    RESULTS="$(wait_for_ssh_up $GUEST_ADDRESS)"
+    if [[ $RESULTS == 1 ]]; then
+        echo "SSH is ready now! 🥳"
+        break
+    fi
+    sleep 10
+done
+
+# Check ostree upgrade result
+check_result
+
+# Add instance IP address into /etc/ansible/hosts
+tee "${TEMPDIR}"/inventory > /dev/null << EOF
+[ostree_guest]
+${GUEST_ADDRESS}
+
+[ostree_guest:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_user=admin
+ansible_private_key_file=${SSH_KEY}
+ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+ansible_become=yes
+ansible_become_method=sudo
+ansible_become_pass=${EDGE_USER_PASSWORD}
+EOF
+
+# Test IoT/Edge OS
+sudo podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory \
+    -e os_name="${OS_NAME}" \
+    -e ostree_ref="${OS_NAME}:${OSTREE_REF}" \
+    -e ostree_commit="${UPGRADE_HASH}" \
     -e sysroot_ro="true" \
     check-ostree.yaml || RESULTS=0 
 check_result
