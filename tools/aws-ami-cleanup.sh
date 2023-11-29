@@ -4,7 +4,7 @@
 # This error appears due to the single quotes in "--query" option of
 # awscli commands
 # shellcheck disable=SC2016
-set -euo pipefail
+set -euox pipefail
 
 # Set up variables.
 # Maximum idle timeout in hours
@@ -58,8 +58,6 @@ if [[ -z $(cat "${INSTANCES_LIST}") ]]; then
     echo "No idle instances to remove"
 else
     mapfile -t INSTANCE_ARRAY < "${INSTANCES_LIST}"
-    rm "${INSTANCES_LIST}"
-
     for line in "${INSTANCE_ARRAY[@]}"; do
         CREATION_DATE=$(
             aws ec2 describe-instances \
@@ -77,6 +75,7 @@ else
         fi
     done
 fi
+rm "${INSTANCES_LIST}"
 
 # List Upstream and Downstream Buckets
 greenprint "Checking AWS S3 Idle Buckets 🪣"
@@ -130,7 +129,7 @@ for line in "${IMAGES_ARRAY[@]}"; do
     IMAGE_AGE=$(time_subtraction "${CREATION_DATE}")
     if [[ "${IMAGE_AGE}" == 1 ]]; then
        echo "De-registering image ${CREATION_DATE} ${IMAGE_ID}"
-       aws ec2 deregister-image --image-id "${IMAGE_ID}"
+       aws ec2 deregister-image --image-id "${IMAGE_ID}" || :
     fi
 done
 
@@ -157,7 +156,7 @@ for line in "${SNAPSHOTID_ARRAY[@]}"; do
     SNAPSHOT_AGE=$(time_subtraction "${CREATION_DATE}")
     if [[ ${SNAPSHOT_AGE} == 1 ]]; then
        echo "Removing snapshot ${CREATION_DATE} ${SNAPSHOT_ID}"
-       aws ec2 delete-snapshot --snapshot-id "${SNAPSHOT_ID}"
+       aws ec2 delete-snapshot --snapshot-id "${SNAPSHOT_ID}" || :
     fi
 done
 
@@ -182,9 +181,8 @@ for line in "${KEYPAIR_ARRAY[@]}"; do
     KEYPAIR_AGE=$(time_subtraction "${CREATION_DATE}")
     if [[ ${KEYPAIR_AGE} == 1 ]]; then
        echo "Removing keypair ${CREATION_DATE} ${KEYPAIR_NAME}"
-       aws ec2 delete-key-pair --key-name "${KEYPAIR_NAME}"
+       aws ec2 delete-key-pair --key-name "${KEYPAIR_NAME}" || :
     fi
 done
 
 exit 0
-
