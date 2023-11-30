@@ -79,13 +79,6 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_NAME="disk.img.xz"
         sudo mkdir -p /var/lib/fdo
         ;;
-    "rhel-8.7")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        PARENT_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8.7"
-        IMAGE_NAME="disk.img.xz"
-        sudo mkdir -p /var/lib/fdo
-        ;;
     "rhel-8.8")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
@@ -117,13 +110,6 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
-        IMAGE_NAME="disk.img.xz"
-        sudo mkdir -p /var/lib/fdo
-        ;;
-    "rhel-9.1")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        PARENT_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9.1"
         IMAGE_NAME="disk.img.xz"
         sudo mkdir -p /var/lib/fdo
         ;;

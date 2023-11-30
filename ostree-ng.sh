@@ -69,13 +69,6 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel8-unknown"
         DIRS_FILES_CUSTOMIZATION="false"
         ;;
-    "rhel-8.7")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8.7"
-        CONTAINER_PUSHING_FEAT="true"
-        EMBEDDED_CONTAINER="true"
-        DIRS_FILES_CUSTOMIZATION="false"
-        ;;
     "rhel-8.8")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
@@ -103,14 +96,6 @@ case "${ID}-${VERSION_ID}" in
     "rhel-9.0")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
-        DIRS_FILES_CUSTOMIZATION="false"
-        ;;
-    "rhel-9.1")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9.1"
-        NEW_MKKSISO="true"
-        CONTAINER_PUSHING_FEAT="true"
-        EMBEDDED_CONTAINER="true"
         DIRS_FILES_CUSTOMIZATION="false"
         ;;
     "rhel-9.2")
@@ -159,15 +144,6 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_PUSHING_FEAT="true"
         EMBEDDED_CONTAINER="true"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
-        SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        ;;
-    "fedora-37")
-        CONTAINER_IMAGE_TYPE=fedora-iot-container
-        INSTALLER_IMAGE_TYPE=fedora-iot-installer
-        OSTREE_REF="fedora/37/${ARCH}/iot"
-        OS_VARIANT="fedora37"
-        ANSIBLE_OS_NAME="fedora"
         SYSROOT_RO="true"
         DIRS_FILES_CUSTOMIZATION="true"
         ;;

@@ -137,17 +137,6 @@ case "$TEST_OS" in
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         SYSROOT_RO="true"
         ;;
-    "fedora-37")
-        IMAGE_TYPE="iot-commit"
-        cp tools/user-data "$CLOUD_INIT_DIR"
-        OS_VARIANT="fedora-unknown"
-        OSTREE_REF="fedora/37/${ARCH}/iot"
-        OSTREE_REBASE_REF="fedora/xx/${ARCH}/iot"
-        GUEST_IMAGE_URL="dl.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/aarch64/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-37-.*.qcow2<" | tr -d '><')
-        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/releases/37/Everything/aarch64/os/"
-        SYSROOT_RO="true"
-        ;;
     "fedora-38")
         IMAGE_TYPE="iot-commit"
         cp tools/user-data "$CLOUD_INIT_DIR"

@@ -59,13 +59,6 @@ case "${ID}-${VERSION_ID}" in
         ADD_SSSD="false"
         USER_IN_RAW="false"
         ;;
-    "rhel-8.7")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        PARENT_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8.7"
-        ADD_SSSD="true"
-        USER_IN_RAW="false"
-        ;;
     "rhel-8.8")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
@@ -95,13 +88,6 @@ case "${ID}-${VERSION_ID}" in
         PARENT_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9.0"
         ADD_SSSD="false"
-        USER_IN_RAW="false"
-        ;;
-    "rhel-9.1")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        PARENT_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9.1"
-        ADD_SSSD="true"
         USER_IN_RAW="false"
         ;;
     "rhel-9.2")
@@ -145,17 +131,6 @@ case "${ID}-${VERSION_ID}" in
         ADD_SSSD="true"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         USER_IN_RAW="true"
-        SYSROOT_RO="true"
-        ;;
-    "fedora-37")
-        CONTAINER_TYPE=fedora-iot-container
-        RAW_TYPE=iot-raw-image
-        OSTREE_REF="fedora/37/${ARCH}/iot"
-        OS_VARIANT="fedora37"
-        ADD_SSSD="false"
-        ANSIBLE_OS_NAME="fedora-iot"
-        USER_IN_RAW="true"
-        REF_PREFIX="fedora-iot"
         SYSROOT_RO="true"
         ;;
     "fedora-38")

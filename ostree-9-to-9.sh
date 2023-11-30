@@ -38,14 +38,6 @@ CONTAINER_FILENAME=container.tar
 SYSROOT_RO="false"
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-9.1")
-        OS_VARIANT="rhel9.1"
-        PARENT_REF="rhel/9/${ARCH}/edge"
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        OSTREE_REBASE_REF="rhel/91/${ARCH}/edge"
-        DISTRO="rhel-90"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/rel-eng/updates/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
-        ;;
     "rhel-9.2")
         OS_VARIANT="rhel9-unknown"
         PARENT_REF="rhel/9/${ARCH}/edge"

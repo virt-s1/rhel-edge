@@ -45,16 +45,6 @@ case "${ID}-${VERSION_ID}" in
         ADD_SSSD="false"
         DIRS_FILES_CUSTOMIZATION="false"
         ;;
-    "rhel-8.7")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        USER_IN_COMMIT="true"
-        OS_VARIANT="rhel8.7"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.7.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=9
-        ADD_SSSD="true"
-        EMBEDDED_CONTAINER="true"
-        DIRS_FILES_CUSTOMIZATION="false"
-        ;;
     "rhel-8.8")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         USER_IN_COMMIT="true"
@@ -95,16 +85,6 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/rel-eng/updates/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=9
         ADD_SSSD="false"
-        DIRS_FILES_CUSTOMIZATION="false"
-        ;;
-    "rhel-9.1")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        USER_IN_COMMIT="true"
-        OS_VARIANT="rhel9.1"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=9
-        ADD_SSSD="true"
-        EMBEDDED_CONTAINER="true"
         DIRS_FILES_CUSTOMIZATION="false"
         ;;
     "rhel-9.2")
@@ -162,17 +142,6 @@ case "${ID}-${VERSION_ID}" in
         EMBEDDED_CONTAINER="true"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         FIREWALL_FEATURE="true"
-        SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        ;;
-    "fedora-37")
-        IMAGE_TYPE=fedora-iot-commit
-        USER_IN_COMMIT="false"
-        OSTREE_REF="fedora/37/${ARCH}/iot"
-        OS_VARIANT="fedora37"
-        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/releases/37/Everything/x86_64/os/"
-        CUT_DIRS=8
-        ADD_SSSD="false"
         SYSROOT_RO="true"
         DIRS_FILES_CUSTOMIZATION="true"
         ;;
