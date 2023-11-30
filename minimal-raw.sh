@@ -47,9 +47,6 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="centos-stream9"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
-    "fedora-37")
-        OS_VARIANT="fedora37"
-        ;;
     "fedora-38")
         OS_VARIANT="fedora-unknown"
         ;;

@@ -106,18 +106,6 @@ cp tools/meta-data "$CLOUD_INIT_DIR"
 
 # Set useful things according to different distros.
 case "$TEST_OS" in
-    "rhel-8-7")
-        sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-7-0.json
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g; s/REPLACE_ARCH_HERE/${ARCH}/g" tools/user-data.arch.87 | sudo tee "${CLOUD_INIT_DIR}/user-data"
-        OS_VARIANT="rhel8-unknown"
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        GUEST_IMAGE_URL="http://${DOWNLOAD_NODE}/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.7.0/compose/BaseOS/${ARCH}/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">rhel-guest-image-8.7-.*.qcow2<" | tr -d '><')
-        ANSIBLE_OS_NAME="redhat"
-        REF_PREFIX="rhel-edge"
-        USER_IN_RAW="false"
-        SYSROOT_RO="false"
-        ;;
     "rhel-8-8")
         sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-8-0.json
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g; s/REPLACE_ARCH_HERE/${ARCH}/g" tools/user-data.arch.88 | sudo tee "${CLOUD_INIT_DIR}/user-data"
@@ -128,18 +116,6 @@ case "$TEST_OS" in
         ANSIBLE_OS_NAME="redhat"
         REF_PREFIX="rhel-edge"
         USER_IN_RAW="true"
-        SYSROOT_RO="false"
-        ;;
-    "rhel-9-1")
-        sed -i "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-1-0.json
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g; s/REPLACE_ARCH_HERE/${ARCH}/g" tools/user-data.arch.91 | sudo tee "${CLOUD_INIT_DIR}/user-data"
-        OS_VARIANT="rhel9-unknown"
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        GUEST_IMAGE_URL="http://${DOWNLOAD_NODE}/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.1.0/compose/BaseOS/${ARCH}/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">rhel-guest-image-9.1-.*.qcow2<" | tr -d '><')
-        ANSIBLE_OS_NAME="redhat"
-        REF_PREFIX="rhel-edge"
-        USER_IN_RAW="false"
         SYSROOT_RO="false"
         ;;
     "rhel-9-2")
@@ -174,19 +150,6 @@ case "$TEST_OS" in
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ANSIBLE_OS_NAME="redhat"
         REF_PREFIX="rhel-edge"
-        USER_IN_RAW="true"
-        SYSROOT_RO="true"
-        ;;
-    "fedora-37")
-        OS_VARIANT="fedora-unknown"
-        cp tools/user-data "$CLOUD_INIT_DIR"
-        OSTREE_REF="fedora/37/${ARCH}/iot"
-        CONTAINER_IMAGE_TYPE=iot-container
-        RAW_IMAGE_TYPE=iot-raw-image
-        GUEST_IMAGE_URL="https://download-cc-rdu01.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/${ARCH}/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-37-.*.qcow2<" | tr -d '><')
-        ANSIBLE_OS_NAME="fedora-iot"
-        REF_PREFIX="fedora-iot"
         USER_IN_RAW="true"
         SYSROOT_RO="true"
         ;;

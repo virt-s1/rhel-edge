@@ -217,20 +217,6 @@ case "$TEST_OS" in
         ANSIBLE_OS_NAME="rhel"
         SYSROOT_RO="true"
         ;;
-    "fedora-37")
-        OS_VARIANT="fedora-unknown"
-        cp tools/user-data "$CLOUD_INIT_DIR"
-        OSTREE_REF="fedora/37/${ARCH}/iot"
-        CONTAINER_IMAGE_TYPE=iot-container
-        INSTALLER_IMAGE_TYPE=iot-installer
-        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/releases/37/Cloud/aarch64/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-37-.*.qcow2<" | tr -d '><')
-        EMBEDDED_CONTAINER="false"
-        CONTAINER_PUSHING_FEAT="false"
-        QUAY_REPO=""
-        ANSIBLE_OS_NAME="fedora"
-        SYSROOT_RO="true"
-        ;;
     "fedora-38")
         OS_VARIANT="fedora-unknown"
         cp tools/user-data "$CLOUD_INIT_DIR"
