@@ -1040,7 +1040,12 @@ sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve rebase
 
 # Build upgrade image.
-OSTREE_REF="test/redhat/x/${ARCH}/edge"
+if [[ "$ID" == fedora ]]; then
+    OSTREE_REF="test/fedora/x/${ARCH}/iot"
+else
+    OSTREE_REF="test/redhat/x/${ARCH}/edge"
+fi
+
 build_image rebase  "${CONTAINER_TYPE}" "$PROD_REPO_URL" "$PARENT_REF"
 
 # Download the image
@@ -1087,6 +1092,10 @@ sudo composer-cli blueprints delete rebase > /dev/null
 
 # Rebase to new REF.
 greenprint "🗳 Rebase to new ostree REF"
+if [[ "$ID" == fedora ]]; then
+    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" ${BLUEPRINT_USER}@${PUB_KEY_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S ostree remote delete ${REF_PREFIX}"
+    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" ${BLUEPRINT_USER}@${PUB_KEY_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S ostree remote add --no-gpg-verify ${REF_PREFIX} ${PROD_REPO_URL}"
+fi
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" ${BLUEPRINT_USER}@${PUB_KEY_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S rpm-ostree rebase ${REF_PREFIX}:${OSTREE_REF}"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" ${BLUEPRINT_USER}@${PUB_KEY_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
 
@@ -1385,6 +1394,11 @@ sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete upgrade > /dev/null
 
 greenprint "🗳 Upgrade ostree image/commit"
+# Update default Fedora's repository
+if [[ "$ID" == fedora ]]; then
+    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" ${BLUEPRINT_USER}@${ROOT_CERT_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S ostree remote delete ${REF_PREFIX}"
+    sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" ${BLUEPRINT_USER}@${ROOT_CERT_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S ostree remote add --no-gpg-verify ${REF_PREFIX} ${PROD_REPO_URL}"
+fi
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" ${BLUEPRINT_USER}@${ROOT_CERT_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" ${BLUEPRINT_USER}@${ROOT_CERT_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
 
