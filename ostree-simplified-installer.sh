@@ -14,8 +14,7 @@ sudo dnf install -y \
     fdo-rendezvous-server \
     fdo-owner-onboarding-server \
     fdo-owner-cli \
-    fdo-manufacturing-server \
-    python3-pip
+    fdo-manufacturing-server
 
 # Generate key and cert used by FDO
 sudo mkdir -p /etc/fdo/keys
@@ -36,13 +35,14 @@ sudo cp files/fdo/rendezvous-server.yml /etc/fdo/rendezvous-server.conf.d/
 sudo cp files/fdo/serviceinfo-api-server.yml /etc/fdo/serviceinfo-api-server.conf.d/
 
 # Install yq to modify service api server config yaml file
-sudo pip3 install yq
+sudo wget -q https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/local/bin/yq && sudo chmod +x /usr/local/bin/yq
+
 # Prepare service api server config file
-sudo /usr/local/bin/yq -iy '.service_info.diskencryption_clevis |= [{disk_label: "/dev/vda4", reencrypt: true, binding: {pin: "tpm2", config: "{}"}}]' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
 # Fedora iot-simplified-installer uses /dev/vda3, https://github.com/osbuild/osbuild-composer/issues/3527
 if [[ "${ID}" == "fedora" ]]; then
-    echo "Change vda4 to vda3 for fedora in serviceinfo config file"
-    sudo sed -i 's/vda4/vda3/' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
+    sudo /usr/local/bin/yq -i 'with(.service_info.diskencryption_clevis[]; .disk_label="/dev/vda3")' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
+else
+    sudo /usr/local/bin/yq -i 'with(.service_info.diskencryption_clevis[]; .disk_label="/dev/vda4")' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
 fi
 # Start FDO services
 sudo systemctl start \
@@ -236,13 +236,13 @@ esac
 
 if [[ "$FDO_USER_ONBOARDING" == "true" ]]; then
     # FDO user does not have password, use ssh key and no sudo password instead
-    sudo /usr/local/bin/yq -iy '.service_info.initial_user |= {username: "fdouser", sshkeys: ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"]}' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
+    sudo /usr/local/bin/yq -i 'with(.service_info; .initial_user={"username": "fdouser", "sshkeys": ["ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCzxo5dEcS+LDK/OFAfHo6740EyoDM8aYaCkBala0FnWfMMTOq7PQe04ahB0eFLS3IlQtK5bpgzxBdFGVqF6uT5z4hhaPjQec0G3+BD5Pxo6V+SxShKZo+ZNGU3HVrF9p2V7QH0YFQj5B8F6AicA3fYh2BVUFECTPuMpy5A52ufWu0r4xOFmbU7SIhRQRAQz2u4yjXqBsrpYptAvyzzoN4gjUhNnwOHSPsvFpWoBFkWmqn0ytgHg3Vv9DlHW+45P02QH1UFedXR2MqLnwRI30qqtaOkVS+9rE/dhnR+XPpHHG+hv2TgMDAuQ3IK7Ab5m/yCbN73cxFifH4LST0vVG3Jx45xn+GTeHHhfkAfBSCtya6191jixbqyovpRunCBKexI5cfRPtWOitM3m7Mq26r7LpobMM+oOLUm4p0KKNIthWcmK9tYwXWSuGGfUQ+Y8gt7E0G06ZGbCPHOrxJ8lYQqXsif04piONPA/c9Hq43O99KPNGShONCS9oPFdOLRT3U= ostree-image-test"]})' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
     # No sudo password required by ansible
     # Change to /etc/fdo folder to workaround issue https://bugzilla.redhat.com/show_bug.cgi?id=2026795#c24
     sudo tee /var/lib/fdo/fdouser > /dev/null << EOF
 fdouser ALL=(ALL) NOPASSWD: ALL
 EOF
-    sudo /usr/local/bin/yq -iy '.service_info.files |= [{path: "/etc/sudoers.d/fdouser", source_path: "/var/lib/fdo/fdouser"}]' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
+    sudo /usr/local/bin/yq -i 'with(.service_info; .files=[{"path": "/etc/sudoers.d/fdouser", "source_path": "/var/lib/fdo/fdouser"}])' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
 
     # Restart fdo-serviceinfo-api-server.service
     sudo systemctl restart fdo-serviceinfo-api-server.service
