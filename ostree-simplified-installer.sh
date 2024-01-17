@@ -36,6 +36,11 @@ sudo cp files/fdo/rendezvous-server.yml /etc/fdo/rendezvous-server.conf.d/
 sudo cp files/fdo/serviceinfo-api-server.yml /etc/fdo/serviceinfo-api-server.conf.d/
 
 # Install yq to modify service api server config yaml file
+# Workaround - https://issues.redhat.com/browse/RHEL-21528
+if [[ "${ID}-${VERSION_ID}" == "rhel-8.8" ]] || [[ "${ID}-${VERSION_ID}" == "rhel-8.6" ]]; then
+    sudo yum update -y platform-python
+fi
+# end workaround
 sudo pip3 install yq
 # Prepare service api server config file
 sudo /usr/local/bin/yq -iy '.service_info.diskencryption_clevis |= [{disk_label: "/dev/vda4", reencrypt: true, binding: {pin: "tpm2", config: "{}"}}]' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
