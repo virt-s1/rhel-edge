@@ -187,6 +187,13 @@ check_result () {
 ##
 ############################################################
 
+if [[ "$ID" == "fedora" ]] && [[ "$VERSION_ID" != "38" ]] && [[ "$ARCH" == "aarch64" ]]; then
+    # For Fedora 39 and 40 ARM to expand disk in guest - growpart and resize2fs.
+    extra_package=$'[[packages]]\nname = \"cloud-utils\"\nversion = \"*\"'
+else
+    extra_package=""
+fi
+
 # Write a blueprint for minimal-raw image image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "minimal-raw"
@@ -208,6 +215,8 @@ version = "*"
 [[packages]]
 name = "wget"
 version = "*"
+
+$extra_package
 
 [[customizations.user]]
 name = "admin"
@@ -237,6 +246,10 @@ MINIMAL_RAW_FILENAME="${COMPOSE_ID}-${MINIMAL_RAW_FILENAME}"
 
 sudo xz -d "${MINIMAL_RAW_FILENAME}"
 sudo qemu-img convert -f raw "${COMPOSE_ID}-${MINIMAL_RAW_DECOMPRESSED}" -O qcow2 "$LIBVIRT_IMAGE_PATH_UEFI"
+if [[ "$ID" == "fedora" ]] && [[ "$VERSION_ID" != "38" ]] && [[ "$ARCH" == "aarch64" ]]; then
+    # Fedora 39 and 40 ARM require bigger disk space.
+    sudo qemu-img resize "$LIBVIRT_IMAGE_PATH_UEFI" 8G
+fi
 sudo rm -f "${COMPOSE_ID}-${MINIMAL_RAW_DECOMPRESSED}"
 
 # Remove raw file

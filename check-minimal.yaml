@@ -13,6 +13,17 @@
     - debug: var=ansible_facts['distribution']
     - debug: var=ansible_facts['architecture']
 
+    # Expand disk for Fedora 39+
+    - name: expand disk
+      when: (ansible_facts['distribution'] == 'Fedora') and (ansible_facts ['distribution_version'] is version('38', '>')) and (ansible_facts['architecture'] == "aarch64")
+      block:
+        - name: expand partition
+          command: growpart /dev/vda 3
+          ignore_errors: yes
+        - name: expand filesystem
+          command: resize2fs /dev/vda3
+          ignore_errors: yes
+
     # check BIOS or UEFI
     - name: check bios or uefi
       stat:
