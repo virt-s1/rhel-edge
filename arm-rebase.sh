@@ -137,26 +137,26 @@ case "$TEST_OS" in
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         SYSROOT_RO="true"
         ;;
-    "fedora-38")
-        IMAGE_TYPE="iot-commit"
-        cp tools/user-data "$CLOUD_INIT_DIR"
-        OS_VARIANT="fedora-unknown"
-        OSTREE_REF="fedora/38/${ARCH}/iot"
-        OSTREE_REBASE_REF="fedora/xx/${ARCH}/iot"
-        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/releases/38/Cloud/aarch64/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-38-.*.qcow2<" | tr -d '><')
-        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/releases/38/Everything/aarch64/os/"
-        SYSROOT_RO="true"
-        ;;
     "fedora-39")
         IMAGE_TYPE="iot-commit"
         cp tools/user-data "$CLOUD_INIT_DIR"
         OS_VARIANT="fedora-unknown"
         OSTREE_REF="fedora/39/${ARCH}/iot"
         OSTREE_REBASE_REF="fedora/xx/${ARCH}/iot"
-        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/aarch64/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Rawhide-.*.qcow2<" | tr -d '><')
-        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/aarch64/os/"
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/releases/39/Cloud/aarch64/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-39-.*.qcow2<" | tr -d '><')
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/releases/39/Everything/aarch64/os/"
+        SYSROOT_RO="true"
+        ;;
+    "fedora-40")
+        IMAGE_TYPE="iot-commit"
+        cp tools/user-data "$CLOUD_INIT_DIR"
+        OS_VARIANT="fedora-unknown"
+        OSTREE_REF="fedora/40/${ARCH}/iot"
+        OSTREE_REBASE_REF="fedora/xx/${ARCH}/iot"
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/40/Cloud/aarch64/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-40-.*.qcow2<" | tr -d '><')
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/development/40/Everything/aarch64/os/"
         SYSROOT_RO="true"
         ;;
     *)

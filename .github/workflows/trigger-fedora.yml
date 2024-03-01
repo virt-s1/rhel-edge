@@ -9,74 +9,152 @@ on:
 
 env:
   COMPOSE_URL_rawhide: https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide
+  COMPOSE_URL_F40: https://dl.fedoraproject.org/pub/fedora/linux/development/40
+  UPDATES_URL_F40: https://dl.fedoraproject.org/pub/fedora/linux/development/40
   COMPOSE_URL_F39: https://dl.fedoraproject.org/pub/fedora/linux/releases/39
-  UPDATES_URL_F39: https://dl.fedoraproject.org/pub/fedora/linux/releases/39
-  COMPOSE_URL_F38: https://dl.fedoraproject.org/pub/fedora/linux/releases/38
-  UPDATES_URL_F38: https://dl.fedoraproject.org/pub/fedora/linux/updates/38
+  UPDATES_URL_F39: https://dl.fedoraproject.org/pub/fedora/linux/updates/39
 
 jobs:
-  check-compose:
-    # Do not run this job on any fork repos
-    if: github.repository == 'virt-s1/rhel-edge'
+#Disable Fedora Rawhide F41 jobs until osbuild-composer supports it
+#   check-compose:
+#     # Do not run this job on any fork repos
+#     if: github.repository == 'virt-s1/rhel-edge'
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v3
+#
+#       - name: Check if fedora rawhide compose is new
+#         id: check_compose_id
+#         run: |
+#           curl -s "${COMPOSE_URL_rawhide}/COMPOSE_ID" --output COMPOSE_ID
+#           COMPOSE_ID=$(cat COMPOSE_ID)
+#           TESTED_COMPOSE=( $( cat compose/compose.fedora ) )
+#           if [[ " ${TESTED_COMPOSE[*]} " =~ "$COMPOSE_ID" ]]; then
+#               COMPOSE_ID="false"
+#           fi
+#
+#           if [[ "$COMPOSE_ID" != "false" ]]; then
+#               gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST
+#               PR_LIST=$(cat PR_LIST)
+#               if [[ $PR_LIST == *"$COMPOSE_ID"* ]]; then
+#                   echo "pr_running=true" >> $GITHUB_OUTPUT
+#               else
+#                   echo "pr_running=false" >> $GITHUB_OUTPUT
+#               fi
+#
+#               OSBUILD_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+#               OSBUILD_COMPOSER_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+#               COMPOSER_CLI_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+#               echo "osbuild_version=$OSBUILD_VERSION" >> $GITHUB_OUTPUT
+#               echo "osbuild_composer_version=$OSBUILD_COMPOSER_VERSION" >> $GITHUB_OUTPUT
+#               echo "composer_cli_version=$COMPOSER_CLI_VERSION" >> $GITHUB_OUTPUT
+#
+#           else
+#               echo "osbuild_version=Null" >> $GITHUB_OUTPUT
+#               echo "osbuild_composer_version=Null" >> $GITHUB_OUTPUT
+#               echo "composer_cli_version=Null" >> $GITHUB_OUTPUT
+#           fi
+#
+#           echo "rawhide_compose=$COMPOSE_ID" >> $GITHUB_OUTPUT
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#
+#     outputs:
+#       rawhide_compose: ${{ steps.check_compose_id.outputs.rawhide_compose }}
+#       osbuild_version: ${{ steps.check_compose_id.outputs.osbuild_version }}
+#       osbuild_composer_version: ${{ steps.check_compose_id.outputs.osbuild_composer_version }}
+#       composer_cli_version: ${{ steps.check_compose_id.outputs.composer_cli_version }}
+#       pr_running: ${{ steps.check_compose_id.outputs.pr_running }}
+#
+#   fedora-rawhide:
+#     needs: check-compose
+#     if: ${{ needs.check-compose.outputs.rawhide_compose != 'false' && needs.check-compose.outputs.pr_running == 'false' }}
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v3
+#
+#       - name: Add new compose id in compose.fedora
+#         run: |
+#           compose_id="${{ needs.check-compose.outputs.rawhide_compose }}"
+#           echo $compose_id >> compose/compose.fedora
+#           cat compose/compose.fedora
+#
+#       - name: Get current date
+#         id: date
+#         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+#
+#       - name: Create Pull Request
+#         id: cpr
+#         uses: peter-evans/create-pull-request@v4
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#           commit-message: "${{ needs.check-compose.outputs.rawhide_compose }} - ${{ steps.date.outputs.date }}"
+#           committer: cloudkitebot <henrywangxf1@gmail.com>
+#           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+#           branch: cpr
+#           branch-suffix: random
+#           delete-branch: true
+#           title: "${{ needs.check-compose.outputs.rawhide_compose }} - ${{ steps.date.outputs.date }}"
+#           labels: auto-merge,fedora-rawhide
+#           body: |
+#             Fedora rawhide compose ${{ needs.check-compose.outputs.rawhide_compose }}
+#             - Date: ${{ steps.date.outputs.date }}
+#             - Compose URL: ${{ env.COMPOSE_URL_rawhide }}
+#             - Packages:
+#                 - ${{ needs.check-compose.outputs.osbuild_version }}
+#                 - ${{ needs.check-compose.outputs.osbuild_composer_version }}
+#                 - ${{ needs.check-compose.outputs.composer_cli_version }}
+#
+#       - name: Enable Pull Request Automerge
+#         if: steps.cpr.outputs.pull-request-operation == 'created'
+#         uses: peter-evans/enable-pull-request-automerge@v2
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#           pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+#           merge-method: rebase
+#
+#       - name: Add a comment to trigger test workflow
+#         uses: peter-evans/create-or-update-comment@v2
+#         with:
+#           token: ${{ secrets.PAT }}
+#           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+#           body: /test-rawhide
+#
+#       - name: Create a project card to track compose test result
+#         uses: peter-evans/create-or-update-project-card@v2
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#           project-name: Fedora Compose Test
+#           column-name: Fedora-rawhide
+#           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+
+  fedora-40:
+    # Do not need check-compose and make "workflow_dispatch" work for this job
+    if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule != '0 4 * * *'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - name: Check if fedora rawhide compose is new
-        id: check_compose_id
+      - name: Get package version
+        id: package_version
         run: |
-          curl -s "${COMPOSE_URL_rawhide}/COMPOSE_ID" --output COMPOSE_ID
-          COMPOSE_ID=$(cat COMPOSE_ID)
-          TESTED_COMPOSE=( $( cat compose/compose.fedora ) )
-          if [[ " ${TESTED_COMPOSE[*]} " =~ "$COMPOSE_ID" ]]; then
-              COMPOSE_ID="false"
-          fi
+          curl -s "${COMPOSE_URL_F40}/COMPOSE_ID" --output COMPOSE_ID_F40
+          COMPOSE_ID_F40=$(cat COMPOSE_ID_F40)
 
-          if [[ "$COMPOSE_ID" != "false" ]]; then
-              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST
-              PR_LIST=$(cat PR_LIST)
-              if [[ $PR_LIST == *"$COMPOSE_ID"* ]]; then
-                  echo "pr_running=true" >> $GITHUB_OUTPUT
-              else
-                  echo "pr_running=false" >> $GITHUB_OUTPUT
-              fi
+          OSBUILD_VERSION_F40=$(curl -s "${UPDATES_URL_F40}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+          OSBUILD_COMPOSER_VERSION_F40=$(curl -s "${UPDATES_URL_F40}/Everything/os/x86_64/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+          COMPOSER_CLI_VERSION_F40=$(curl -s "${COMPOSE_URL_F40}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+          echo "osbuild_version_f40=$OSBUILD_VERSION_F40" >> $GITHUB_OUTPUT
+          echo "osbuild_composer_version_f40=$OSBUILD_COMPOSER_VERSION_F40" >> $GITHUB_OUTPUT
+          echo "composer_cli_version_f40=$COMPOSER_CLI_VERSION_F40" >> $GITHUB_OUTPUT
 
-              OSBUILD_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
-              OSBUILD_COMPOSER_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
-              COMPOSER_CLI_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
-              echo "osbuild_version=$OSBUILD_VERSION" >> $GITHUB_OUTPUT
-              echo "osbuild_composer_version=$OSBUILD_COMPOSER_VERSION" >> $GITHUB_OUTPUT
-              echo "composer_cli_version=$COMPOSER_CLI_VERSION" >> $GITHUB_OUTPUT
+          echo "f40_compose=$COMPOSE_ID_F40" >> $GITHUB_OUTPUT
 
-          else
-              echo "osbuild_version=Null" >> $GITHUB_OUTPUT
-              echo "osbuild_composer_version=Null" >> $GITHUB_OUTPUT
-              echo "composer_cli_version=Null" >> $GITHUB_OUTPUT
-          fi
-
-          echo "rawhide_compose=$COMPOSE_ID" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    outputs:
-      rawhide_compose: ${{ steps.check_compose_id.outputs.rawhide_compose }}
-      osbuild_version: ${{ steps.check_compose_id.outputs.osbuild_version }}
-      osbuild_composer_version: ${{ steps.check_compose_id.outputs.osbuild_composer_version }}
-      composer_cli_version: ${{ steps.check_compose_id.outputs.composer_cli_version }}
-      pr_running: ${{ steps.check_compose_id.outputs.pr_running }}
-
-  fedora-rawhide:
-    needs: check-compose
-    if: ${{ needs.check-compose.outputs.rawhide_compose != 'false' && needs.check-compose.outputs.pr_running == 'false' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Add new compose id in compose.fedora
+      - name: Add new compose id in compose.f40
         run: |
-          compose_id="${{ needs.check-compose.outputs.rawhide_compose }}"
-          echo $compose_id >> compose/compose.fedora
-          cat compose/compose.fedora
+          compose_id="${{ steps.package_version.outputs.f40_compose }}"
+          echo $compose_id >> compose/compose.f40
+          cat compose/compose.f40
 
       - name: Get current date
         id: date
@@ -87,49 +165,42 @@ jobs:
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "${{ needs.check-compose.outputs.rawhide_compose }} - ${{ steps.date.outputs.date }}"
+          commit-message: "Fedora 40 Daily Compose Test - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "${{ needs.check-compose.outputs.rawhide_compose }} - ${{ steps.date.outputs.date }}"
-          labels: auto-merge,fedora-rawhide
+          title: " Fedora 40 Daily Compose Test- ${{ steps.date.outputs.date }}"
+          labels: DO_NOT_MERGE,fedora-40
           body: |
-            Fedora rawhide compose ${{ needs.check-compose.outputs.rawhide_compose }}
+            Fedora 40 compose ${{ steps.package_version.outputs.f40_compose }}
             - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: ${{ env.COMPOSE_URL_rawhide }}
+            - Compose URL: ${{ env.COMPOSE_URL_F40 }}
+            - Updates URL: ${{ env.UPDATES_URL_F40 }}
             - Packages:
-                - ${{ needs.check-compose.outputs.osbuild_version }}
-                - ${{ needs.check-compose.outputs.osbuild_composer_version }}
-                - ${{ needs.check-compose.outputs.composer_cli_version }}
-
-      - name: Enable Pull Request Automerge
-        if: steps.cpr.outputs.pull-request-operation == 'created'
-        uses: peter-evans/enable-pull-request-automerge@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
-          merge-method: rebase
+                - ${{ steps.package_version.outputs.osbuild_version_f40 }}
+                - ${{ steps.package_version.outputs.osbuild_composer_version_f40 }}
+                - ${{ steps.package_version.outputs.composer_cli_version_f40 }}
 
       - name: Add a comment to trigger test workflow
         uses: peter-evans/create-or-update-comment@v2
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-          body: /test-rawhide
+          body: /test-f40
 
       - name: Create a project card to track compose test result
         uses: peter-evans/create-or-update-project-card@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: Fedora Compose Test
-          column-name: Fedora-rawhide
+          column-name: Fedora-40
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
 
   fedora-39:
     # Do not need check-compose and make "workflow_dispatch" work for this job
-    if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule != '0 4 * * *'
+    if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule != '0 16 * * *'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -195,74 +266,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: Fedora Compose Test
           column-name: Fedora-39
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-
-  fedora-38:
-    # Do not need check-compose and make "workflow_dispatch" work for this job
-    if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule != '0 16 * * *'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Get package version
-        id: package_version
-        run: |
-          curl -s "${COMPOSE_URL_F38}/COMPOSE_ID" --output COMPOSE_ID_F38
-          COMPOSE_ID_F38=$(cat COMPOSE_ID_F38)
-
-          OSBUILD_VERSION_F38=$(curl -s "${UPDATES_URL_F38}/Everything/x86_64/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
-          OSBUILD_COMPOSER_VERSION_F38=$(curl -s "${UPDATES_URL_F38}/Everything/x86_64/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
-          COMPOSER_CLI_VERSION_F38=$(curl -s "${COMPOSE_URL_F38}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
-          echo "osbuild_version_f38=$OSBUILD_VERSION_F38" >> $GITHUB_OUTPUT
-          echo "osbuild_composer_version_f38=$OSBUILD_COMPOSER_VERSION_F38" >> $GITHUB_OUTPUT
-          echo "composer_cli_version_f38=$COMPOSER_CLI_VERSION_F38" >> $GITHUB_OUTPUT
-
-          echo "f38_compose=$COMPOSE_ID_F38" >> $GITHUB_OUTPUT
-
-      - name: Add new compose id in compose.f38
-        run: |
-          compose_id="${{ steps.package_version.outputs.f38_compose }}"
-          echo $compose_id >> compose/compose.f38
-          cat compose/compose.f38
-
-      - name: Get current date
-        id: date
-        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-
-      - name: Create Pull Request
-        id: cpr
-        uses: peter-evans/create-pull-request@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Fedora 38 Daily Compose Test - ${{ steps.date.outputs.date }}"
-          committer: cloudkitebot <henrywangxf1@gmail.com>
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          branch: cpr
-          branch-suffix: random
-          delete-branch: true
-          title: " Fedora 38 Daily Compose Test- ${{ steps.date.outputs.date }}"
-          labels: DO_NOT_MERGE,fedora-38
-          body: |
-            Fedora 38 compose ${{ steps.package_version.outputs.f38_compose }}
-            - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: ${{ env.COMPOSE_URL_F38 }}
-            - Updates URL: ${{ env.UPDATES_URL_F38 }}
-            - Packages:
-                - ${{ steps.package_version.outputs.osbuild_version_f38 }}
-                - ${{ steps.package_version.outputs.osbuild_composer_version_f38 }}
-                - ${{ steps.package_version.outputs.composer_cli_version_f38 }}
-
-      - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v2
-        with:
-          token: ${{ secrets.PAT }}
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-          body: /test-f38
-
-      - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          project-name: Fedora Compose Test
-          column-name: Fedora-38
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
