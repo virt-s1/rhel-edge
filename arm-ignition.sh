@@ -147,25 +147,25 @@ case "$TEST_OS" in
         ANSIBLE_OS_NAME="redhat"
         REF_PREFIX="rhel-edge"
         ;;
-    "fedora-38")
-        OS_VARIANT="fedora-unknown"
-        cp tools/user-data "$CLOUD_INIT_DIR"
-        OSTREE_REF="fedora/38/${ARCH}/iot"
-        CONTAINER_IMAGE_TYPE=iot-container
-        SIMPLIFIED_IMAGE_TYPE=iot-simplified-installer
-        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/releases/38/Cloud/aarch64/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-38-.*.qcow2<" | tr -d '><')
-        ANSIBLE_OS_NAME="fedora-iot"
-        REF_PREFIX="fedora-iot"
-        ;;
     "fedora-39")
         OS_VARIANT="fedora-unknown"
         cp tools/user-data "$CLOUD_INIT_DIR"
         OSTREE_REF="fedora/39/${ARCH}/iot"
         CONTAINER_IMAGE_TYPE=iot-container
         SIMPLIFIED_IMAGE_TYPE=iot-simplified-installer
-        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/aarch64/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Rawhide-.*.qcow2<" | tr -d '><')
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/releases/39/Cloud/aarch64/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-39.*.qcow2<" | tr -d '><')
+        ANSIBLE_OS_NAME="fedora-iot"
+        REF_PREFIX="fedora-iot"
+        ;;
+    "fedora-40")
+        OS_VARIANT="fedora-unknown"
+        cp tools/user-data "$CLOUD_INIT_DIR"
+        OSTREE_REF="fedora/40/${ARCH}/iot"
+        CONTAINER_IMAGE_TYPE=iot-container
+        SIMPLIFIED_IMAGE_TYPE=iot-simplified-installer
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/40/Cloud/aarch64/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-40.*.qcow2<" | tr -d '><')
         ANSIBLE_OS_NAME="fedora-iot"
         REF_PREFIX="fedora-iot"
         ;;
