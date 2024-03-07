@@ -9,12 +9,12 @@ on:
     # - cron: '0 23 * * 1,3,5'
 
 env:
-  COMPOSE_URL_F38: https://dl.fedoraproject.org/pub/fedora/linux/releases/38
-  UPDATES_URL_F38: https://dl.fedoraproject.org/pub/fedora/linux/updates/38
+  COMPOSE_URL_F39: https://dl.fedoraproject.org/pub/fedora/linux/releases/39
+  UPDATES_URL_F39: https://dl.fedoraproject.org/pub/fedora/linux/updates/39
   COMPOSE_URL_rawhide: https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide
 
 jobs:
-  arm-fedora38:
+  arm-fedora39:
     if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule != '0 23 * * 1,3,5'
     runs-on: ubuntu-latest
     steps:
@@ -23,22 +23,22 @@ jobs:
       - name: Get package version
         id: package_version
         run: |
-          curl -s "${COMPOSE_URL_F38}/COMPOSE_ID" --output COMPOSE_ID_F38
-          COMPOSE_ID_F38=$(cat COMPOSE_ID_F38)
+          curl -s "${COMPOSE_URL_F39}/COMPOSE_ID" --output COMPOSE_ID_F39
+          COMPOSE_ID_F39=$(cat COMPOSE_ID_F39)
 
-          OSBUILD_VERSION_F38=$(curl -s "${UPDATES_URL_F38}/Everything/aarch64/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
-          OSBUILD_COMPOSER_VERSION_F38=$(curl -s "${UPDATES_URL_F38}/Everything/aarch64/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
-          COMPOSER_CLI_VERSION_F38=$(curl -s "${COMPOSE_URL_F38}/Everything/aarch64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
-          echo "osbuild_version_f38=$OSBUILD_VERSION_F38" >> $GITHUB_OUTPUT
-          echo "osbuild_composer_version_f38=$OSBUILD_COMPOSER_VERSION_F38" >> $GITHUB_OUTPUT
-          echo "composer_cli_version_f38=$COMPOSER_CLI_VERSION_F38" >> $GITHUB_OUTPUT
+          OSBUILD_VERSION_F39=$(curl -s "${UPDATES_URL_F39}/Everything/aarch64/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+          OSBUILD_COMPOSER_VERSION_F39=$(curl -s "${UPDATES_URL_F39}/Everything/aarch64/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+          COMPOSER_CLI_VERSION_F39=$(curl -s "${COMPOSE_URL_F39}/Everything/aarch64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+          echo "osbuild_version_f39=$OSBUILD_VERSION_F39" >> $GITHUB_OUTPUT
+          echo "osbuild_composer_version_f39=$OSBUILD_COMPOSER_VERSION_F39" >> $GITHUB_OUTPUT
+          echo "composer_cli_version_f39=$COMPOSER_CLI_VERSION_F39" >> $GITHUB_OUTPUT
 
-          echo "f38_compose=$COMPOSE_ID_F38" >> $GITHUB_OUTPUT
+          echo "f39_compose=$COMPOSE_ID_F39" >> $GITHUB_OUTPUT
 
       - name: Make change for PR creating
         run: |
-          compose_id="${{ steps.package_version.outputs.f38_compose }}"
-          echo $compose_id >> arm_f38.run
+          compose_id="${{ steps.package_version.outputs.f39_compose }}"
+          echo $compose_id >> arm_f39.run
 
       - name: Get current date
         id: date
@@ -49,34 +49,34 @@ jobs:
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "aarch64 - ${{ steps.package_version.outputs.f38_compose }} - ${{ steps.date.outputs.date }}"
+          commit-message: "aarch64 - ${{ steps.package_version.outputs.f39_compose }} - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "[aarch64] Fedora 38 Test - ${{ steps.date.outputs.date }}"
-          labels: DO_NOT_MERGE,fedora-38,aarch64
+          title: "[aarch64] Fedora 39 Test - ${{ steps.date.outputs.date }}"
+          labels: DO_NOT_MERGE,fedora-39,aarch64
           body: |
-            Fedora 38 compose ${{ steps.package_version.outputs.f38_compose }}
+            Fedora 39 compose ${{ steps.package_version.outputs.f39_compose }}
             - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: "${{ env.COMPOSE_URL_F38 }}/${{ steps.package_version.outputs.f38_compose }}"
+            - Compose URL: "${{ env.COMPOSE_URL_F39 }}/${{ steps.package_version.outputs.f39_compose }}"
             - Packages:
-                - ${{ steps.package_version.outputs.osbuild_version_f38 }}
-                - ${{ steps.package_version.outputs.osbuild_composer_version_f38 }}
-                - ${{ steps.package_version.outputs.composer_cli_version_f38 }}
+                - ${{ steps.package_version.outputs.osbuild_version_f39 }}
+                - ${{ steps.package_version.outputs.osbuild_composer_version_f39 }}
+                - ${{ steps.package_version.outputs.composer_cli_version_f39 }}
 
       - name: Add a comment to trigger test workflow
         uses: peter-evans/create-or-update-comment@v2
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-          body: /arm-f38-all
+          body: /arm-f39-all
 
       - name: Create a project card to track compose test result
         uses: peter-evans/create-or-update-project-card@v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           project-name: Fedora Compose Test
-          column-name: Fedora-38
+          column-name: Fedora-39
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
