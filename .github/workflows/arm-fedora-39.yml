@@ -1,5 +1,5 @@
 ---
-name: Run Edge ARM64 Test on Fedora 38
+name: Run Edge ARM64 Test on Fedora 39
 
 on:
   issue_comment:
@@ -9,10 +9,10 @@ on:
 jobs:
   pr-info:
     if: ${{ github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/arm-f38-all') ||
-            endsWith(github.event.comment.body, '/arm-f38-commit') ||
-            endsWith(github.event.comment.body, '/arm-f38-installer') ||
-            endsWith(github.event.comment.body, '/arm-f38-raw')) }}
+            (endsWith(github.event.comment.body, '/arm-f39-all') ||
+            endsWith(github.event.comment.body, '/arm-f39-commit') ||
+            endsWith(github.event.comment.body, '/arm-f39-installer') ||
+            endsWith(github.event.comment.body, '/arm-f39-raw')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Query author repository permissions
@@ -43,13 +43,13 @@ jobs:
       allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
       sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
 
-  pre-arm-all-f38:
+  pre-arm-all-f39:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            endsWith(github.event.comment.body, '/arm-f38-all') }}
+            endsWith(github.event.comment.body, '/arm-f39-all') }}
     runs-on: ubuntu-latest
     env:
-      STATUS_NAME: arm-all-f38
+      STATUS_NAME: arm-all-f39
 
     steps:
       - name: Create in-progress status
@@ -63,11 +63,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  arm-all-f38:
-    needs: [pr-info, pre-arm-all-f38]
-    runs-on: [kite, aarch64, beaker, fedora-37]
+  arm-all-f39:
+    needs: [pr-info, pre-arm-all-f39]
+    runs-on: [kite, aarch64, beaker, fedora-39]
     env:
-      STATUS_NAME: arm-all-f38
+      STATUS_NAME: arm-all-f39
 
     steps:
       - name: Create in-progress status
@@ -95,12 +95,12 @@ jobs:
         run: sudo chmod 600 key/ostree_key
 
       - name: run arm-commit.sh
-        run: ./arm-commit.sh fedora-38
+        run: ./arm-commit.sh fedora-39
         timeout-minutes: 120
 
       - name: run arm-installer.sh
         if: always()
-        run: ./arm-installer.sh fedora-38
+        run: ./arm-installer.sh fedora-39
         env:
           QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
           QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
@@ -108,7 +108,7 @@ jobs:
 
       - name: run arm-raw.sh
         if: always()
-        run: ./arm-raw.sh fedora-38
+        run: ./arm-raw.sh fedora-39
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
@@ -139,18 +139,18 @@ jobs:
       - uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
-          name: arm-all-f38
+          name: arm-all-f39
           path: |
             *.json
             *.log
 
-  pre-arm-commit-f38:
+  pre-arm-commit-f39:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            endsWith(github.event.comment.body, '/arm-f38-commit') }}
+            endsWith(github.event.comment.body, '/arm-f39-commit') }}
     runs-on: ubuntu-latest
     env:
-      STATUS_NAME: arm-commit-f38
+      STATUS_NAME: arm-commit-f39
 
     steps:
       - name: Create in-progress status
@@ -164,11 +164,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  arm-commit-f38:
-    needs: [pr-info, pre-arm-commit-f38]
-    runs-on: [kite, aarch64, beaker, fedora-37]
+  arm-commit-f39:
+    needs: [pr-info, pre-arm-commit-f39]
+    runs-on: [kite, aarch64, beaker, fedora-39]
     env:
-      STATUS_NAME: arm-commit-f38
+      STATUS_NAME: arm-commit-f39
 
     steps:
       - name: Create in-progress status
@@ -196,7 +196,7 @@ jobs:
         run: sudo chmod 600 key/ostree_key
 
       - name: run arm-commit.sh
-        run: ./arm-commit.sh fedora-38
+        run: ./arm-commit.sh fedora-39
         timeout-minutes: 60
 
       - name: Set non cancelled result status
@@ -224,18 +224,18 @@ jobs:
       - uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
-          name: arm-commit-f38
+          name: arm-commit-f39
           path: |
             *.json
             *.log
 
-  pre-arm-installer-f38:
+  pre-arm-installer-f39:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            endsWith(github.event.comment.body, '/arm-f38-installer') }}
+            endsWith(github.event.comment.body, '/arm-f39-installer') }}
     runs-on: ubuntu-latest
     env:
-      STATUS_NAME: arm-installer-f38
+      STATUS_NAME: arm-installer-f39
 
     steps:
       - name: Create in-progress status
@@ -249,11 +249,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  arm-installer-f38:
-    needs: [pr-info, pre-arm-installer-f38]
-    runs-on: [kite, aarch64, beaker, fedora-37]
+  arm-installer-f39:
+    needs: [pr-info, pre-arm-installer-f39]
+    runs-on: [kite, aarch64, beaker, fedora-39]
     env:
-      STATUS_NAME: arm-installer-f38
+      STATUS_NAME: arm-installer-f39
 
     steps:
       - name: Create in-progress status
@@ -281,7 +281,7 @@ jobs:
         run: sudo chmod 600 key/ostree_key
 
       - name: run arm-installer.sh
-        run: ./arm-installer.sh fedora-38
+        run: ./arm-installer.sh fedora-39
         env:
           QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
           QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
@@ -312,18 +312,18 @@ jobs:
       - uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
-          name: arm-installer-f38
+          name: arm-installer-f39
           path: |
             *.json
             *.log
 
-  pre-arm-raw-f38:
+  pre-arm-raw-f39:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            endsWith(github.event.comment.body, '/arm-f38-raw') }}
+            endsWith(github.event.comment.body, '/arm-f39-raw') }}
     runs-on: ubuntu-latest
     env:
-      STATUS_NAME: arm-raw-f38
+      STATUS_NAME: arm-raw-f39
 
     steps:
       - name: Create in-progress status
@@ -337,11 +337,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  arm-raw-f38:
-    needs: [pr-info, pre-arm-raw-f38]
-    runs-on: [kite, aarch64, beaker, fedora-37]
+  arm-raw-f39:
+    needs: [pr-info, pre-arm-raw-f39]
+    runs-on: [kite, aarch64, beaker, fedora-39]
     env:
-      STATUS_NAME: arm-raw-f38
+      STATUS_NAME: arm-raw-f39
 
     steps:
       - name: Create in-progress status
@@ -369,7 +369,7 @@ jobs:
         run: sudo chmod 600 key/ostree_key
 
       - name: run arm-raw.sh
-        run: ./arm-raw.sh fedora-38
+        run: ./arm-raw.sh fedora-39
         env:
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
@@ -400,7 +400,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
-          name: arm-raw-f38
+          name: arm-raw-f39
           path: |
             *.json
             *.log
