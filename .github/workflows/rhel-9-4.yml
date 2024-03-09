@@ -435,6 +435,9 @@ jobs:
         run: ./ostree-simplified-installer.sh
         env:
           DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
+          POSTGRES_MANUFACTURER_DATABASE_URL: "postgresql://postgres:foobar@192.168.200.2/postgres"
+          POSTGRES_OWNER_DATABASE_URL: "postgresql://postgres:foobar@192.168.200.2/postgres"
+          POSTGRES_RENDEZVOUS_DATABASE_URL: "postgresql://postgres:foobar@192.168.200.2/postgres"
         timeout-minutes: 150
 
       - name: Set non cancelled result status
