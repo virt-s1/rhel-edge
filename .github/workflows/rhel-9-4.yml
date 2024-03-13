@@ -23,6 +23,7 @@ jobs:
             endsWith(github.event.comment.body, '/test-rhel-9-4-minimal') ||
             endsWith(github.event.comment.body, '/test-rhel-9-4-vsphere') ||
             endsWith(github.event.comment.body, '/test-rhel-9-4-pulp') ||
+            endsWith(github.event.comment.body, '/test-rhel-9-4-fdo-db') ||
             endsWith(github.event.comment.body, '/test-rhel-9-4-arm-minimal')) }}
     runs-on: ubuntu-latest
     steps:
@@ -1121,6 +1122,87 @@ jobs:
         if: ${{ always() }}
         with:
           name: edge-fdo-aio-9.4
+          path: |
+            *.json
+            *.log
+
+  pre-edge-fdo-db-94:
+    needs: pr-info
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
+            (endsWith(github.event.comment.body, '/test-rhel-9-4') ||
+            endsWith(github.event.comment.body, '/test-rhel-9-4-fdo-db')) }}
+    runs-on: ubuntu-latest
+    env:
+      STATUS_NAME: edge-fdo-db-9.4
+
+    steps:
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Runner has been deploying...'
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  edge-fdo-db-94:
+    needs: [pr-info, pre-edge-fdo-db-94]
+    runs-on: [kite, x86_64, rhos-01, rhel-9-4, large]
+    env:
+      STATUS_NAME: edge-fdo-db-9.4
+
+    steps:
+      - name: Create in-progress status
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: pending
+          description: 'Test has been running...'
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Clone repository
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ needs.pr-info.outputs.sha }}
+          fetch-depth: 0
+
+      - name: run ostree-fdo-db.sh
+        run: ./ostree-fdo-db.sh
+        env:
+          DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
+        timeout-minutes: 150
+
+      - name: Set non cancelled result status
+        if: ${{ !cancelled() }}
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: ${{ job.status }}
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set cancelled result status
+        if: ${{ cancelled() }}
+        uses: octokit/request-action@v2.x
+        with:
+          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
+          context: ${{ env.STATUS_NAME }}
+          state: error
+          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v3
+        if: ${{ always() }}
+        with:
+          name: edge-fdo-db-9.4
           path: |
             *.json
             *.log
