@@ -372,38 +372,6 @@ if [[ "$FDO_DB" == "true" ]]; then
     # # Generate OV
     # greenprint "🔧 Generate OV"
     # sudo /usr/libexec/fdo/fdo-manufacturing-client no-plain-di --insecure --manufacturing-server-url "http://${FDO_SERVER_ADDRESS}:8080"
-
-    # greenprint "🔧 Check manufacturing server db for new OV"
-    # sudo podman exec \
-    #     postgres \
-    #     psql \
-    #     --username="${POSTGRES_USERNAME}" \
-    #     -c "SELECT * FROM manufacturer_vouchers ;" | grep "1 row"
-
-    # greenprint "🔧 Export OV"
-    # mkdir -p "${TEMPDIR}/export-ov"
-    # /usr/libexec/fdo/fdo-owner-tool export-manufacturer-vouchers postgres "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_IP}/${POSTGRES_DB}" "${TEMPDIR}/export-ov/"
-
-    # greenprint "🔧 Import OV into owner db"
-    # EXPORTED_FILE=$(ls -1 "${TEMPDIR}/export-ov")
-    # /usr/libexec/fdo/fdo-owner-tool import-ownership-vouchers postgres "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_IP}/${POSTGRES_DB}" "${TEMPDIR}/export-ov/${EXPORTED_FILE}"
-
-    # greenprint "🔧 Check owner db for imported OV"
-    # sudo podman exec \
-    #     postgres \
-    #     psql \
-    #     --username="${POSTGRES_USERNAME}" \
-    #     -c "SELECT * FROM owner_vouchers ;" | grep "1 row"
-
-    # greenprint "🔧 Sleep 60 seconds to sync with rendezvous db"
-    # sleep 60
-
-    # greenprint "🔧 Check rendezvous db for synced OV"
-    # sudo podman exec \
-    #     postgres \
-    #     psql \
-    #     --username="${POSTGRES_USERNAME}" \
-    #     -c "SELECT * FROM rendezvous_vouchers ;" | grep "1 row"
 fi
 
 # Compare rpm package version
@@ -904,6 +872,42 @@ sudo virt-install --name="${IMAGE_KEY}-httpboot"\
                   --wait=-1 \
                   --noreboot
 
+if [[ "$FDO_DB" == "true" ]]; then
+    greenprint "🔧 Check manufacturing server db for new OV"
+    sudo podman exec \
+        postgres \
+        psql \
+        --username="${POSTGRES_USERNAME}" \
+        -c "SELECT * FROM manufacturer_vouchers ;" | grep "1 row"
+
+    greenprint "🔧 Export OV"
+    mkdir -p "${TEMPDIR}/export-ov"
+    /usr/libexec/fdo/fdo-owner-tool export-manufacturer-vouchers postgres "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_IP}/${POSTGRES_DB}" "${TEMPDIR}/export-ov/"
+    ls -al "${TEMPDIR}/export-ov"
+
+    greenprint "🔧 Import OV into owner db"
+    EXPORTED_FILE=$(ls -1 "${TEMPDIR}/export-ov")
+    /usr/libexec/fdo/fdo-owner-tool import-ownership-vouchers postgres "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_IP}/${POSTGRES_DB}" "${TEMPDIR}/export-ov/${EXPORTED_FILE}"
+    rm -rf "${TEMPDIR}/export-ov"
+
+    greenprint "🔧 Check owner db for imported OV"
+    sudo podman exec \
+        postgres \
+        psql \
+        --username="${POSTGRES_USERNAME}" \
+        -c "SELECT * FROM owner_vouchers ;" | grep "1 row"
+
+    greenprint "🔧 Sleep 60 seconds to sync with rendezvous db"
+    sleep 60
+
+    greenprint "🔧 Check rendezvous db for synced OV"
+    sudo podman exec \
+        postgres \
+        psql \
+        --username="${POSTGRES_USERNAME}" \
+        -c "SELECT * FROM rendezvous_vouchers ;" | grep "1 row"
+fi
+
 # Start VM.
 greenprint "💻 Start HTTP BOOT VM"
 sudo virsh start "${IMAGE_KEY}-httpboot"
@@ -1052,6 +1056,42 @@ sudo virt-install  --name="${IMAGE_KEY}-fdosshkey"\
                    --noautoconsole \
                    --wait=-1 \
                    --noreboot
+
+if [[ "$FDO_DB" == "true" ]]; then
+    greenprint "🔧 Check manufacturing server db for new OV"
+    sudo podman exec \
+        postgres \
+        psql \
+        --username="${POSTGRES_USERNAME}" \
+        -c "SELECT * FROM manufacturer_vouchers ;"
+
+    greenprint "🔧 Export OV"
+    mkdir -p "${TEMPDIR}/export-ov"
+    /usr/libexec/fdo/fdo-owner-tool export-manufacturer-vouchers postgres "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_IP}/${POSTGRES_DB}" "${TEMPDIR}/export-ov/"
+    ls -al "${TEMPDIR}/export-ov"
+
+    greenprint "🔧 Import OV into owner db"
+    EXPORTED_FILE=$(ls -1 "${TEMPDIR}/export-ov")
+    /usr/libexec/fdo/fdo-owner-tool import-ownership-vouchers postgres "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_IP}/${POSTGRES_DB}" "${TEMPDIR}/export-ov/${EXPORTED_FILE}"
+    rm -rf "${TEMPDIR}/export-ov"
+
+    greenprint "🔧 Check owner db for imported OV"
+    sudo podman exec \
+        postgres \
+        psql \
+        --username="${POSTGRES_USERNAME}" \
+        -c "SELECT * FROM owner_vouchers ;"
+
+    greenprint "🔧 Sleep 60 seconds to sync with rendezvous db"
+    sleep 60
+
+    greenprint "🔧 Check rendezvous db for synced OV"
+    sudo podman exec \
+        postgres \
+        psql \
+        --username="${POSTGRES_USERNAME}" \
+        -c "SELECT * FROM rendezvous_vouchers ;"
+fi
 
 # Start VM.
 greenprint "💻 Start UEFI VM"
@@ -1378,6 +1418,42 @@ sudo virt-install  --name="${IMAGE_KEY}-fdorootcert"\
                    --noautoconsole \
                    --wait=-1 \
                    --noreboot
+
+if [[ "$FDO_DB" == "true" ]]; then
+    greenprint "🔧 Check manufacturing server db for new OV"
+    sudo podman exec \
+        postgres \
+        psql \
+        --username="${POSTGRES_USERNAME}" \
+        -c "SELECT * FROM manufacturer_vouchers ;"
+
+    greenprint "🔧 Export OV"
+    mkdir -p "${TEMPDIR}/export-ov"
+    /usr/libexec/fdo/fdo-owner-tool export-manufacturer-vouchers postgres "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_IP}/${POSTGRES_DB}" "${TEMPDIR}/export-ov/"
+    ls -al "${TEMPDIR}/export-ov"
+
+    greenprint "🔧 Import OV into owner db"
+    EXPORTED_FILE=$(ls -1 "${TEMPDIR}/export-ov")
+    /usr/libexec/fdo/fdo-owner-tool import-ownership-vouchers postgres "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_IP}/${POSTGRES_DB}" "${TEMPDIR}/export-ov/${EXPORTED_FILE}"
+    rm -rf "${TEMPDIR}/export-ov"
+
+    greenprint "🔧 Check owner db for imported OV"
+    sudo podman exec \
+        postgres \
+        psql \
+        --username="${POSTGRES_USERNAME}" \
+        -c "SELECT * FROM owner_vouchers ;"
+
+    greenprint "🔧 Sleep 60 seconds to sync with rendezvous db"
+    sleep 60
+
+    greenprint "🔧 Check rendezvous db for synced OV"
+    sudo podman exec \
+        postgres \
+        psql \
+        --username="${POSTGRES_USERNAME}" \
+        -c "SELECT * FROM rendezvous_vouchers ;"
+fi
 
 # Start VM.
 greenprint "💻 Start UEFI VM"
