@@ -84,7 +84,6 @@ get_compose_metadata () {
 
     # Move the JSON file into place.
     sudo cat "${TEMPDIR}"/"${COMPOSE_ID}".json | jq -M '.' | tee "$METADATA_FILE" > /dev/null
-    sudo chown admin:admin "${TEMPDIR}"/"${COMPOSE_ID}".json
 }
 
 # Build ostree image.
