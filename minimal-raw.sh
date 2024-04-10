@@ -49,12 +49,18 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "fedora-38")
         OS_VARIANT="fedora-unknown"
+        MINIMAL_RAW_DECOMPRESSED=disk.raw
+        MINIMAL_RAW_FILENAME=disk.raw.xz
         ;;
     "fedora-39")
         OS_VARIANT="fedora-unknown"
+        MINIMAL_RAW_DECOMPRESSED=disk.raw
+        MINIMAL_RAW_FILENAME=disk.raw.xz
         ;;
     "fedora-40")
         OS_VARIANT="fedora-rawhide"
+        MINIMAL_RAW_DECOMPRESSED=disk.raw
+        MINIMAL_RAW_FILENAME=disk.raw.xz
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
