@@ -115,7 +115,19 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/9/${ARCH}/edge"
         USER_IN_COMMIT="true"
         OS_VARIANT="rhel9-unknown"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.4.0/compose/BaseOS/x86_64/os/"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.4.0/compose/BaseOS/x86_64/os/"
+        CUT_DIRS=9
+        ADD_SSSD="true"
+        EMBEDDED_CONTAINER="true"
+        FIREWALL_FEATURE="true"
+        SYSROOT_RO="true"
+        DIRS_FILES_CUSTOMIZATION="true"
+        ;;
+    "rhel-9.5")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        USER_IN_COMMIT="true"
+        OS_VARIANT="rhel9-unknown"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.5.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"

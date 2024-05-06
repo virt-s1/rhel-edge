@@ -1,5 +1,5 @@
 ---
-name: Run customer case on RHEL 9.4.0
+name: Run customer case on RHEL 9.5.0
 
 on:
   issue_comment:
@@ -9,8 +9,8 @@ on:
 jobs:
   pr-info:
     if: ${{ github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-fapolicyd-rhel-9-4') ||
-            endsWith(github.event.comment.body, '/test-grafana-pcp-rhel-9-4')) }}
+            (endsWith(github.event.comment.body, '/test-fapolicyd-rhel-9-5') ||
+            endsWith(github.event.comment.body, '/test-grafana-pcp-rhel-9-5')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Query author repository permissions
@@ -44,10 +44,10 @@ jobs:
   pre-fapolicyd:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            endsWith(github.event.comment.body, '/test-fapolicyd-rhel-9-4') }}
+            endsWith(github.event.comment.body, '/test-fapolicyd-rhel-9-5') }}
     runs-on: ubuntu-latest
     env:
-      STATUS_NAME: fapolicyd-9.4
+      STATUS_NAME: fapolicyd-9.5
 
     steps:
       - name: Create in-progress status
@@ -63,9 +63,9 @@ jobs:
 
   fapolicyd:
     needs: [pr-info, pre-fapolicyd]
-    runs-on: [kite, x86_64, rhos-01, rhel-9-4, large]
+    runs-on: [kite, x86_64, rhos-01, rhel-9-5, large]
     env:
-      STATUS_NAME: fapolicyd-9.4
+      STATUS_NAME: fapolicyd-9.5
 
     steps:
       - name: Create in-progress status
@@ -117,7 +117,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
-          name: fapolicyd-9.4
+          name: fapolicyd-9.5
           path: |
             *.json
             *.log
@@ -125,10 +125,10 @@ jobs:
   pre-grafana-pcp:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            endsWith(github.event.comment.body, '/test-grafana-pcp-rhel-9-4') }}
+            endsWith(github.event.comment.body, '/test-grafana-pcp-rhel-9-5') }}
     runs-on: ubuntu-latest
     env:
-      STATUS_NAME: grafana-pcp-9.4
+      STATUS_NAME: grafana-pcp-9.5
 
     steps:
       - name: Create in-progress status
@@ -144,9 +144,9 @@ jobs:
 
   grafana-pcp:
     needs: [pr-info, pre-grafana-pcp]
-    runs-on: [kite, x86_64, rhos-01, rhel-9-4, large]
+    runs-on: [kite, x86_64, rhos-01, rhel-9-5, large]
     env:
-      STATUS_NAME: grafana-pcp-9.4
+      STATUS_NAME: grafana-pcp-9.5
 
     steps:
       - name: Create in-progress status
@@ -198,7 +198,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         if: ${{ always() }}
         with:
-          name: grafana-pcp-9.4
+          name: grafana-pcp-9.5
           path: |
             *.json
             *.log

@@ -83,6 +83,13 @@ case "${ID}-${VERSION_ID}" in
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-2-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-92.json > /dev/null
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-3-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-93.json > /dev/null
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-4-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-94.json > /dev/null;;
+    "rhel-9.5")
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-10-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-810.json > /dev/null
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-1-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-91.json > /dev/null
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-2-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-92.json > /dev/null
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-3-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-93.json > /dev/null
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-4-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-94.json > /dev/null
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-5-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-95.json > /dev/null;;
     "centos-8")
         sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json;;
     "centos-9")

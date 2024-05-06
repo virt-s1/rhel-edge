@@ -7,7 +7,7 @@ on:
     - cron: '0 0 * * 2'
 
 env:
-  COMPOSE_URL_94: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/RHEL-9"
+  COMPOSE_URL_95: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/RHEL-9"
 
 jobs:
   check-compose:
@@ -21,24 +21,24 @@ jobs:
       - name: Check compose and PRMs
         id: check_compose_and_rpms
         run: |
-          curl -s ${COMPOSE_URL_94}/latest-RHEL-9.4.0/COMPOSE_ID --output COMPOSE_ID_94
-          COMPOSE_ID_94=$(cat COMPOSE_ID_94)
-          echo "rhel94_compose=$COMPOSE_ID_94" >> $GITHUB_OUTPUT
+          curl -s ${COMPOSE_URL_95}/latest-RHEL-9.5.0/COMPOSE_ID --output COMPOSE_ID_95
+          COMPOSE_ID_95=$(cat COMPOSE_ID_95)
+          echo "rhel95_compose=$COMPOSE_ID_95" >> $GITHUB_OUTPUT
 
-          FAPOLICYD_VERSION_94=$(curl -s "${COMPOSE_URL_94}/${COMPOSE_ID_94}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">fapolicyd-[0-9].*<" | tr -d "><")
-          echo "fapolicyd_version_94=$FAPOLICYD_VERSION_94" >> $GITHUB_OUTPUT
+          FAPOLICYD_VERSION_95=$(curl -s "${COMPOSE_URL_95}/${COMPOSE_ID_95}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">fapolicyd-[0-9].*<" | tr -d "><")
+          echo "fapolicyd_version_95=$FAPOLICYD_VERSION_95" >> $GITHUB_OUTPUT
 
-          GRAFANA_PCP_VERSION_94=$(curl -s "${COMPOSE_URL_94}/${COMPOSE_ID_94}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">grafana-pcp-[0-9].*<" | tr -d "><")
-          echo "grafana_pcp_version_94=$GRAFANA_PCP_VERSION_94" >> $GITHUB_OUTPUT
+          GRAFANA_PCP_VERSION_95=$(curl -s "${COMPOSE_URL_95}/${COMPOSE_ID_95}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">grafana-pcp-[0-9].*<" | tr -d "><")
+          echo "grafana_pcp_version_95=$GRAFANA_PCP_VERSION_95" >> $GITHUB_OUTPUT
 
-          PCP_VERSION_94=$(curl -s "${COMPOSE_URL_94}/${COMPOSE_ID_94}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">pcp-[0-9].*.x86_64.rpm<" | tr -d "><")
-          echo "pcp_version_94=$PCP_VERSION_94" >> $GITHUB_OUTPUT
+          PCP_VERSION_95=$(curl -s "${COMPOSE_URL_95}/${COMPOSE_ID_95}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">pcp-[0-9].*.x86_64.rpm<" | tr -d "><")
+          echo "pcp_version_95=$PCP_VERSION_95" >> $GITHUB_OUTPUT
 
     outputs:
-      rhel94_compose: ${{ steps.check_compose_and_rpms.outputs.rhel94_compose }}
-      fapolicyd_version_94: ${{ steps.check_compose_and_rpms.outputs.fapolicyd_version_94 }}
-      grafana_pcp_version_94: ${{ steps.check_compose_and_rpms.outputs.grafana_pcp_version_94 }}
-      pcp_version_94: ${{ steps.check_compose_and_rpms.outputs.pcp_version_94 }}
+      rhel95_compose: ${{ steps.check_compose_and_rpms.outputs.rhel95_compose }}
+      fapolicyd_version_95: ${{ steps.check_compose_and_rpms.outputs.fapolicyd_version_95 }}
+      grafana_pcp_version_95: ${{ steps.check_compose_and_rpms.outputs.grafana_pcp_version_95 }}
+      pcp_version_95: ${{ steps.check_compose_and_rpms.outputs.pcp_version_95 }}
 
   fapolicyd:
     needs: check-compose
@@ -59,26 +59,26 @@ jobs:
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "${{ needs.check-compose.outputs.fapolicyd_version_94 }} - ${{ steps.date.outputs.date }}"
+          commit-message: "${{ needs.check-compose.outputs.fapolicyd_version_95 }} - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "${{ needs.check-compose.outputs.fapolicyd_version_94 }} - ${{ steps.date.outputs.date }}"
+          title: "${{ needs.check-compose.outputs.fapolicyd_version_95 }} - ${{ steps.date.outputs.date }}"
           labels: DO_NOT_MERGE,fapolicyd
           body: |
-            RHEL compose ${{ needs.check-compose.outputs.rhel94_compose }}
+            RHEL compose ${{ needs.check-compose.outputs.rhel95_compose }}
             - Date: ${{ steps.date.outputs.date }}
             - fapolicyd package info:
-                - ${{ needs.check-compose.outputs.fapolicyd_version_94 }}
+                - ${{ needs.check-compose.outputs.fapolicyd_version_95 }}
 
       - name: Add a comment to trigger test workflow
         uses: peter-evans/create-or-update-comment@v2
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-          body: /test-fapolicyd-rhel-9-4
+          body: /test-fapolicyd-rhel-9-5
 
       - name: Create a project card to track compose test result
         uses: peter-evans/create-or-update-project-card@v2
@@ -107,27 +107,27 @@ jobs:
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "${{ needs.check-compose.outputs.pcp_version_94 }} - ${{ steps.date.outputs.date }}"
+          commit-message: "${{ needs.check-compose.outputs.pcp_version_95 }} - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "${{ needs.check-compose.outputs.pcp_version_94 }} - ${{ steps.date.outputs.date }}"
+          title: "${{ needs.check-compose.outputs.pcp_version_95 }} - ${{ steps.date.outputs.date }}"
           labels: DO_NOT_MERGE,grafana-pcp,pcp
           body: |
-            RHEL compose ${{ needs.check-compose.outputs.rhel94_compose }}
+            RHEL compose ${{ needs.check-compose.outputs.rhel95_compose }}
             - Date: ${{ steps.date.outputs.date }}
             - grafana and pcp package info:
-                - ${{ needs.check-compose.outputs.grafana_pcp_version_94 }}
-                - ${{ needs.check-compose.outputs.pcp_version_94 }}
+                - ${{ needs.check-compose.outputs.grafana_pcp_version_95 }}
+                - ${{ needs.check-compose.outputs.pcp_version_95 }}
 
       - name: Add a comment to trigger test workflow
         uses: peter-evans/create-or-update-comment@v2
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-          body: /test-grafana-pcp-rhel-9-4
+          body: /test-grafana-pcp-rhel-9-5
 
       - name: Create a project card to track compose test result
         uses: peter-evans/create-or-update-project-card@v2

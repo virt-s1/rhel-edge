@@ -72,6 +72,14 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/nightly/RHEL-8/latest-RHEL-8.10.0/compose/BaseOS/x86_64/os/"
         SYSROOT_RO="true"
         ;;
+    "rhel-9.5")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/8/${ARCH}/edge"
+        OS_VARIANT="rhel8-unknown"
+        DISTRO="rhel-810"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/nightly/RHEL-8/latest-RHEL-8.10.0/compose/BaseOS/x86_64/os/"
+        SYSROOT_RO="true"
+        ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         PARENT_REF="centos/8/${ARCH}/edge"
