@@ -128,6 +128,16 @@ case "${ID}-${VERSION_ID}" in
         SYSROOT_RO="true"
         DIRS_FILES_CUSTOMIZATION="true"
         ;;
+    "rhel-9.5")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        NEW_MKKSISO="true"
+        CONTAINER_PUSHING_FEAT="true"
+        EMBEDDED_CONTAINER="true"
+        HTTP_BOOT_FEAT="true"
+        SYSROOT_RO="true"
+        DIRS_FILES_CUSTOMIZATION="true"
+        ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos-stream8"

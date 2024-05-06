@@ -42,6 +42,11 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel9-unknown"
         BOOT_ARGS="uefi"
         ;;
+    "rhel-9.5")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        BOOT_ARGS="uefi"
+        ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"

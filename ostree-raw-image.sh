@@ -114,6 +114,14 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_RAW="true"
         SYSROOT_RO="true"
         ;;
+    "rhel-9.5")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        ADD_SSSD="true"
+        USER_IN_RAW="true"
+        SYSROOT_RO="true"
+        ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
         PARENT_REF="centos/8/${ARCH}/edge"
