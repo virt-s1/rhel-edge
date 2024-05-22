@@ -9,13 +9,7 @@ on:
 jobs:
   pr-info:
     if: ${{ github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-f39') ||
-            endsWith(github.event.comment.body, '/test-f39-minimal') ||
-            endsWith(github.event.comment.body, '/test-f39-arm-minimal') ||
-            endsWith(github.event.comment.body, '/test-f39-virt') ||
-            endsWith(github.event.comment.body, '/test-f39-ng') ||
-            endsWith(github.event.comment.body, '/test-f39-simplified') ||
-            endsWith(github.event.comment.body, '/test-f39-raw')) }}
+            (endsWith(github.event.comment.body, '/test-f39')) }}
     runs-on: ubuntu-latest
     steps:
       - name: Query author repository permissions
@@ -26,14 +20,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # restrict running of tests to users with admin or write permission for the repository
-      # see https://docs.github.com/en/free-pro-team@latest/rest/reference/repos#get-repository-permissions-for-a-user
       - name: Check if user does have correct permissions
         if: contains('admin write', fromJson(steps.user_permission.outputs.data).permission)
         id: check_user_perm
         run: |
           echo "User '${{ github.event.sender.login }}' has permission '${{ fromJson(steps.user_permission.outputs.data).permission }}' allowed values: 'admin', 'write'"
           echo "allowed_user=true" >> $GITHUB_OUTPUT
+
       - name: Get information for pull request
         uses: octokit/request-action@v2.x
         id: pr-api
@@ -45,483 +38,61 @@ jobs:
     outputs:
       allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
       sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
+      ref: ${{ fromJson(steps.pr-api.outputs.data).head.ref }}
+      repo_url: ${{ fromJson(steps.pr-api.outputs.data).head.repo.html_url }}
 
-  pre-iot-commit-f39:
+  iot-f39-x86:
     needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-f39') ||
-            endsWith(github.event.comment.body, '/test-f39-virt')) }}
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
+    continue-on-error: true
     runs-on: ubuntu-latest
-    env:
-      STATUS_NAME: iot-commit-f39
 
     steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Runner has been deploying...'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  iot-commit-f39:
-    needs: [pr-info, pre-iot-commit-f39]
-    runs-on: [kite, x86_64, gcp, fedora-39, medium]
-    env:
-      STATUS_NAME: iot-commit-f39
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Test has been running...'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4
         with:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
-      - name: run ostree.sh
-        run: ./ostree.sh
-        timeout-minutes: 60
-
-      - name: Set non cancelled result status
-        if: ${{ !cancelled() }}
-        uses: octokit/request-action@v2.x
+      - name: Run the tests
+        uses: sclorg/testing-farm-as-github-action@v2
         with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: ${{ job.status }}
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          compose: Fedora-39-Updated
+          arch: x86_64
+          api_key: ${{ secrets.TF_API_KEY }}
+          git_url: ${{ needs.pr-info.outputs.repo_url }}
+          git_ref: ${{ needs.pr-info.outputs.ref }}
+          update_pull_request_status: true
+          pull_request_status_name: "iot-f39-x86"
+          tmt_plan_regex: edge-x86
+          tf_scope: private
+          secrets: "DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }};OCP4_TOKEN=${{ secrets.OCP4_TOKEN }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }};DOCKERHUB_PASSWORD=${{ secrets.DOCKERHUB_PASSWORD }};AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }};AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }};GOVC_URL=${{ secrets.GOVC_URL }};GOVC_USERNAME=${{ secrets.GOVC_USERNAME }};GOVC_PASSWORD=${{ secrets.GOVC_PASSWORD }}"
+          variables: "ARCH=x86_64;AWS_DEFAULT_REGION=us-east-1;GOVC_INSECURE=1"
 
-      - name: Set cancelled result status
-        if: ${{ cancelled() }}
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: error
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: iot-commit-f39
-          path: |
-            *.json
-            *.log
-
-  pre-iot-installer-f39:
+  iot-f39-arm:
     needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-f39') ||
-            endsWith(github.event.comment.body, '/test-f39-ng')) }}
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
+    continue-on-error: true
     runs-on: ubuntu-latest
-    env:
-      STATUS_NAME: iot-installer-f39
 
     steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Runner has been deploying...'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  iot-installer-f39:
-    needs: [pr-info, pre-iot-installer-f39]
-    runs-on: [kite, x86_64, rhos-01, fedora-39, large]
-    env:
-      STATUS_NAME: iot-installer-f39
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Test has been running...'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4
         with:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
-      - name: run ostree-ng.sh
-        run: ./ostree-ng.sh
-        env:
-          OCP4_TOKEN: ${{ secrets.OCP4_TOKEN }}
-          QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
-          QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
-        timeout-minutes: 120
-
-      - name: Set non cancelled result status
-        if: ${{ !cancelled() }}
-        uses: octokit/request-action@v2.x
+      - name: Run the tests
+        uses: sclorg/testing-farm-as-github-action@v2
         with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: ${{ job.status }}
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set cancelled result status
-        if: ${{ cancelled() }}
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: error
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: iot-installer-f39
-          path: |
-            *.json
-            *.log
-
-  pre-iot-raw-image-f39:
-    needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-f39') ||
-            endsWith(github.event.comment.body, '/test-f39-raw')) }}
-    runs-on: ubuntu-latest
-    env:
-      STATUS_NAME: iot-raw-image-f39
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Runner has been deploying...'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  iot-raw-image-f39:
-    needs: [pr-info, pre-iot-raw-image-f39]
-    runs-on: [kite, x86_64, gcp, fedora-39, medium]
-    env:
-      STATUS_NAME: iot-raw-image-f39
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Test has been running...'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Clone repository
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.pr-info.outputs.sha }}
-          fetch-depth: 0
-
-      - name: run ostree-raw-image.sh
-        run: ./ostree-raw-image.sh
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
-        timeout-minutes: 90
-
-      - name: Set non cancelled result status
-        if: ${{ !cancelled() }}
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: ${{ job.status }}
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set cancelled result status
-        if: ${{ cancelled() }}
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: error
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/upload-artifact@v3
-        if: ${{ always() }}
-        with:
-          name: iot-raw-image-f39
-          path: |
-            *.json
-            *.log
-
-  pre-minimal-raw-f39:
-    needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-f39') ||
-            endsWith(github.event.comment.body, '/test-f39-minimal')) }}
-    runs-on: ubuntu-latest
-    env:
-      STATUS_NAME: minimal-raw-f39
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Runner has been deploying...'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  minimal-raw-f39:
-    needs: [pr-info, pre-minimal-raw-f39]
-    runs-on: [kite, x86_64, gcp, fedora-39, medium]
-    env:
-      STATUS_NAME: minimal-raw-f39
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Test has been running...'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Clone repository
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.pr-info.outputs.sha }}
-          fetch-depth: 0
-
-      - name: run minimal-raw.sh
-        run: ./minimal-raw.sh
-        env:
-          DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
-        timeout-minutes: 60
-
-      - name: Set non cancelled result status
-        if: ${{ !cancelled() }}
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: ${{ job.status }}
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set cancelled result status
-        if: ${{ cancelled() }}
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: error
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: minimal-raw-f39
-          path: |
-            *.json
-            *.log
-
-  pre-arm-minimal-f39:
-    needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-f39') ||
-            endsWith(github.event.comment.body, '/test-f39-arm-minimal')) }}
-    runs-on: ubuntu-latest
-    env:
-      STATUS_NAME: arm-minimal-f39
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Runner has been deploying...'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  arm-minimal-f39:
-    needs: [pr-info, pre-arm-minimal-f39]
-    runs-on: [kite, aarch64, beaker, fedora-39]
-    env:
-      STATUS_NAME: arm-minimal-f39
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Test has been running...'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Clone repository
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.pr-info.outputs.sha }}
-          fetch-depth: 0
-
-      - name: run minimal-raw.sh
-        run: ./minimal-raw.sh
-        env:
-          DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
-        timeout-minutes: 90
-
-      - name: Set non cancelled result status
-        if: ${{ !cancelled() }}
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: ${{ job.status }}
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set cancelled result status
-        if: ${{ cancelled() }}
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: error
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: arm-minimal-f39
-          path: |
-            *.json
-            *.log
-
-  pre-iot-simplified-f39:
-    needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-f39') ||
-            endsWith(github.event.comment.body, '/test-f39-simplified')) }}
-    runs-on: ubuntu-latest
-    env:
-      STATUS_NAME: iot-simplified-f39
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Runner has been deploying...'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  iot-simplified-f39:
-    needs: [pr-info, pre-iot-simplified-f39]
-    runs-on: [kite, x86_64, rhos-01, fedora-39, large]
-    env:
-      STATUS_NAME: iot-simplified-f39
-
-    steps:
-      - name: Create in-progress status
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: pending
-          description: 'Test has been running...'
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Clone repository
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ needs.pr-info.outputs.sha }}
-          fetch-depth: 0
-
-      - name: run ostree-simplified-installer.sh
-        run: ./ostree-simplified-installer.sh
-        timeout-minutes: 150
-
-      - name: Set non cancelled result status
-        if: ${{ !cancelled() }}
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: ${{ job.status }}
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set cancelled result status
-        if: ${{ cancelled() }}
-        uses: octokit/request-action@v2.x
-        with:
-          route: 'POST /repos/${{ github.repository }}/statuses/${{ needs.pr-info.outputs.sha }}'
-          context: ${{ env.STATUS_NAME }}
-          state: error
-          target_url: 'https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: actions/upload-artifact@v3
-        with:
-          name: iot-simplified-f39
-          path: |
-            *.json
-            *.log
+          compose: Fedora-39-Updated
+          arch: aarch64
+          api_key: ${{ secrets.TF_API_KEY }}
+          git_url: ${{ needs.pr-info.outputs.repo_url }}
+          git_ref: ${{ needs.pr-info.outputs.ref }}
+          update_pull_request_status: true
+          pull_request_status_name: "iot-f39-arm"
+          tmt_plan_regex: edge-arm
+          tf_scope: private
+          secrets: "DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }};OCP4_TOKEN=${{ secrets.OCP4_TOKEN }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }};DOCKERHUB_PASSWORD=${{ secrets.DOCKERHUB_PASSWORD }};AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }};AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }};GOVC_URL=${{ secrets.GOVC_URL }};GOVC_USERNAME=${{ secrets.GOVC_USERNAME }};GOVC_PASSWORD=${{ secrets.GOVC_PASSWORD }}"
+          variables: "ARCH=x86_64;AWS_DEFAULT_REGION=us-east-1;GOVC_INSECURE=1"
