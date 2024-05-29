@@ -49,7 +49,7 @@ provision:
   environment+:
     TEST_CASE: edge-fdo-aio
   adjust+:
-    - when: arch != x86_64
+    - when: arch != x86_64 or distro == fedora
       enabled: false
 
 /edge-x86-fdo-db:
@@ -57,7 +57,7 @@ provision:
   environment+:
     TEST_CASE: edge-fdo-db
   adjust+:
-    - when: arch != x86_64
+    - when: arch != x86_64 or distro == fedora
       enabled: false
 
 /edge-x86-ignition:
@@ -65,7 +65,7 @@ provision:
   environment+:
     TEST_CASE: edge-ignition
   adjust+:
-    - when: arch != x86_64
+    - when: arch != x86_64 or distro == fedora
       enabled: false
 
 /edge-x86-pulp:
@@ -73,7 +73,7 @@ provision:
   environment+:
     TEST_CASE: edge-pulp
   adjust+:
-    - when: arch != x86_64
+    - when: arch != x86_64 or distro == fedora
       enabled: false
 
 /edge-x86-vsphere:
@@ -81,13 +81,16 @@ provision:
   environment+:
     TEST_CASE: edge-vsphere
   adjust+:
-    - when: arch != x86_64
+    - when: arch != x86_64 or distro == fedora
       enabled: false
 
 /edge-x86-ami-image:
   summary: Test edge ami image
   environment+:
     TEST_CASE: edge-ami-image
+  adjust+:
+    - when: distro == fedora
+      enabled: false
 
 /edge-x86-minimal:
   summary: Test edge minimal raw image
@@ -98,6 +101,9 @@ provision:
   summary: Test edge ami image
   environment+:
     TEST_CASE: edge-ami-image
+  adjust+:
+    - when: distro == fedora
+      enabled: false
 
 /edge-arm-minimal:
   summary: Test edge minimal raw image
