@@ -55,7 +55,7 @@ greenprint "🚀 Starting libvirt daemon"
 sudo systemctl start libvirtd
 sudo virsh list --all > /dev/null
 
-# Set a customized dnsmasq configuration for libvirt so we always get the same address on bootup.
+# Set a customized dnsmasq configuration for libvirt so we always get the same address on boot-up.
 greenprint "💡 Setup libvirt network"
 if [ "$ARCH" == "aarch64" ]; then
     # code 00024 comes from https://www.mail-archive.com/edk2-devel@lists.01.org/msg14683.html
