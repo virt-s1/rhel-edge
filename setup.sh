@@ -151,7 +151,7 @@ sudo systemctl start libvirtd
 sudo virsh list --all > /dev/null
 
 # Set a customized dnsmasq configuration for libvirt so we always get the
-# same address on bootup.
+# same address on boot-up.
 greenprint "💡 Setup libvirt network"
 sudo tee /tmp/integration.xml > /dev/null << EOF
 <network xmlns:dnsmasq='http://libvirt.org/schemas/network/dnsmasq/1.0'>
@@ -239,3 +239,9 @@ sudo composer-cli sources list
 for SOURCE in $(sudo composer-cli sources list); do
     sudo composer-cli sources info "$SOURCE"
 done
+
+# In case port 8081 is already in use
+sudo dnf install -y lsof
+if lsof -nP -iTCP -sTCP:LISTEN|grep 8081; then
+    sudo fuser -k 8081/tcp
+fi
