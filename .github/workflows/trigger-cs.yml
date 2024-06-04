@@ -19,46 +19,46 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Check CentOS Stream 8 compose
-        id: check_compose_id_cs8
-        run: |
-          CURRENT_COMPOSE_CS8=$(curl -s "${COMPOSE_URL_CS8}/" | grep -ioE ">CentOS-Stream-8-.*/<" | tr -d '>/<' | tail -1)
-          curl -s ${COMPOSE_URL_CS8}/${CURRENT_COMPOSE_CS8}/STATUS --output STATUS_CS8
-          STATUS_CS8=$(cat STATUS_CS8)
-          if [[ "$STATUS_CS8" == "FINISHED" ]]; then
-              COMPOSE_ID_CS8=$CURRENT_COMPOSE_CS8
-              TESTED_COMPOSE_CS8=( $( cat compose/compose.cs8 ) )
-              if [[ " ${TESTED_COMPOSE_CS8[*]} " =~ "$COMPOSE_ID_CS8" ]]; then
-                  COMPOSE_ID_CS8="false"
-              fi
-          else
-              COMPOSE_ID_CS8="false"
-          fi
-
-          if [[ "$COMPOSE_ID_CS8" != "false" ]]; then
-              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST_CS8
-              PR_LIST_CS8=$(cat PR_LIST_CS8)
-              if [[ $PR_LIST_CS8 == *"$COMPOSE_ID_CS8"* ]]; then
-                  echo "pr_running_cs8=true" >> $GITHUB_OUTPUT
-              else
-                  echo "pr_running_cs8=false" >> $GITHUB_OUTPUT
-              fi
-
-              OSBUILD_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*</a" | tr -d "></a")
-              OSBUILD_COMPOSER_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*</a" | tr -d "></a")
-              COMPOSER_CLI_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*</a" | tr -d "></a")
-              echo "osbuild_version_cs8=$OSBUILD_VERSION_CS8" >> $GITHUB_OUTPUT
-              echo "osbuild_composer_version_cs8=$OSBUILD_COMPOSER_VERSION_CS8" >> $GITHUB_OUTPUT
-              echo "composer_cli_version_cs8=$COMPOSER_CLI_VERSION_CS8" >> $GITHUB_OUTPUT
-          else
-              echo "osbuild_version_cs8=Null" >> $GITHUB_OUTPUT
-              echo "osbuild_composer_version_cs8=Null" >> $GITHUB_OUTPUT
-              echo "composer_cli_version_cs8=Null" >> $GITHUB_OUTPUT
-          fi
-
-          echo "cs8_compose=$COMPOSE_ID_CS8" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       - name: Check CentOS Stream 8 compose
+#         id: check_compose_id_cs8
+#         run: |
+#           CURRENT_COMPOSE_CS8=$(curl -s "${COMPOSE_URL_CS8}/" | grep -ioE ">CentOS-Stream-8-.*/<" | tr -d '>/<' | tail -1)
+#           curl -s ${COMPOSE_URL_CS8}/${CURRENT_COMPOSE_CS8}/STATUS --output STATUS_CS8
+#           STATUS_CS8=$(cat STATUS_CS8)
+#           if [[ "$STATUS_CS8" == "FINISHED" ]]; then
+#               COMPOSE_ID_CS8=$CURRENT_COMPOSE_CS8
+#               TESTED_COMPOSE_CS8=( $( cat compose/compose.cs8 ) )
+#               if [[ " ${TESTED_COMPOSE_CS8[*]} " =~ "$COMPOSE_ID_CS8" ]]; then
+#                   COMPOSE_ID_CS8="false"
+#               fi
+#           else
+#               COMPOSE_ID_CS8="false"
+#           fi
+#
+#           if [[ "$COMPOSE_ID_CS8" != "false" ]]; then
+#               gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST_CS8
+#               PR_LIST_CS8=$(cat PR_LIST_CS8)
+#               if [[ $PR_LIST_CS8 == *"$COMPOSE_ID_CS8"* ]]; then
+#                   echo "pr_running_cs8=true" >> $GITHUB_OUTPUT
+#               else
+#                   echo "pr_running_cs8=false" >> $GITHUB_OUTPUT
+#               fi
+#
+#               OSBUILD_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*</a" | tr -d "></a")
+#               OSBUILD_COMPOSER_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*</a" | tr -d "></a")
+#               COMPOSER_CLI_VERSION_CS8=$(curl -s "${COMPOSE_URL_CS8}/${COMPOSE_ID_CS8}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*</a" | tr -d "></a")
+#               echo "osbuild_version_cs8=$OSBUILD_VERSION_CS8" >> $GITHUB_OUTPUT
+#               echo "osbuild_composer_version_cs8=$OSBUILD_COMPOSER_VERSION_CS8" >> $GITHUB_OUTPUT
+#               echo "composer_cli_version_cs8=$COMPOSER_CLI_VERSION_CS8" >> $GITHUB_OUTPUT
+#           else
+#               echo "osbuild_version_cs8=Null" >> $GITHUB_OUTPUT
+#               echo "osbuild_composer_version_cs8=Null" >> $GITHUB_OUTPUT
+#               echo "composer_cli_version_cs8=Null" >> $GITHUB_OUTPUT
+#           fi
+#
+#           echo "cs8_compose=$COMPOSE_ID_CS8" >> $GITHUB_OUTPUT
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check CentOS Stream 9 compose
         id: check_compose_id_cs9
@@ -102,78 +102,78 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     outputs:
-      cs8_compose: ${{ steps.check_compose_id_cs8.outputs.cs8_compose }}
+      # cs8_compose: ${{ steps.check_compose_id_cs8.outputs.cs8_compose }}
       cs9_compose: ${{ steps.check_compose_id_cs9.outputs.cs9_compose }}
-      osbuild_version_cs8: ${{ steps.check_compose_id_cs8.outputs.osbuild_version_cs8 }}
-      osbuild_composer_version_cs8: ${{ steps.check_compose_id_cs8.outputs.osbuild_composer_version_cs8 }}
-      composer_cli_version_cs8: ${{ steps.check_compose_id_cs8.outputs.composer_cli_version_cs8 }}
+      # osbuild_version_cs8: ${{ steps.check_compose_id_cs8.outputs.osbuild_version_cs8 }}
+      # osbuild_composer_version_cs8: ${{ steps.check_compose_id_cs8.outputs.osbuild_composer_version_cs8 }}
+      # composer_cli_version_cs8: ${{ steps.check_compose_id_cs8.outputs.composer_cli_version_cs8 }}
       osbuild_version_cs9: ${{ steps.check_compose_id_cs9.outputs.osbuild_version_cs9 }}
       osbuild_composer_version_cs9: ${{ steps.check_compose_id_cs9.outputs.osbuild_composer_version_cs9 }}
       composer_cli_version_cs9: ${{ steps.check_compose_id_cs9.outputs.composer_cli_version_cs9 }}
-      pr_running_cs8: ${{ steps.check_compose_id_cs8.outputs.pr_running_cs8 }}
+      # pr_running_cs8: ${{ steps.check_compose_id_cs8.outputs.pr_running_cs8 }}
       pr_running_cs9: ${{ steps.check_compose_id_cs9.outputs.pr_running_cs9 }}
 
-  centos-stream-8:
-    needs: check-compose
-    if: ${{ needs.check-compose.outputs.cs8_compose != 'false' && needs.check-compose.outputs.pr_running_cs8 == 'false' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Add new compose id in compose.cs8
-        run: |
-          compose_id="${{ needs.check-compose.outputs.cs8_compose }}"
-          echo $compose_id >> compose/compose.cs8
-          cat compose/compose.cs8
-
-      - name: Get current date
-        id: date
-        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-
-      - name: Create Pull Request
-        id: cpr
-        uses: peter-evans/create-pull-request@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "${{ needs.check-compose.outputs.cs8_compose }} - ${{ steps.date.outputs.date }}"
-          committer: cloudkitebot <henrywangxf1@gmail.com>
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          branch: cpr
-          branch-suffix: random
-          delete-branch: true
-          title: "${{ needs.check-compose.outputs.cs8_compose }} - ${{ steps.date.outputs.date }}"
-          labels: auto-merge,CentOS-Stream-8
-          body: |
-            CentOS Stream 8 compose ${{ needs.check-compose.outputs.cs8_compose }}
-            - Date: ${{ steps.date.outputs.date }}
-            - Compose URL: "${{ env.COMPOSE_URL_CS8 }}/${{ needs.check-compose.outputs.cs8_compose }}"
-            - Packages:
-                - ${{ needs.check-compose.outputs.osbuild_version_cs8 }}
-                - ${{ needs.check-compose.outputs.osbuild_composer_version_cs8 }}
-                - ${{ needs.check-compose.outputs.composer_cli_version_cs8 }}
-
-      - name: Enable Pull Request Automerge
-        if: steps.cpr.outputs.pull-request-operation == 'created'
-        uses: peter-evans/enable-pull-request-automerge@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
-          merge-method: rebase
-
-      - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v2
-        with:
-          token: ${{ secrets.PAT }}
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-          body: /test-cs8
-
-      - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          project-name: RHEL Compose Test
-          column-name: CentOS-Stream-8
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+#   centos-stream-8:
+#     needs: check-compose
+#     if: ${{ needs.check-compose.outputs.cs8_compose != 'false' && needs.check-compose.outputs.pr_running_cs8 == 'false' }}
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v3
+#
+#       - name: Add new compose id in compose.cs8
+#         run: |
+#           compose_id="${{ needs.check-compose.outputs.cs8_compose }}"
+#           echo $compose_id >> compose/compose.cs8
+#           cat compose/compose.cs8
+#
+#       - name: Get current date
+#         id: date
+#         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+#
+#       - name: Create Pull Request
+#         id: cpr
+#         uses: peter-evans/create-pull-request@v4
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#           commit-message: "${{ needs.check-compose.outputs.cs8_compose }} - ${{ steps.date.outputs.date }}"
+#           committer: cloudkitebot <henrywangxf1@gmail.com>
+#           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+#           branch: cpr
+#           branch-suffix: random
+#           delete-branch: true
+#           title: "${{ needs.check-compose.outputs.cs8_compose }} - ${{ steps.date.outputs.date }}"
+#           labels: auto-merge,CentOS-Stream-8
+#           body: |
+#             CentOS Stream 8 compose ${{ needs.check-compose.outputs.cs8_compose }}
+#             - Date: ${{ steps.date.outputs.date }}
+#             - Compose URL: "${{ env.COMPOSE_URL_CS8 }}/${{ needs.check-compose.outputs.cs8_compose }}"
+#             - Packages:
+#                 - ${{ needs.check-compose.outputs.osbuild_version_cs8 }}
+#                 - ${{ needs.check-compose.outputs.osbuild_composer_version_cs8 }}
+#                 - ${{ needs.check-compose.outputs.composer_cli_version_cs8 }}
+#
+#       - name: Enable Pull Request Automerge
+#         if: steps.cpr.outputs.pull-request-operation == 'created'
+#         uses: peter-evans/enable-pull-request-automerge@v2
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#           pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+#           merge-method: rebase
+#
+#       - name: Add a comment to trigger test workflow
+#         uses: peter-evans/create-or-update-comment@v2
+#         with:
+#           token: ${{ secrets.PAT }}
+#           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+#           body: /test-cs8
+#
+#       - name: Create a project card to track compose test result
+#         uses: peter-evans/create-or-update-project-card@v2
+#         with:
+#           token: ${{ secrets.GITHUB_TOKEN }}
+#           project-name: RHEL Compose Test
+#           column-name: CentOS-Stream-8
+#           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
 
   centos-stream-9:
     needs: check-compose
