@@ -63,6 +63,7 @@ jobs:
           git_url: ${{ needs.pr-info.outputs.repo_url }}
           git_ref: ${{ needs.pr-info.outputs.ref }}
           update_pull_request_status: true
+          tmt_context: "arch=x86_64;distro=rhel;version=9.4"
           pull_request_status_name: "edge-rhel-9.4-x86"
           tmt_plan_regex: edge-x86
           tf_scope: private
@@ -91,6 +92,7 @@ jobs:
           git_url: ${{ needs.pr-info.outputs.repo_url }}
           git_ref: ${{ needs.pr-info.outputs.ref }}
           update_pull_request_status: true
+          tmt_context: "arch=aarch64;distro=rhel;version=9.4"
           pull_request_status_name: "edge-rhel-9.4-arm"
           tmt_plan_regex: edge-arm
           tf_scope: private
