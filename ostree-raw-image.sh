@@ -28,7 +28,7 @@ RAW_FILENAME=image.raw.xz
 BOOT_ARGS="uefi"
 # RHEL and CS default ostree os_name is redhat
 # But Fedora uses fedora-iot
-ANSIBLE_OS_NAME="redhat"
+ANSIBLE_OS_NAME="rhel-edge"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
