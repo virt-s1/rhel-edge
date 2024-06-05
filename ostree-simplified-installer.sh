@@ -100,7 +100,7 @@ SYSROOT_RO="false"
 
 # No FDO and Ignition in simplified installer is only supported started from 8.8 and 9.2
 NO_FDO="false"
-OS_NAME="redhat"
+OS_NAME="rhel-edge"
 
 # Prepare osbuild-composer repository file
 sudo mkdir -p /etc/osbuild-composer/repositories
