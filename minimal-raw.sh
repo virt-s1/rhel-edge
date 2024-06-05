@@ -39,6 +39,8 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "rhel-9"*)
         OS_VARIANT="rhel9-unknown"
+        MINIMAL_RAW_DECOMPRESSED=disk.raw
+        MINIMAL_RAW_FILENAME=disk.raw.xz
         ;;
     "centos-8")
         OS_VARIANT="centos-stream8"
