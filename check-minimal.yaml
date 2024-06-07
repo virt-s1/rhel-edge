@@ -81,6 +81,26 @@
       become: yes
       when: ansible_facts['distribution_version'] == "9.4" or ansible_facts['distribution_version'] == "9.3" or ansible_facts['distribution_version'] == "9" or (ansible_facts['architecture'] == "aarch64" and ansible_facts['distribution_version'] == "39")
 
+    - name: add RHEL 9.5 BaseOS repository
+      yum_repository:
+        name: baseos
+        description: RHEL repository
+        baseurl: "http://{{ download_node }}/rhel-9/nightly/RHEL-9/latest-RHEL-9.5.0/compose/BaseOS/{{ ansible_facts['architecture'] }}/os/"
+        gpgcheck: no
+        file: rhel_repo
+      become: yes
+      when: ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.5', '==')
+
+    - name: add RHEL 9.5 AppStream repository
+      yum_repository:
+        name: appstream
+        description: RHEL repository
+        baseurl: "http://{{ download_node }}/rhel-9/nightly/RHEL-9/latest-RHEL-9.5.0/compose/AppStream/{{ ansible_facts['architecture'] }}/os/"
+        gpgcheck: no
+        file: rhel_repo
+      become: yes
+      when: ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.5', '==')
+
     - name: add RHEL 9.4 BaseOS repository
       yum_repository:
         name: baseos
