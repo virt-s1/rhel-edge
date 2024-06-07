@@ -39,9 +39,9 @@ provision:
   adjust+:
     - when: arch != x86_64 or distro == fedora
       enabled: false
-    - when: distro==rhel and version == 8.8
+    - when: distro == rhel-8-8
       enabled: false
-    - when: distro==rhel and version == 8.10
+    - when: distro == rhel-8-10
       enabled: false
 
 /edge-x86-fdo-db:
@@ -51,9 +51,9 @@ provision:
   adjust+:
     - when: arch != x86_64 or distro == fedora
       enabled: false
-    - when: distro==rhel and version == 8.8
+    - when: distro == rhel-8-8
       enabled: false
-    - when: distro==rhel and version == 8.10
+    - when: distro == rhel-8-10
       enabled: false
 
 /edge-x86-ignition:
@@ -63,9 +63,9 @@ provision:
   adjust+:
     - when: arch != x86_64 or distro == fedora
       enabled: false
-    - when: distro==rhel and version == 8.8
+    - when: distro == rhel-8-8
       enabled: false
-    - when: distro==rhel and version == 8.10
+    - when: distro == rhel-8-10
       enabled: false
 
 /edge-x86-pulp:
@@ -75,9 +75,9 @@ provision:
   adjust+:
     - when: arch != x86_64 or distro == fedora
       enabled: false
-    - when: distro==rhel and version == 8.8
+    - when: distro == rhel-8-8
       enabled: false
-    - when: distro==rhel and version == 8.10
+    - when: distro == rhel-8-10
       enabled: false
 
 /edge-x86-vsphere:
@@ -87,9 +87,9 @@ provision:
   adjust+:
     - when: arch != x86_64 or distro == fedora
       enabled: false
-    - when: distro==rhel and version == 8.8
+    - when: distro == rhel-8-8
       enabled: false
-    - when: distro==rhel and version == 8.10
+    - when: distro == rhel-8-10
       enabled: false
 
 /edge-x86-ami-image:
@@ -99,9 +99,9 @@ provision:
   adjust+:
     - when: distro == fedora
       enabled: false
-    - when: distro==rhel and version == 8.8
+    - when: distro == rhel-8-8
       enabled: false
-    - when: distro==rhel and version == 8.10
+    - when: distro == rhel-8-10
       enabled: false
 
 /edge-x86-minimal:
@@ -109,7 +109,7 @@ provision:
   environment+:
     TEST_CASE: edge-minimal
   adjust+:
-    - when: distro==rhel and version == 8.8
+    - when: distro == rhel-8-8
       enabled: false
 
 /edge-x86-8to9:
@@ -119,9 +119,9 @@ provision:
   adjust+:
     - when: distro == fedora
       enabled: false
-    - when: distro==rhel and version == 8.8
+    - when: distro == rhel-8-8
       enabled: false
-    - when: distro==rhel and version == 8.10
+    - when: distro == rhel-8-10
       enabled: false
 
 /edge-x86-9to9:
@@ -131,9 +131,9 @@ provision:
   adjust+:
     - when: distro == fedora
       enabled: false
-    - when: distro==rhel and version == 8.8
+    - when: distro == rhel-8-8
       enabled: false
-    - when: distro==rhel and version == 8.10
+    - when: distro == rhel-8-10
       enabled: false
 
 /edge-arm-ami-image:
@@ -148,4 +148,3 @@ provision:
   summary: Test edge minimal raw image
   environment+:
     TEST_CASE: edge-minimal
-

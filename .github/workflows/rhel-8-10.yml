@@ -63,7 +63,7 @@ jobs:
           git_url: ${{ needs.pr-info.outputs.repo_url }}
           git_ref: ${{ needs.pr-info.outputs.ref }}
           update_pull_request_status: true
-          tmt_context: "arch=x86_64;distro=rhel;version=8.10"
+          tmt_context: "arch=x86_64;distro=rhel-8-10"
           pull_request_status_name: "edge-rhel-8.10-x86"
           tmt_plan_regex: edge-x86
           tf_scope: private
