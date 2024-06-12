@@ -40,9 +40,6 @@ function greenprint {
 sudo dnf install -y glibc-langpack-en
 sudo localectl set-locale LANG=en_US.UTF-8
 
-# Install openshift client
-curl https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz | sudo tar -xz -C /usr/local/bin/
-
 # Install required packages
 greenprint "Install required packages"
 sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli podman skopeo wget firewalld lorax xorriso curl jq expect qemu-img qemu-kvm libvirt-client libvirt-daemon-kvm libvirt-daemon virt-install rpmdevtools createrepo_c

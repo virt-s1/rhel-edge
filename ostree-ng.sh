@@ -18,8 +18,8 @@ UEFI_GUEST_ADDRESS=192.168.100.51
 HTTP_GUEST_ADDRESS=192.168.100.52
 PROD_REPO=/var/www/html/repo
 STAGE_REPO_ADDRESS=192.168.200.1
-STAGE_OCP4_SERVER_NAME="edge-stage-server"
-STAGE_OCP4_REPO_URL="http://${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}-rhel-edge.apps.ocp-c1.prod.psi.redhat.com/repo/"
+STAGE_OCP4_ADDRESS=192.168.200.2
+STAGE_OCP4_REPO_URL="http://${STAGE_OCP4_ADDRESS}:8080/repo/"
 CONTAINER_IMAGE_TYPE=edge-container
 INSTALLER_IMAGE_TYPE=edge-installer
 CONTAINER_FILENAME=container.tar
@@ -675,27 +675,21 @@ fi
 greenprint "Prepare container network"
 sudo podman network inspect edge >/dev/null 2>&1 || sudo podman network create --driver=bridge --subnet=192.168.200.0/24 --gateway=192.168.200.254 edge
 
-# Run stage repo in OCP4
-greenprint "Running stage repo in OCP4"
-oc login --token="${OCP4_TOKEN}" --server=https://api.ocp-c1.prod.psi.redhat.com:6443 -n rhel-edge --insecure-skip-tls-verify
-oc process -f tools/edge-stage-server-template.yaml -p EDGE_STAGE_REPO_TAG="${QUAY_REPO_TAG}" -p EDGE_STAGE_SERVER_NAME="${STAGE_OCP4_SERVER_NAME}" | oc apply -f -
+# Run stage repo in podman instead of OCP4
+QUAY_REPO_URL_AUX=$(echo ${QUAY_REPO_URL} | grep -oP '(quay.*)')
+sudo podman pull "${QUAY_REPO_URL_AUX}:${QUAY_REPO_TAG}"
+sudo podman images
+STAGE_PODMAN_IMAGE_ID=$(sudo podman images --format "{{.ID}}")
+sudo podman run -d --name test-ocp4-container --network edge --ip "${STAGE_OCP4_ADDRESS}" "${STAGE_PODMAN_IMAGE_ID}"
 
-for _ in $(seq 0 60); do
-    RETURN_CODE=$(curl -o /dev/null -s -w "%{http_code}" "${STAGE_OCP4_REPO_URL}refs/heads/${OSTREE_REF}")
-    if [[ $RETURN_CODE == 200 ]]; then
-        echo "Stage repo is ready"
-        break
-    fi
-    sleep 10
-done
+# Wait for container to be running
+until [ "$(sudo podman inspect -f '{{.State.Running}}' test-ocp4-container)" == "true" ]; do
+    sleep 1;
+done;
 
 # Sync installer ostree content
 greenprint "Sync ostree repo with stage repo"
 sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage-ocp4 "$OSTREE_REF"
-
-# Clean up OCP4
-greenprint "Clean up OCP4"
-oc delete pod,rc,service,route,dc -l app="${STAGE_OCP4_SERVER_NAME}-${QUAY_REPO_TAG}"
 
 # Clean compose and blueprints.
 greenprint "🧹 Clean up compose"
@@ -704,6 +698,10 @@ sudo composer-cli blueprints delete container > /dev/null
 
 greenprint "Remove tag from quay.io repo"
 skopeo delete --creds "${QUAY_USERNAME}:${QUAY_PASSWORD}" "${QUAY_REPO_URL}:${QUAY_REPO_TAG}"
+
+greenprint "Remove OCP4 container and image"
+sudo podman rm -f test-ocp4-container
+sudo podman rmi -f "${STAGE_PODMAN_IMAGE_ID}"
 
 ########################################################
 ##
