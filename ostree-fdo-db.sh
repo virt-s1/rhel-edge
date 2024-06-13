@@ -281,7 +281,7 @@ DB_TYPE=$((RANDOM % 2))
 if [[ $DB_TYPE == 0 ]]; then
     # Setup FDO SQLite database
     greenprint "🔧 FDO SQLite DB configurations"
-    cargo install --force diesel_cli --no-default-features --features sqlite
+    cargo install --force diesel_cli --version 2.1.1 --no-default-features --features sqlite
     rm -fr /tmp/fdo
     mkdir -p /tmp/fdo
     manufacturer_db_file="/tmp/fdo/manufacturer-db.sqlite"
