@@ -20,7 +20,7 @@ CONTAINER_TYPE=edge-container
 CONTAINER_FILENAME=container.tar
 RAW_TYPE=edge-ami
 RAW_FILENAME=image.raw
-ANSIBLE_OS_NAME="rhel-edge"
+ANSIBLE_OS_NAME="redhat"
 BUCKET_NAME="rhel-edge-${TEST_UUID}"
 BUCKET_URL="s3://${BUCKET_NAME}"
 OBJECT_URL="http://${BUCKET_NAME}.s3.${AWS_DEFAULT_REGION}.amazonaws.com"
@@ -42,13 +42,23 @@ EDGE_USER_PASSWORD=foobar
 sudo mkdir -p /etc/osbuild-composer/repositories
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-9"*)
+    "rhel-9.3")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         SYSROOT_RO="true"
+        ;;
+    "rhel-9.4")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        SYSROOT_RO="true"
+        ;;
+    "rhel-9.5")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        SYSROOT_RO="true"
+        ANSIBLE_OS_NAME="rhel-edge"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         SYSROOT_RO="true"
+        ANSIBLE_OS_NAME="rhel-edge"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"

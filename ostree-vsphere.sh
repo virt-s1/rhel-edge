@@ -31,6 +31,7 @@ CONTAINER_FILENAME=container.tar
 VSPHERE_IMAGE_TYPE=edge-vsphere
 VSPHERE_FILENAME=image.vmdk
 REF_PREFIX="rhel-edge"
+OS_NAME="redhat"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -60,20 +61,36 @@ DATACENTER_70_POOL="/Datacenter7.0/host/Automation/Resources"
 
 # Workdaround for creating rhel9 and centos9 on dc67, change guest_id to 8
 case "${ID}-${VERSION_ID}" in
-    "rhel-9"* )
+    "rhel-9.3" )
         OSTREE_REF="rhel/9/${ARCH}/edge"
         # GUEST_ID_DC67="rhel8_64Guest"
         GUEST_ID_DC70="rhel9_64Guest"
+        ;;
+    "rhel-9.4" )
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        # GUEST_ID_DC67="rhel8_64Guest"
+        GUEST_ID_DC70="rhel9_64Guest"
+        ;;
+    "rhel-9.5" )
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        # GUEST_ID_DC67="rhel8_64Guest"
+        GUEST_ID_DC70="rhel9_64Guest"
+        OS_NAME="rhel-edge"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         # GUEST_ID_DC67="centos8_64Guest"
         GUEST_ID_DC70="centos9_64Guest"
+        OS_NAME="rhel-edge"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
 esac
+
+if [[ "${ID}-${VERSION_ID}" == "rhel-9.5" ]]; then
+   OS_NAME="rhel-edge"
+fi
 
 # Colorful output.
 function greenprint {
@@ -486,7 +503,7 @@ EOF
 podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z \
     --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory \
     -e ignition="true" \
-    -e os_name=rhel-edge \
+    -e os_name="${OS_NAME}" \
     -e ostree_commit="${INSTALL_HASH}" \
     -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" \
     -e fdo_credential="false" \
@@ -681,7 +698,7 @@ EOF
 podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z \
     --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory \
     -e ignition="true" \
-    -e os_name=rhel-edge \
+    -e os_name="${OS_NAME}" \
     -e ostree_commit="${UPGRADE_HASH}" \
     -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" \
     -e fdo_credential="false" \

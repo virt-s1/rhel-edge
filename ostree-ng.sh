@@ -157,6 +157,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         SYSROOT_RO="true"
         DIRS_FILES_CUSTOMIZATION="true"
+        ANSIBLE_OS_NAME="rhel-edge"
         ;;
     "fedora-38")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
