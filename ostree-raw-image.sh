@@ -28,7 +28,7 @@ RAW_FILENAME=image.raw.xz
 BOOT_ARGS="uefi"
 # RHEL and CS default ostree os_name is redhat
 # But Fedora uses fedora-iot
-ANSIBLE_OS_NAME="rhel-edge"
+ANSIBLE_OS_NAME="redhat"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -121,6 +121,7 @@ case "${ID}-${VERSION_ID}" in
         ADD_SSSD="true"
         USER_IN_RAW="true"
         SYSROOT_RO="true"
+        ANSIBLE_OS_NAME="rhel-edge"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -140,6 +141,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         USER_IN_RAW="true"
         SYSROOT_RO="true"
+        ANSIBLE_OS_NAME="rhel-edge"
         ;;
     "fedora-38")
         CONTAINER_TYPE=fedora-iot-container

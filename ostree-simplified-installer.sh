@@ -100,7 +100,7 @@ SYSROOT_RO="false"
 
 # No FDO and Ignition in simplified installer is only supported started from 8.8 and 9.2
 NO_FDO="false"
-OS_NAME="rhel-edge"
+OS_NAME="redhat"
 
 # Prepare osbuild-composer repository file
 sudo mkdir -p /etc/osbuild-composer/repositories
@@ -201,6 +201,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_BLUEPRINT="true"
         BLUEPRINT_USER="simple"
         NO_FDO="true"
+        OS_NAME="rhel-edge"
         ;;
     "centos-8")
         OSTREE_REF="centos/8/${ARCH}/edge"
@@ -229,6 +230,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_BLUEPRINT="true"
         BLUEPRINT_USER="simple"
         NO_FDO="true"
+        OS_NAME="rhel-edge"
         ;;
     "fedora-"*)
         OSTREE_REF="fedora/${VERSION_ID}/${ARCH}/iot"
