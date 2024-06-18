@@ -47,6 +47,8 @@ case "${ID}-${VERSION_ID}" in
         ;;
     "centos-9")
         OS_VARIANT="centos-stream9"
+        MINIMAL_RAW_DECOMPRESSED=disk.raw
+        MINIMAL_RAW_FILENAME=disk.raw.xz
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
     "fedora-38")
