@@ -425,8 +425,8 @@ EOF
     LIBVIRT_HTTP_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-httpboot.qcow2
     sudo qemu-img create -f qcow2 "${LIBVIRT_HTTP_IMAGE_PATH}" 20G
 
-    # Workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2124239
-    if [[ "${VERSION_ID}" == "8.7" || "${VERSION_ID}" == "8.9" || "${VERSION_ID}" == "8.10" ]]; then
+    # Workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2124239 and https://issues.redhat.com/browse/RHEL-41024
+    if [[ "${VERSION_ID}" == "8.7" || "${VERSION_ID}" == "8.9" || "${VERSION_ID}" == "8.10" || "${VERSION_ID}" == "9.5" ]]; then
         ALLOC_VM_RAM=4096
     fi
 
