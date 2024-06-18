@@ -73,23 +73,7 @@ sudo mkdir -p /etc/osbuild-composer/repositories
 # The RO setting on RHEL 8.8 and CS8 is not configured by ostree, but osbuild-composer
 # by PR https://github.com/osbuild/osbuild-composer/pull/3178
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.6")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        PARENT_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
-        IMAGE_NAME="disk.img.xz"
-        sudo mkdir -p /var/lib/fdo
-        ;;
     "rhel-8.8")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        PARENT_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
-        IMAGE_NAME="image.raw.xz"
-        USER_IN_BLUEPRINT="true"
-        BLUEPRINT_USER="simple"
-        sudo mkdir -p /var/lib/fdo
-        ;;
-    "rhel-8.9")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
@@ -103,25 +87,6 @@ case "${ID}-${VERSION_ID}" in
         PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         IMAGE_NAME="image.raw.xz"
-        USER_IN_BLUEPRINT="true"
-        BLUEPRINT_USER="simple"
-        sudo mkdir -p /var/lib/fdo
-        ;;
-    "rhel-9.0")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        PARENT_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9.0"
-        IMAGE_NAME="disk.img.xz"
-        sudo mkdir -p /var/lib/fdo
-        ;;
-    "rhel-9.2")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        PARENT_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9-unknown"
-        IMAGE_NAME="image.raw.xz"
-        SYSROOT_RO="true"
-        ANSIBLE_USER=fdouser
-        FDO_USER_ONBOARDING="true"
         USER_IN_BLUEPRINT="true"
         BLUEPRINT_USER="simple"
         sudo mkdir -p /var/lib/fdo
@@ -159,20 +124,6 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_BLUEPRINT="true"
         BLUEPRINT_USER="simple"
         OS_NAME="rhel-edge"
-        ;;
-    "centos-8")
-        OSTREE_REF="centos/8/${ARCH}/edge"
-        PARENT_REF="centos/8/${ARCH}/edge"
-        OS_VARIANT="centos-stream8"
-        IMAGE_NAME="image.raw.xz"
-        USER_IN_BLUEPRINT="true"
-        BLUEPRINT_USER="simple"
-        # workaround issue #2640
-        BOOT_ARGS="loader=/usr/share/edk2/ovmf/OVMF_CODE.secboot.fd,loader.readonly=yes,loader.secure=no,loader.type=pflash,nvram=/usr/share/edk2/ovmf/OVMF_VARS.fd"
-        # sometimes the file /usr/share/edk2/ovmf/OVMF_VARS.fd got deleted after virt-install
-        # a workaround for this issue
-        sudo cp /usr/share/edk2/ovmf/OVMF_VARS.fd /tmp/
-        sudo mkdir -p /var/lib/fdo
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
