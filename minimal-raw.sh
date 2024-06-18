@@ -37,7 +37,13 @@ case "${ID}-${VERSION_ID}" in
     "rhel-8"*)
         OS_VARIANT="rhel8-unknown"
         ;;
-    "rhel-9"*)
+    "rhel-9.3")
+        OS_VARIANT="rhel9-unknown"
+        ;;
+    "rhel-9.4")
+        OS_VARIANT="rhel9-unknown"
+        ;;
+    "rhel-9.5")
         OS_VARIANT="rhel9-unknown"
         MINIMAL_RAW_DECOMPRESSED=disk.raw
         MINIMAL_RAW_FILENAME=disk.raw.xz
