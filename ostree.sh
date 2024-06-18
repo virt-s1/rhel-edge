@@ -36,31 +36,11 @@ FEDORA_LOCAL_NAME="localhost/fedora-minimal:v1"
 
 # Set os-variant and boot location used by virt-install.
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.6")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
-        USER_IN_COMMIT="true"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/rel-eng/updates/RHEL-8/latest-RHEL-8.6.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=9
-        ADD_SSSD="false"
-        DIRS_FILES_CUSTOMIZATION="false"
-        ;;
     "rhel-8.8")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         USER_IN_COMMIT="true"
         OS_VARIANT="rhel8-unknown"
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.8.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=9
-        ADD_SSSD="true"
-        EMBEDDED_CONTAINER="true"
-        FIREWALL_FEATURE="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        ;;
-    "rhel-8.9")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        USER_IN_COMMIT="true"
-        OS_VARIANT="rhel8-unknown"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.9.0/compose/BaseOS/x86_64/os/"
         CUT_DIRS=9
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
@@ -76,27 +56,6 @@ case "${ID}-${VERSION_ID}" in
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
         FIREWALL_FEATURE="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        ;;
-    "rhel-9.0")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        USER_IN_COMMIT="true"
-        OS_VARIANT="rhel9.0"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/rel-eng/updates/RHEL-9/latest-RHEL-9.0.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=9
-        ADD_SSSD="false"
-        DIRS_FILES_CUSTOMIZATION="false"
-        ;;
-    "rhel-9.2")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        USER_IN_COMMIT="true"
-        OS_VARIANT="rhel9-unknown"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=9
-        ADD_SSSD="true"
-        EMBEDDED_CONTAINER="true"
-        FIREWALL_FEATURE="true"
-        SYSROOT_RO="true"
         DIRS_FILES_CUSTOMIZATION="true"
         ;;
     "rhel-9.3")
@@ -133,16 +92,6 @@ case "${ID}-${VERSION_ID}" in
         EMBEDDED_CONTAINER="true"
         FIREWALL_FEATURE="true"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        ;;
-    "centos-8")
-        OSTREE_REF="centos/8/${ARCH}/edge"
-        USER_IN_COMMIT="true"
-        OS_VARIANT="centos-stream8"
-        CUT_DIRS=7
-        ADD_SSSD="true"
-        EMBEDDED_CONTAINER="true"
-        FIREWALL_FEATURE="true"
         DIRS_FILES_CUSTOMIZATION="true"
         ;;
     "centos-9")

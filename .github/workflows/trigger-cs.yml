@@ -8,7 +8,6 @@ on:
     - cron: '0 15 * * *'
 
 env:
-  COMPOSE_URL_CS8: https://odcs.stream.centos.org/stream-8/production
   COMPOSE_URL_CS9: https://composes.stream.centos.org/production
 
 jobs:

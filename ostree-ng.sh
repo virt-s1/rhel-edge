@@ -64,20 +64,7 @@ NEW_MKKSISO="false"
 SYSROOT_RO="false"
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.6")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
-        DIRS_FILES_CUSTOMIZATION="false"
-        ;;
     "rhel-8.8")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
-        CONTAINER_PUSHING_FEAT="true"
-        EMBEDDED_CONTAINER="true"
-        HTTP_BOOT_FEAT="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        ;;
-    "rhel-8.9")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         CONTAINER_PUSHING_FEAT="true"
@@ -91,21 +78,6 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_PUSHING_FEAT="true"
         EMBEDDED_CONTAINER="true"
         HTTP_BOOT_FEAT="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        ;;
-    "rhel-9.0")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9.0"
-        DIRS_FILES_CUSTOMIZATION="false"
-        ;;
-    "rhel-9.2")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9-unknown"
-        NEW_MKKSISO="true"
-        CONTAINER_PUSHING_FEAT="true"
-        EMBEDDED_CONTAINER="true"
-        HTTP_BOOT_FEAT="true"
-        SYSROOT_RO="true"
         DIRS_FILES_CUSTOMIZATION="true"
         ;;
     "rhel-9.3")
@@ -139,15 +111,6 @@ case "${ID}-${VERSION_ID}" in
         DIRS_FILES_CUSTOMIZATION="true"
         ANSIBLE_OS_NAME="rhel-edge"
         ;;
-    "centos-8")
-        OSTREE_REF="centos/8/${ARCH}/edge"
-        OS_VARIANT="centos-stream8"
-        CONTAINER_PUSHING_FEAT="true"
-        EMBEDDED_CONTAINER="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        # workaround issue #2640
-        BOOT_ARGS="loader=/usr/share/edk2/ovmf/OVMF_CODE.secboot.fd,loader.readonly=yes,loader.secure='no',loader.type=pflash,nvram=/usr/share/edk2/ovmf/OVMF_VARS.fd"
-        ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
@@ -158,15 +121,6 @@ case "${ID}-${VERSION_ID}" in
         SYSROOT_RO="true"
         DIRS_FILES_CUSTOMIZATION="true"
         ANSIBLE_OS_NAME="rhel-edge"
-        ;;
-    "fedora-38")
-        CONTAINER_IMAGE_TYPE=fedora-iot-container
-        INSTALLER_IMAGE_TYPE=fedora-iot-installer
-        OSTREE_REF="fedora-iot/38/${ARCH}/iot"
-        OS_VARIANT="fedora-unknown"
-        ANSIBLE_OS_NAME="fedora-iot"
-        SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
         ;;
     "fedora-39")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
