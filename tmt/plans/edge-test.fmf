@@ -55,6 +55,8 @@ provision:
       enabled: false
     - when: distro == rhel-8-10
       enabled: false
+    - when: distro == rhel-9-3
+      enabled: false
     - when: distro==cs-9
       enabled: false
 
@@ -80,6 +82,8 @@ provision:
     - when: distro == rhel-8-8
       enabled: false
     - when: distro == rhel-8-10
+      enabled: false
+    - when: distro == rhel-9-3
       enabled: false
     - when: distro==cs-9
       enabled: false
