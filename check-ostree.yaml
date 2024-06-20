@@ -547,8 +547,9 @@
 
     # Ignore ignition first attempt error log, it'll be successful at the second attempt
     # e.g. ignition[630]: GET error: Get "http://192.168.100.1/ignition/config.ign": dial tcp 192.168.100.1:80: connect: network is unreachable
+    # Workaround for bug https://issues.redhat.com/browse/RHEL-43587, ignore NetworkManager[614]
     - name: check dmesg error and fail log
-      shell: dmesg --notime | grep -i "error\|fail" | grep -v "skipped" | grep -v "failover" | grep -v "ignition" | grep -v "BAR 13":" failed to assign"  | grep -v "failed to assign" || true
+      shell: dmesg --notime | grep -i "error\|fail" | grep -v "skipped" | grep -v "failover" | grep -v "ignition" | grep -v "BAR 13":" failed to assign"  | grep -v "failed to assign" | grep -v "NetworkManager[614]" || true
       register: result_dmesg_error
       become: yes
 
