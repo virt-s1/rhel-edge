@@ -36,7 +36,7 @@ EMBEDDED_CONTAINER="false"
 BOOT_ARGS="uefi"
 ANSIBLE_OS_NAME="rhel"
 # Allocated VM RAM default value
-ALLOC_VM_RAM=3072
+ALLOC_VM_RAM=4096
 # HTTP boot VM feature
 HTTP_BOOT_FEAT="false"
 
@@ -424,11 +424,6 @@ EOF
     greenprint "📋 Create libvirt image disk"
     LIBVIRT_HTTP_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-httpboot.qcow2
     sudo qemu-img create -f qcow2 "${LIBVIRT_HTTP_IMAGE_PATH}" 20G
-
-    # Workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2124239 and https://issues.redhat.com/browse/RHEL-41024
-    if [[ "${VERSION_ID}" == "8.7" || "${VERSION_ID}" == "8.9" || "${VERSION_ID}" == "8.10" || "${VERSION_ID}" == "9.5" ]]; then
-        ALLOC_VM_RAM=4096
-    fi
 
     greenprint "📋 Install edge vm via http boot"
     sudo virt-install --name="${IMAGE_KEY}-httpboot"\
