@@ -54,7 +54,7 @@ SYSROOT_RO="true"
 
 DATACENTER_70="Datacenter7.0"
 DATASTORE_70="datastore-80"
-DATACENTER_70_POOL="/Datacenter7.0/host/Automation/Resources"
+DATACENTER_70_POOL="/Datacenter7.0/host/Edge/Resources"
 # DATACENTER_67="Datacenter6.7"
 # DATASTORE_67="datastore-225"
 # DATACENTER_67_POOL="/Datacenter6.7/host/Cluster6.7/Resources"
