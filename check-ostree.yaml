@@ -1036,7 +1036,8 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when:
         - result_rollback is succeeded
-        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>=')) or
+        # Disable rhel9.5 check due to bug https://issues.redhat.com/projects/RHEL/issues/RHEL-45151
+        - ((ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>=')) and ansible_facts ['distribution_version'] is version('9.5', '!=')) or
           ((ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.8', '>=')) and ansible_facts ['distribution_version'] is version('9.0', '!=') and ansible_facts ['distribution_version'] is version('9.1', '!=')) or
           (ansible_facts['distribution'] == 'CentOS') or
           (ansible_facts['distribution'] == 'Fedora')
