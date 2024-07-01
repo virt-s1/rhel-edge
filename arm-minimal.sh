@@ -134,8 +134,8 @@ case "$TEST_OS" in
     "fedora-40")
         OS_VARIANT="fedora-unknown"
         cp tools/user-data "$CLOUD_INIT_DIR"
-        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/40/Cloud/aarch64/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-40.*.qcow2<" | tr -d '><')
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/releases/40/Cloud/aarch64/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Generic\.aarch64.*.qcow2<" | tr -d '><')
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
