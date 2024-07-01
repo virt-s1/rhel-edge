@@ -298,6 +298,11 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
+      when:
+        # Disable rhel9.5 check due to bug https://issues.redhat.com/projects/RHEL/issues/RHEL-45151
+        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts['distribution_version'] is version('9.5', '!=')) or
+          (ansible_facts['distribution'] == 'CentOS') or
+          (ansible_facts['distribution'] == 'Fedora')
 
     - assert:
         that:
