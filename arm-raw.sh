@@ -175,8 +175,8 @@ case "$TEST_OS" in
         OSTREE_REF="fedora/40/${ARCH}/iot"
         CONTAINER_IMAGE_TYPE=iot-container
         RAW_IMAGE_TYPE=iot-raw-image
-        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/40/Cloud/aarch64/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-40.*.qcow2<" | tr -d '><')
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/releases/40/Cloud/aarch64/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Generic\.aarch64.*.qcow2<" | tr -d '><')
         ANSIBLE_OS_NAME="fedora-iot"
         REF_PREFIX="fedora-iot"
         SYSROOT_RO="true"

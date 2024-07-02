@@ -9,8 +9,8 @@ on:
 
 env:
   COMPOSE_URL_rawhide: https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide
-  COMPOSE_URL_F40: https://dl.fedoraproject.org/pub/fedora/linux/development/40
-  UPDATES_URL_F40: https://dl.fedoraproject.org/pub/fedora/linux/development/40
+  COMPOSE_URL_F40: https://dl.fedoraproject.org/pub/fedora/linux/releases/40
+  UPDATES_URL_F40: https://dl.fedoraproject.org/pub/fedora/linux/releases/40
   COMPOSE_URL_F39: https://dl.fedoraproject.org/pub/fedora/linux/releases/39
   UPDATES_URL_F39: https://dl.fedoraproject.org/pub/fedora/linux/updates/39
 
