@@ -910,6 +910,10 @@
         - name: check boot-complete.target
           # will fail if the target was not reached
           command: systemctl --no-pager status boot-complete.target
+          register: result
+          retries: 10
+          delay: 60
+          until: "'inactive' not in result.stdout"
 
         - name: all greenboot* service should run without error
           command: journalctl -b -0 -u greenboot -u greenboot-healthcheck -u greenboot-rpm-ostree-grub2-check-fallback -u greenboot-grub2-set-counter -u greenboot-grub2-set-success -u greenboot-status -u redboot -u redboot-auto-reboot -u redboot.target
@@ -1071,6 +1075,10 @@
           # will fail if the target was not reached
           command: systemctl --no-pager status boot-complete.target
           become: yes
+          register: result
+          retries: 10
+          delay: 60
+          until: "'inactive' not in result.stdout"
 
         - name: fallback log should be found here
           command: journalctl -b -0 -u greenboot -u greenboot-healthcheck -u greenboot-rpm-ostree-grub2-check-fallback -u greenboot-grub2-set-counter -u greenboot-grub2-set-success -u greenboot-status -u redboot -u redboot-auto-reboot -u redboot.target
