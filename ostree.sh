@@ -122,7 +122,8 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_COMMIT="false"
         OSTREE_REF="fedora/40/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
-        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/releases/40/Everything/x86_64/os/"
+        # Work around for issue https://bugzilla.redhat.com/show_bug.cgi?id=2294897
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/releases/39/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
         SYSROOT_RO="true"
