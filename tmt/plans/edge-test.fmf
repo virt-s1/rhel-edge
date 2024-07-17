@@ -9,8 +9,8 @@ provision:
     virtualization:
       is-supported: true
     cpu:
-      processors: ">= 2"
-    memory: ">= 6 GB"
+      processors: ">= 4"
+    memory: ">= 8 GB"
 
 /edge-x86-commit:
   summary: Test edge commit
