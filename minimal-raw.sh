@@ -64,6 +64,11 @@ case "${ID}-${VERSION_ID}" in
         MINIMAL_RAW_DECOMPRESSED=disk.raw
         MINIMAL_RAW_FILENAME=disk.raw.xz
         ;;
+    "fedora-41")
+        OS_VARIANT="fedora-rawhide"
+        MINIMAL_RAW_DECOMPRESSED=disk.raw
+        MINIMAL_RAW_FILENAME=disk.raw.xz
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
