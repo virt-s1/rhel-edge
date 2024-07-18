@@ -159,6 +159,17 @@ case "$TEST_OS" in
         BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/releases/40/Everything/aarch64/os/"
         SYSROOT_RO="true"
         ;;
+    "fedora-41")
+        IMAGE_TYPE="iot-commit"
+        cp tools/user-data "$CLOUD_INIT_DIR"
+        OS_VARIANT="fedora-rawhide"
+        OSTREE_REF="fedora/41/${ARCH}/iot"
+        OSTREE_REBASE_REF="fedora/xx/${ARCH}/iot"
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/aarch64/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Generic\.aarch64.*.qcow2<" | tr -d '><')
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/aarch64/os/"
+        SYSROOT_RO="true"
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
