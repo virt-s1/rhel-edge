@@ -40,6 +40,8 @@ jobs:
     outputs:
       allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
       sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
+      ref: ${{ fromJson(steps.pr-api.outputs.data).head.ref }}
+      repo_url: ${{ fromJson(steps.pr-api.outputs.data).head.repo.html_url }}
 
   pre-fdo-container-community:
     needs: pr-info
@@ -63,7 +65,9 @@ jobs:
 
   fdo-container-community:
     needs: [pr-info, pre-fdo-container-community]
-    runs-on: [kite, x86_64, gcp, centos-stream-9, medium]
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
+    continue-on-error: true
+    runs-on: ubuntu-latest
     env:
       STATUS_NAME: fdo-container-community
 
@@ -80,21 +84,26 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4
         with:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
       - name: run ostree-fdo-container.sh
-        run: ./ostree-fdo-container.sh
-        env:
-          FDO_REGISTRY: "quay.io/fido-fdo"
-          OWNER_ONBOARDING_SERVER_NAME: "owner-onboarding-server"
-          MANUFACTURING_SERVER_NAME: "manufacturing-server"
-          RENDEZVOUS_SERVER_NAME: "rendezvous-server"
-          SERVICEINFO_API_SERVER_NAME: "serviceinfo-api-server"
-          DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
-        timeout-minutes: 120
+        uses: sclorg/testing-farm-as-github-action@v2
+        with:
+          compose: CentOS-Stream-9
+          arch: x86_64
+          api_key: ${{ secrets.TF_API_KEY }}
+          git_url: ${{ needs.pr-info.outputs.repo_url }}
+          git_ref: ${{ needs.pr-info.outputs.ref }}
+          update_pull_request_status: true
+          tmt_context: "arch=x86_64;distro=centos-stream-9"
+          pull_request_status_name: "edge-centos-stream-x86"
+          tmt_plan_regex: edge-fdo-container
+          tf_scope: private
+          secrets: "DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }};OCP4_TOKEN=${{ secrets.OCP4_TOKEN }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }};DOCKERHUB_PASSWORD=${{ secrets.DOCKERHUB_PASSWORD }};AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }};AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }};GOVC_URL=${{ secrets.GOVC_URL }};GOVC_USERNAME=${{ secrets.GOVC_USERNAME }};GOVC_PASSWORD=${{ secrets.GOVC_PASSWORD }}"
+          variables: "ARCH=x86_64;AWS_DEFAULT_REGION=us-east-1;GOVC_INSECURE=1;FDO_REGISTRY=quay.io/fido-fdo; OWNER_ONBOARDING_SERVER_NAME=owner-onboarding-server; MANUFACTURING_SERVER_NAME=manufacturing-server; RENDEZVOUS_SERVER_NAME=rendezvous-server; SERVICEINFO_API_SERVER_NAME=serviceinfo-api-server"
 
       - name: Set non cancelled result status
         if: ${{ !cancelled() }}
@@ -150,7 +159,9 @@ jobs:
 
   fdo-container-official:
     needs: [pr-info, pre-fdo-container-official]
-    runs-on: [kite, x86_64, rhos-01, rhel-9-4, large]
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
+    continue-on-error: true
+    runs-on: ubuntu-latest
     env:
       STATUS_NAME: fdo-container-official
 
@@ -167,21 +178,26 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4
         with:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
       - name: run ostree-fdo-container.sh
-        run: ./ostree-fdo-container.sh
-        env:
-          FDO_REGISTRY: ${{ secrets.FDO_OFFICIAL_REGISTRY }}
-          OWNER_ONBOARDING_SERVER_NAME: "rhel9-fdo-owner-onboarding-server"
-          MANUFACTURING_SERVER_NAME: "rhel9-fdo-manufacturing-server"
-          RENDEZVOUS_SERVER_NAME: "rhel9-fdo-rendezvous-server"
-          SERVICEINFO_API_SERVER_NAME: "rhel9-fdo-serviceinfo-api-server"
-          DOWNLOAD_NODE: ${{ secrets.DOWNLOAD_NODE }}
-        timeout-minutes: 120
+        uses: sclorg/testing-farm-as-github-action@v2
+        with:
+          compose: RHEL-9.4.0-updates
+          arch: x86_64
+          api_key: ${{ secrets.TF_API_KEY }}
+          git_url: ${{ needs.pr-info.outputs.repo_url }}
+          git_ref: ${{ needs.pr-info.outputs.ref }}
+          update_pull_request_status: true
+          tmt_context: "arch=x86_64;distro=rhel-9-4"
+          pull_request_status_name: "edge-rhel-9-4-x86"
+          tmt_plan_regex: edge-fdo-container
+          tf_scope: private
+          secrets: "DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }};OCP4_TOKEN=${{ secrets.OCP4_TOKEN }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }};DOCKERHUB_PASSWORD=${{ secrets.DOCKERHUB_PASSWORD }};AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }};AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }};GOVC_URL=${{ secrets.GOVC_URL }};GOVC_USERNAME=${{ secrets.GOVC_USERNAME }};GOVC_PASSWORD=${{ secrets.GOVC_PASSWORD }};FDO_REGISTRY=${{ secrets.FDO_OFFICIAL_REGISTRY }}"
+          variables: "ARCH=x86_64;AWS_DEFAULT_REGION=us-east-1;GOVC_INSECURE=1;OWNER_ONBOARDING_SERVER_NAME=rhel9-fdo-owner-onboarding-server;MANUFACTURING_SERVER_NAME=rhel9-fdo-manufacturing-server;RENDEZVOUS_SERVER_NAME=rhel9-fdo-rendezvous-server;SERVICEINFO_API_SERVER_NAME=rhel9-fdo-serviceinfo-api-server"
 
       - name: Set non cancelled result status
         if: ${{ !cancelled() }}
