@@ -30,6 +30,8 @@ function run_tests() {
 		./ostree-8-to-9.sh
 	elif [ "$TEST_CASE" = "edge-9to9" ]; then
 		./ostree-9-to-9.sh
+	elif [ "$TEST_CASE" = "edge-fdo-container" ]; then
+		./ostree-fdo-container.sh
 	else
 		echo "Error: Test case $TEST_CASE not found!"
 		exit 1

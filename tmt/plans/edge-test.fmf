@@ -160,3 +160,8 @@ provision:
   summary: Test edge minimal raw image
   environment+:
     TEST_CASE: edge-minimal
+
+/edge-fdo-container
+  summary: Test fdo container image
+  environment+:
+    TEST_CASE: edge-fdo-container
