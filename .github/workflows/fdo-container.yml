@@ -186,7 +186,7 @@ jobs:
       - name: run ostree-fdo-container.sh
         uses: sclorg/testing-farm-as-github-action@v2
         with:
-          compose: RHEL-9.4.0-updates
+          compose: RHEL-9.4.0-Nightly
           arch: x86_64
           api_key: ${{ secrets.TF_API_KEY }}
           git_url: ${{ needs.pr-info.outputs.repo_url }}
