@@ -45,7 +45,7 @@ jobs:
 
   fdo-container-community:
     needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request && (endsWith(github.event.comment.body, '/test-fdo-container-community') }}
     continue-on-error: true
     runs-on: ubuntu-latest
     env:
@@ -59,7 +59,7 @@ jobs:
           fetch-depth: 0
 
       - name: run ostree-fdo-container.sh
-        uses: sclorg/testing-farm-as-github-action@v2
+        uses: sclorg/testing-farm-as-github-action@v3.1.0
         with:
           compose: CentOS-Stream-9
           arch: x86_64
@@ -76,7 +76,7 @@ jobs:
 
   fdo-container-official:
     needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request && endsWith(github.event.comment.body, '/test-fdo-container-official')) }}
     continue-on-error: true
     runs-on: ubuntu-latest
     env:
@@ -90,7 +90,7 @@ jobs:
           fetch-depth: 0
 
       - name: run ostree-fdo-container.sh
-        uses: sclorg/testing-farm-as-github-action@v2
+        uses: sclorg/testing-farm-as-github-action@v3.1.0
         with:
           compose: RHEL-9.4.0-Nightly
           arch: x86_64
