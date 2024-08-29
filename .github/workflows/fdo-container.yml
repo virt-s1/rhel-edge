@@ -45,7 +45,7 @@ jobs:
 
   fdo-container-community:
     needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request && (endsWith(github.event.comment.body, '/test-fdo-container-community') }}
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request && endsWith(github.event.comment.body, '/test-fdo-container-community') }}
     continue-on-error: true
     runs-on: ubuntu-latest
     env:
@@ -76,7 +76,7 @@ jobs:
 
   fdo-container-official:
     needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request && endsWith(github.event.comment.body, '/test-fdo-container-official')) }}
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request && endsWith(github.event.comment.body, '/test-fdo-container-official') }}
     continue-on-error: true
     runs-on: ubuntu-latest
     env:
