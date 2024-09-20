@@ -125,12 +125,6 @@ case "$TEST_OS" in
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">CentOS-Stream-GenericCloud-9-.*.qcow2<" | tr -d '><')
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
-    "fedora-39")
-        OS_VARIANT="fedora-unknown"
-        cp tools/user-data "$CLOUD_INIT_DIR"
-        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/releases/39/Cloud/aarch64/images"
-        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-39.*.qcow2<" | tr -d '><')
-        ;;
     "fedora-40")
         OS_VARIANT="fedora-unknown"
         cp tools/user-data "$CLOUD_INIT_DIR"
@@ -138,6 +132,12 @@ case "$TEST_OS" in
         GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Generic\.aarch64.*.qcow2<" | tr -d '><')
         ;;
     "fedora-41")
+        OS_VARIANT="fedora-unknown"
+        cp tools/user-data "$CLOUD_INIT_DIR"
+        GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/41/Cloud/aarch64/images"
+        GUEST_IMAGE_NAME=$(curl -s "${GUEST_IMAGE_URL}/" | grep -ioE ">Fedora-Cloud-Base-Generic\.aarch64.*.qcow2<" | tr -d '><')
+        ;;
+    "fedora-42")
         OS_VARIANT="fedora-rawhide"
         cp tools/user-data "$CLOUD_INIT_DIR"
         GUEST_IMAGE_URL="https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/aarch64/images"

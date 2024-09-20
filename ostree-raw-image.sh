@@ -103,17 +103,6 @@ case "${ID}-${VERSION_ID}" in
         SYSROOT_RO="true"
         ANSIBLE_OS_NAME="rhel-edge"
         ;;
-    "fedora-39")
-        CONTAINER_TYPE=fedora-iot-container
-        RAW_TYPE=iot-raw-image
-        OSTREE_REF="fedora/39/${ARCH}/iot"
-        OS_VARIANT="fedora-unknown"
-        ADD_SSSD="false"
-        ANSIBLE_OS_NAME="fedora-iot"
-        USER_IN_RAW="true"
-        REF_PREFIX="fedora-iot"
-        SYSROOT_RO="true"
-        ;;
     "fedora-40")
         CONTAINER_TYPE=fedora-iot-container
         RAW_TYPE=iot-raw-image
@@ -129,6 +118,17 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_TYPE=fedora-iot-container
         RAW_TYPE=iot-raw-image
         OSTREE_REF="fedora/41/${ARCH}/iot"
+        OS_VARIANT="fedora-unknown"
+        ADD_SSSD="false"
+        ANSIBLE_OS_NAME="fedora-iot"
+        USER_IN_RAW="true"
+        REF_PREFIX="fedora-iot"
+        SYSROOT_RO="true"
+        ;;
+    "fedora-42")
+        CONTAINER_TYPE=fedora-iot-container
+        RAW_TYPE=iot-raw-image
+        OSTREE_REF="fedora/42/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"
         ADD_SSSD="false"
         ANSIBLE_OS_NAME="fedora-iot"
