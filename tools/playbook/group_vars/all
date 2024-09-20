@@ -58,6 +58,7 @@ images:
   fedora-38: edge-fedora-38
   fedora-39: edge-fedora-39
   fedora-40: edge-fedora-40
+  fedora-41: edge-fedora-41
   fedora-rawhide: edge-fedora-rawhide
 
 image_url:
@@ -67,6 +68,7 @@ image_url:
   fedora-38: https://dl.fedoraproject.org/pub/fedora/linux/releases/38/Cloud/x86_64/images
   fedora-39: https://dl.fedoraproject.org/pub/fedora/linux/releases/39/Cloud/x86_64/images
   fedora-40: https://dl.fedoraproject.org/pub/fedora/linux/development/40/Cloud/x86_64/images
+  fedora-41: https://dl.fedoraproject.org/pub/fedora/linux/development/41/Cloud/x86_64/images
   fedora-rawhide: https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Cloud/x86_64/images
 
 os_distro:
@@ -76,4 +78,5 @@ os_distro:
   fedora-38: fedora
   fedora-39: fedora
   fedora-40: fedora
+  fedora-41: fedora
   fedora-rawhide: fedora

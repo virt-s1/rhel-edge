@@ -54,17 +54,17 @@ case "${ID}-${VERSION_ID}" in
         MINIMAL_RAW_FILENAME=disk.raw.xz
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
-    "fedora-39")
+    "fedora-40")
         OS_VARIANT="fedora-unknown"
         MINIMAL_RAW_DECOMPRESSED=disk.raw
         MINIMAL_RAW_FILENAME=disk.raw.xz
         ;;
-    "fedora-40")
-        OS_VARIANT="fedora-rawhide"
+    "fedora-41")
+        OS_VARIANT="fedora-unknown"
         MINIMAL_RAW_DECOMPRESSED=disk.raw
         MINIMAL_RAW_FILENAME=disk.raw.xz
         ;;
-    "fedora-41")
+    "fedora-42")
         OS_VARIANT="fedora-rawhide"
         MINIMAL_RAW_DECOMPRESSED=disk.raw
         MINIMAL_RAW_FILENAME=disk.raw.xz

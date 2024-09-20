@@ -92,22 +92,14 @@ case "${ID}-${VERSION_ID}" in
     "centos-9")
         sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json
         sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
-    "fedora-37")
-        # workaround for bug https://bugzilla.redhat.com/show_bug.cgi?id=2162815
-        sudo dnf install -y nghttp2
-        sudo cp files/fedora-37.json /etc/osbuild-composer/repositories/fedora-37.json
-        ;;
-    "fedora-38")
-        sudo cp files/fedora-38.json /etc/osbuild-composer/repositories/fedora-38.json
-        ;;
-    "fedora-39")
-        sudo cp files/fedora-39.json /etc/osbuild-composer/repositories/fedora-39.json
-        ;;
     "fedora-40")
         sudo cp files/fedora-40.json /etc/osbuild-composer/repositories/fedora-40.json
         ;;
     "fedora-41")
         sudo cp files/fedora-41.json /etc/osbuild-composer/repositories/fedora-41.json
+        ;;
+    "fedora-42")
+        sudo cp files/fedora-42.json /etc/osbuild-composer/repositories/fedora-42.json
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
