@@ -55,7 +55,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run the tests
-        uses: sclorg/testing-farm-as-github-action@v3.1.0
+        uses: sclorg/testing-farm-as-github-action@v3.1.2
         with:
           compose: RHEL-8.8.0-Nightly
           arch: x86_64
