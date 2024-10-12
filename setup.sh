@@ -232,8 +232,15 @@ for SOURCE in $(sudo composer-cli sources list); do
     sudo composer-cli sources info "$SOURCE"
 done
 
-# In case port 8081 is already in use
+# In case port 8081 is already in use in testing-farm machine
 sudo dnf install -y lsof
 if lsof -nP -iTCP -sTCP:LISTEN|grep 8081; then
     sudo fuser -k 8081/tcp
+fi
+
+# Workaround to fix openssl issue on cs9, after openssl upgraded to openssl-libs-1:3.2.2-6.el9.x86_64, ssh will report error like this:
+# [root@yih-c9-4444 ~]# ssh
+#   OpenSSL version mismatch. Built against 30000070, you have 30200020
+if [[ "${ID}-${VERSION_ID}" == "centos-9" ]]; then
+    sudo dnf reinstall -y openssh-server openssh-clients
 fi
