@@ -36,17 +36,6 @@ FEDORA_LOCAL_NAME="localhost/fedora-minimal:v1"
 
 # Set os-variant and boot location used by virt-install.
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.8")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        USER_IN_COMMIT="true"
-        OS_VARIANT="rhel8-unknown"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/nightly/updates/RHEL-8/latest-RHEL-8.8.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=9
-        ADD_SSSD="true"
-        EMBEDDED_CONTAINER="true"
-        FIREWALL_FEATURE="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        ;;
     "rhel-8.10")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         USER_IN_COMMIT="true"
@@ -56,18 +45,6 @@ case "${ID}-${VERSION_ID}" in
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
         FIREWALL_FEATURE="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        ;;
-    "rhel-9.3")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        USER_IN_COMMIT="true"
-        OS_VARIANT="rhel9-unknown"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.3.0/compose/BaseOS/x86_64/os/"
-        CUT_DIRS=9
-        ADD_SSSD="true"
-        EMBEDDED_CONTAINER="true"
-        FIREWALL_FEATURE="true"
-        SYSROOT_RO="true"
         DIRS_FILES_CUSTOMIZATION="true"
         ;;
     "rhel-9.4")
@@ -106,17 +83,6 @@ case "${ID}-${VERSION_ID}" in
         SYSROOT_RO="true"
         DIRS_FILES_CUSTOMIZATION="true"
         ;;
-    "fedora-40")
-        IMAGE_TYPE=fedora-iot-commit
-        USER_IN_COMMIT="false"
-        OSTREE_REF="fedora/40/${ARCH}/iot"
-        OS_VARIANT="fedora-unknown"
-        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/releases/40/Everything/x86_64/os/"
-        CUT_DIRS=8
-        ADD_SSSD="false"
-        SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        ;;
     "fedora-41")
         IMAGE_TYPE=fedora-iot-commit
         USER_IN_COMMIT="false"
@@ -146,10 +112,6 @@ esac
 
 # For CentOS Stream test, do not use latest link but use COMPOSE ID URL instead to work around issue
 # https://bugzilla.redhat.com/show_bug.cgi?id=2065708
-if [[ "${ID}-${VERSION_ID}" == "centos-8" ]]; then
-    CURRENT_COMPOSE_CS8=$(curl -s "https://composes.stream.centos.org/stream-8/production/" | grep -ioE ">CentOS-Stream-8-.*/<" | tr -d '>/<' | tail -1)
-    BOOT_LOCATION="https://composes.stream.centos.org/stream-8/production/${CURRENT_COMPOSE_CS8}/compose/BaseOS/x86_64/os/"
-fi
 if [[ "${ID}-${VERSION_ID}" == "centos-9" ]]; then
     CURRENT_COMPOSE_CS9=$(curl -s "https://composes.stream.centos.org/production/" | grep -ioE ">CentOS-Stream-9-.*/<" | tr -d '>/<' | tail -1)
     BOOT_LOCATION="https://composes.stream.centos.org/production/${CURRENT_COMPOSE_CS9}/compose/BaseOS/x86_64/os/"
