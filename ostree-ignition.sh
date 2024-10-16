@@ -52,10 +52,6 @@ OS_NAME="redhat"
 SYSROOT_RO="true"
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-9.3")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9-unknown"
-        ;;
     "rhel-9.4")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"

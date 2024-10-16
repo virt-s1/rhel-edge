@@ -515,31 +515,6 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when: checking_stage == "2"
 
-    # case: check ostree-remount mount log
-    - name: check ostree-remount mount log
-      command: journalctl -u ostree-remount
-      register: result_remount_jounalctl
-      become: yes
-
-    - name: ostree-remount should remount /var and /sysroot
-      block:
-        - assert:
-            that:
-              - "'/sysroot' in result_remount_jounalctl.stdout"
-              - "'/var' in result_remount_jounalctl.stdout"
-            fail_msg: "/sysroot or /var are not remounted by ostree-remount"
-            success_msg: "/sysroot and /var are remount"
-      always:
-        - set_fact:
-            total_counter: "{{ total_counter | int + 1 }}"
-      rescue:
-        - name: failed count + 1
-          set_fact:
-            failed_counter: "{{ failed_counter | int + 1 }}"
-      when:
-        - ansible_facts['distribution'] != 'Fedora'
-        - sysroot_ro == "false" or (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '<') and ansible_facts ['distribution_version'] is version('8.8', '!=') and ansible_facts ['distribution_version'] is version('8.9', '!='))
-
     # case: check dmesg error and failed log
     - name: check dmesg output
       command: dmesg
@@ -701,20 +676,15 @@
         - ansible_architecture == "aarch64"
         - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>='))
 
-
-    # case: check running container with podman
-    # bug https://bugzilla.redhat.com/show_bug.cgi?id=2123611 fix is not landed on CS8
     - name: run ubi8 image with root
       command: podman run ubi8-minimal:latest cat /etc/redhat-release
       register: podman_result
       become: yes
-      retries: 30  # due to https://github.com/osbuild/osbuild-composer/issues/2492
+      retries: 30
       delay: 2
       until: podman_result is success
       ignore_errors: yes
-      when: ansible_facts['distribution'] != 'CentOS' or ansible_facts ['distribution_version'] is version('8', '!=')
 
-    # bug https://bugzilla.redhat.com/show_bug.cgi?id=2123611 fix is not landed on CS8
     - name: run container test
       block:
         - assert:
@@ -730,7 +700,6 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: ansible_facts['distribution'] != 'CentOS' or ansible_facts ['distribution_version'] is version('8', '!=')
 
     # case: check running container with podman (non-root)
     # workaround on RHEL 8.6 and 9.0 for issue https://bugzilla.redhat.com/show_bug.cgi?id=2078937
@@ -743,10 +712,6 @@
       delay: 2
       until: podman_result is success
       ignore_errors: yes
-      when: (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.0', '>')) or
-            (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>') and ansible_facts ['distribution_version'] is version('9.0', '!=')) or
-            (ansible_facts['distribution'] == 'CentOS' and ansible_facts ['distribution_version'] is version('8', '!=')) or
-            (ansible_facts['distribution'] == 'Fedora')
 
     # bug https://bugzilla.redhat.com/show_bug.cgi?id=2123611 fix is not landed on CS8
     - name: run container test
@@ -764,10 +729,6 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.0', '>')) or
-            (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.6', '>') and ansible_facts ['distribution_version'] is version('9.0', '!=')) or
-            (ansible_facts['distribution'] == 'CentOS' and ansible_facts ['distribution_version'] is version('8', '!=')) or
-            (ansible_facts['distribution'] == 'Fedora')
 
     # case: check fedora-minimal container with podman
     - name: run fedora-minimal image
@@ -859,8 +820,7 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.0', '<')) or
-            (ansible_facts['distribution'] == 'CentOS' and ansible_facts ['distribution_version'] is version('9', '<'))
+      when: ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.0', '<')
 
     # case: check installed greenboot packages
     - name: greenboot should be installed
@@ -1267,9 +1227,7 @@
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
       when:
-        - (ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.2', '>=')) or
-          ((ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('8.8', '>=')) and ansible_facts ['distribution_version'] is version('9.0', '!=') and ansible_facts ['distribution_version'] is version('9.1', '!=')) or
-          (ansible_facts['distribution'] == 'CentOS')
+        - ansible_facts['distribution'] != 'Fedora'
 
 # case: checking files and directories customizations
     - name: Check that custom files and directories are present

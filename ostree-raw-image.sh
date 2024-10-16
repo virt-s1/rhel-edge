@@ -52,14 +52,6 @@ sudo mkdir -p /etc/osbuild-composer/repositories
 # The RO setting on RHEL 8.8 and CS8 is not configured by ostree, but osbuild-composer
 # by PR https://github.com/osbuild/osbuild-composer/pull/3178
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.8")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        PARENT_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
-        ADD_SSSD="true"
-        USER_IN_RAW="true"
-        SYSROOT_RO="false"
-        ;;
     "rhel-8.10")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
@@ -67,14 +59,6 @@ case "${ID}-${VERSION_ID}" in
         ADD_SSSD="true"
         USER_IN_RAW="true"
         SYSROOT_RO="false"
-        ;;
-    "rhel-9.3")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        PARENT_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9-unknown"
-        ADD_SSSD="true"
-        USER_IN_RAW="true"
-        SYSROOT_RO="true"
         ;;
     "rhel-9.4")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -102,17 +86,6 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_RAW="true"
         SYSROOT_RO="true"
         ANSIBLE_OS_NAME="rhel-edge"
-        ;;
-    "fedora-40")
-        CONTAINER_TYPE=fedora-iot-container
-        RAW_TYPE=iot-raw-image
-        OSTREE_REF="fedora/40/${ARCH}/iot"
-        OS_VARIANT="fedora-unknown"
-        ADD_SSSD="false"
-        ANSIBLE_OS_NAME="fedora-iot"
-        USER_IN_RAW="true"
-        REF_PREFIX="fedora-iot"
-        SYSROOT_RO="true"
         ;;
     "fedora-41")
         CONTAINER_TYPE=fedora-iot-container

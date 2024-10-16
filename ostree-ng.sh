@@ -64,30 +64,12 @@ NEW_MKKSISO="false"
 SYSROOT_RO="false"
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.8")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
-        CONTAINER_PUSHING_FEAT="true"
-        EMBEDDED_CONTAINER="true"
-        HTTP_BOOT_FEAT="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        ;;
     "rhel-8.10")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
         CONTAINER_PUSHING_FEAT="true"
         EMBEDDED_CONTAINER="true"
         HTTP_BOOT_FEAT="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        ;;
-    "rhel-9.3")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9-unknown"
-        NEW_MKKSISO="true"
-        CONTAINER_PUSHING_FEAT="true"
-        EMBEDDED_CONTAINER="true"
-        HTTP_BOOT_FEAT="true"
-        SYSROOT_RO="true"
         DIRS_FILES_CUSTOMIZATION="true"
         ;;
     "rhel-9.4")
@@ -121,15 +103,6 @@ case "${ID}-${VERSION_ID}" in
         SYSROOT_RO="true"
         DIRS_FILES_CUSTOMIZATION="true"
         ANSIBLE_OS_NAME="rhel-edge"
-        ;;
-    "fedora-40")
-        CONTAINER_IMAGE_TYPE=fedora-iot-container
-        INSTALLER_IMAGE_TYPE=fedora-iot-installer
-        OSTREE_REF="fedora-iot/40/${ARCH}/iot"
-        OS_VARIANT="fedora-unknown"
-        ANSIBLE_OS_NAME="fedora-iot"
-        SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
         ;;
     "fedora-41")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
