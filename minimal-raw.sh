@@ -37,9 +37,6 @@ case "${ID}-${VERSION_ID}" in
     "rhel-8"*)
         OS_VARIANT="rhel8-unknown"
         ;;
-    "rhel-9.3")
-        OS_VARIANT="rhel9-unknown"
-        ;;
     "rhel-9.4")
         OS_VARIANT="rhel9-unknown"
         ;;
@@ -53,11 +50,6 @@ case "${ID}-${VERSION_ID}" in
         MINIMAL_RAW_DECOMPRESSED=disk.raw
         MINIMAL_RAW_FILENAME=disk.raw.xz
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
-        ;;
-    "fedora-40")
-        OS_VARIANT="fedora-unknown"
-        MINIMAL_RAW_DECOMPRESSED=disk.raw
-        MINIMAL_RAW_FILENAME=disk.raw.xz
         ;;
     "fedora-41")
         OS_VARIANT="fedora-unknown"

@@ -61,11 +61,6 @@ DATACENTER_70_POOL="/Datacenter7.0/host/Edge/Resources"
 
 # Workdaround for creating rhel9 and centos9 on dc67, change guest_id to 8
 case "${ID}-${VERSION_ID}" in
-    "rhel-9.3" )
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        # GUEST_ID_DC67="rhel8_64Guest"
-        GUEST_ID_DC70="rhel9_64Guest"
-        ;;
     "rhel-9.4" )
         OSTREE_REF="rhel/9/${ARCH}/edge"
         # GUEST_ID_DC67="rhel8_64Guest"

@@ -31,6 +31,11 @@ provision:
   summary: Test edge simplified installer image
   environment+:
     TEST_CASE: edge-simplified-installer
+  adjust+:
+    - when: arch != x86_64 or distro == fedora
+      enabled: false
+    - when: distro==cs-9
+      enabled: false
 
 /edge-x86-fdo-aio:
   summary: Test edge with fdo aio service
@@ -39,9 +44,9 @@ provision:
   adjust+:
     - when: arch != x86_64 or distro == fedora
       enabled: false
-    - when: distro == rhel-8-8
-      enabled: false
     - when: distro == rhel-8-10
+      enabled: false
+    - when: distro==cs-9
       enabled: false
 
 /edge-x86-fdo-db:
@@ -51,11 +56,7 @@ provision:
   adjust+:
     - when: arch != x86_64 or distro == fedora
       enabled: false
-    - when: distro == rhel-8-8
-      enabled: false
     - when: distro == rhel-8-10
-      enabled: false
-    - when: distro == rhel-9-3
       enabled: false
     - when: distro==cs-9
       enabled: false
@@ -67,8 +68,6 @@ provision:
   adjust+:
     - when: arch != x86_64 or distro == fedora
       enabled: false
-    - when: distro == rhel-8-8
-      enabled: false
     - when: distro == rhel-8-10
       enabled: false
 
@@ -79,11 +78,7 @@ provision:
   adjust+:
     - when: arch != x86_64 or distro == fedora
       enabled: false
-    - when: distro == rhel-8-8
-      enabled: false
     - when: distro == rhel-8-10
-      enabled: false
-    - when: distro == rhel-9-3
       enabled: false
     - when: distro==cs-9
       enabled: false
@@ -95,9 +90,9 @@ provision:
   adjust+:
     - when: arch != x86_64 or distro == fedora
       enabled: false
-    - when: distro == rhel-8-8
-      enabled: false
     - when: distro == rhel-8-10
+      enabled: false
+    - when: distro==cs-9
       enabled: false
 
 /edge-x86-ami-image:
@@ -107,8 +102,6 @@ provision:
   adjust+:
     - when: distro == fedora
       enabled: false
-    - when: distro == rhel-8-8
-      enabled: false
     - when: distro == rhel-8-10
       enabled: false
 
@@ -116,9 +109,6 @@ provision:
   summary: Test edge minimal raw image
   environment+:
     TEST_CASE: edge-minimal
-  adjust+:
-    - when: distro == rhel-8-8
-      enabled: false
 
 /edge-x86-8to9:
   summary: Test edge installer image
@@ -126,8 +116,6 @@ provision:
     TEST_CASE: edge-8to9
   adjust+:
     - when: distro == fedora
-      enabled: false
-    - when: distro == rhel-8-8
       enabled: false
     - when: distro == rhel-8-10
       enabled: false
@@ -140,8 +128,6 @@ provision:
     TEST_CASE: edge-9to9
   adjust+:
     - when: distro == fedora
-      enabled: false
-    - when: distro == rhel-8-8
       enabled: false
     - when: distro == rhel-8-10
       enabled: false

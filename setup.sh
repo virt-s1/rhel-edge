@@ -48,53 +48,18 @@ sudo dnf install -y --nogpgcheck httpd osbuild osbuild-composer composer-cli pod
 sudo mkdir -p /etc/osbuild-composer/repositories
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.6")
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-6-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-86.json > /dev/null;;
-    "rhel-8.7")
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-7-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-87.json > /dev/null;;
-    "rhel-8.8")
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-8-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-88.json > /dev/null;;
-    "rhel-8.9")
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-9-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-89.json > /dev/null;;
     "rhel-8.10")
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-10-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-810.json > /dev/null;;
-    "rhel-9.0")
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-6-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-86.json > /dev/null
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-0-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-90.json > /dev/null;;
-    "rhel-9.1")
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-7-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-87.json > /dev/null
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-0-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-90.json > /dev/null
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-1-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-91.json > /dev/null;;
-    "rhel-9.2")
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-8-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-88.json > /dev/null
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-1-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-91.json > /dev/null
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-2-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-92.json > /dev/null;;
-    "rhel-9.3")
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-9-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-89.json > /dev/null
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-1-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-91.json > /dev/null
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-2-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-92.json > /dev/null
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-3-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-93.json > /dev/null;;
     "rhel-9.4")
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-10-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-810.json > /dev/null
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-1-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-91.json > /dev/null
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-2-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-92.json > /dev/null
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-3-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-93.json > /dev/null
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-4-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-94.json > /dev/null;;
     "rhel-9.5")
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-10-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-810.json > /dev/null
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-1-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-91.json > /dev/null
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-2-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-92.json > /dev/null
-        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-3-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-93.json > /dev/null
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-4-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-94.json > /dev/null
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-5-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-95.json > /dev/null;;
-    "centos-8")
-        sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json;;
     "centos-9")
-        sudo cp files/centos-stream-8.json /etc/osbuild-composer/repositories/centos-8.json
         sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
-    "fedora-40")
-        sudo cp files/fedora-40.json /etc/osbuild-composer/repositories/fedora-40.json
-        ;;
     "fedora-41")
         sudo cp files/fedora-41.json /etc/osbuild-composer/repositories/fedora-41.json
         ;;

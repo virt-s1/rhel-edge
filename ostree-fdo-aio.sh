@@ -73,15 +73,6 @@ sudo mkdir -p /etc/osbuild-composer/repositories
 # The RO setting on RHEL 8.8 and CS8 is not configured by ostree, but osbuild-composer
 # by PR https://github.com/osbuild/osbuild-composer/pull/3178
 case "${ID}-${VERSION_ID}" in
-    "rhel-8.8")
-        OSTREE_REF="rhel/8/${ARCH}/edge"
-        PARENT_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
-        IMAGE_NAME="image.raw.xz"
-        USER_IN_BLUEPRINT="true"
-        BLUEPRINT_USER="simple"
-        sudo mkdir -p /var/lib/fdo
-        ;;
     "rhel-8.10")
         OSTREE_REF="rhel/8/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
@@ -90,17 +81,6 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_BLUEPRINT="true"
         BLUEPRINT_USER="simple"
         sudo mkdir -p /var/lib/fdo
-        ;;
-    "rhel-9.3")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        PARENT_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9-unknown"
-        IMAGE_NAME="image.raw.xz"
-        SYSROOT_RO="true"
-        ANSIBLE_USER=fdouser
-        FDO_USER_ONBOARDING="true"
-        USER_IN_BLUEPRINT="true"
-        BLUEPRINT_USER="simple"
         ;;
     "rhel-9.4")
         OSTREE_REF="rhel/9/${ARCH}/edge"
