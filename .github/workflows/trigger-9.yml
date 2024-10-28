@@ -171,14 +171,6 @@ jobs:
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-rhel-9-4
 
-      - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          project-name: RHEL Compose Test
-          column-name: RHEL-9-4
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-
   rhel-9-5:
     needs: check-compose
     if: ${{ needs.check-compose.outputs.rhel95_compose != 'false' && needs.check-compose.outputs.pr_running_95 == 'false' }}
@@ -231,11 +223,3 @@ jobs:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-rhel-9-5
-
-      - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          project-name: RHEL Compose Test
-          column-name: RHEL-9-5
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}

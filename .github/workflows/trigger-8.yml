@@ -124,11 +124,3 @@ jobs:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-rhel-8-10
-
-      - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          project-name: RHEL Compose Test
-          column-name: RHEL-8-10
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}

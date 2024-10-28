@@ -118,14 +118,6 @@ jobs:
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-rawhide
 
-      - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          project-name: Fedora Compose Test
-          column-name: Fedora-rawhide
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-
   fedora-41:
     # Do not need check-compose and make "workflow_dispatch" work for this job
     if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule != '0 4 * * *'
@@ -187,11 +179,3 @@ jobs:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-f41
-
-      - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          project-name: Fedora Compose Test
-          column-name: Fedora-41
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
