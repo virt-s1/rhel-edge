@@ -50,14 +50,6 @@ jobs:
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-fdo-container-community
 
-      - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          project-name: Packages
-          column-name: fdo-container
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
-
   fdo-container-official:
     if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule == '5 8 * * 4'
     runs-on: ubuntu-latest
@@ -95,11 +87,3 @@ jobs:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-fdo-container-official
-
-      - name: Create a project card to track compose test result
-        uses: peter-evans/create-or-update-project-card@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          project-name: Packages
-          column-name: fdo-container
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
