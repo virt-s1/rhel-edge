@@ -5,13 +5,10 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 1 * * *'
-    - cron: '0 7 * * *'
     - cron: '0 13 * * *'
-    - cron: '0 19 * * *'
 
 env:
-  COMPOSE_URL_88: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-8/nightly/updates/RHEL-8"
-  COMPOSE_URL_810: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-8/nightly/RHEL-8"
+  COMPOSE_URL_810: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-8/nightly/updates/RHEL-8"
 
 jobs:
   check-compose:
