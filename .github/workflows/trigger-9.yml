@@ -4,10 +4,8 @@ name: RHEL 9 compose trigger
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 2 * * *'
-    - cron: '0 8 * * *'
-    - cron: '0 14 * * *'
-    - cron: '0 20 * * *'
+    - cron: '0 4 * * *'
+    - cron: '0 16 * * *'
 
 env:
   COMPOSE_URL_94: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"

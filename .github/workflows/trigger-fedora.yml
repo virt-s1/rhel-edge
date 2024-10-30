@@ -4,8 +4,8 @@ name: Fedora compose trigger
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 4 * * *'
-    - cron: '0 16 * * *'
+    - cron: '0 8 * * *'
+    - cron: '0 20 * * *'
 
 env:
   COMPOSE_URL_rawhide: https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide
