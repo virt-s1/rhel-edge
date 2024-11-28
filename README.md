@@ -1,5 +1,5 @@
 # RHEL-Edge
-
+.
 RHEL-Edge help [documentation](HELP.md)
 
 ## RHEL-Edge Test Scope
