@@ -28,7 +28,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v7.0.5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "FDO community container test - ${{ steps.date.outputs.date }}"
@@ -44,7 +44,7 @@ jobs:
             - Date: ${{ steps.date.outputs.date }}
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v2
+        uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
@@ -66,7 +66,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v7.0.5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "FDO official container test - ${{ steps.date.outputs.date }}"
@@ -82,7 +82,7 @@ jobs:
             - Date: ${{ steps.date.outputs.date }}
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v2
+        uses: peter-evans/create-or-update-comment@v4
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
