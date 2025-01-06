@@ -11,8 +11,6 @@ ARCH=$(uname -m)
 # Set up variables.
 TEST_UUID=$(uuidgen)
 IMAGE_KEY="ostree-raw-${TEST_UUID}"
-DOCKERHUB_REPO_URL="docker://registry.hub.docker.com/${DOCKERHUB_USERNAME}/rhel-edge"
-DOCKERHUB_REPO_TAG=$(tr -dc a-z0-9 < /dev/urandom | head -c 4 ; echo '')
 BIOS_GUEST_ADDRESS=192.168.100.50
 UEFI_GUEST_ADDRESS=192.168.100.51
 PROD_REPO_URL=http://192.168.100.1/repo
@@ -371,16 +369,15 @@ sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm
 sudo podman rmi -f -a
 
 # Deal with rhel-edge container
-greenprint "Uploading image to docker hub"
+greenprint "🗜 Starting container"
 IMAGE_FILENAME="${COMPOSE_ID}-${CONTAINER_FILENAME}"
-sudo skopeo copy --dest-creds "${DOCKERHUB_USERNAME}:${DOCKERHUB_PASSWORD}" "oci-archive:${IMAGE_FILENAME}" "${DOCKERHUB_REPO_URL}:${DOCKERHUB_REPO_TAG}"
-# Clear image file
-sudo rm -f "$IMAGE_FILENAME"
-
+sudo podman pull "oci-archive:${IMAGE_FILENAME}"
+sudo podman images
 # Run edge stage repo
 greenprint "🛰 Running edge stage repo"
-sudo podman pull --creds "${DOCKERHUB_USERNAME}:${DOCKERHUB_PASSWORD}" "${DOCKERHUB_REPO_URL}:${DOCKERHUB_REPO_TAG}"
-sudo podman run -d --name rhel-edge --network edge --ip "$STAGE_REPO_ADDRESS" "${DOCKERHUB_REPO_URL}:${DOCKERHUB_REPO_TAG}"
+# Get image id to run image
+EDGE_IMAGE_ID=$(sudo podman images --filter "dangling=true" --format "{{.ID}}")
+sudo podman run -d --name rhel-edge --network edge --ip "$STAGE_REPO_ADDRESS" "$EDGE_IMAGE_ID"
 # Clear image file
 sudo rm -f "$IMAGE_FILENAME"
 
@@ -397,15 +394,6 @@ sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage "$OSTREE_REF"
 greenprint "🧽 Clean up container blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete container > /dev/null
-
-# Remove tag from dockerhub
-greenprint "Remove tag from docker hub repo"
-HUB_TOKEN=$(curl -s -H "Content-Type: application/json" -X POST -d "{\"username\": \"$DOCKERHUB_USERNAME\", \"password\": \"$DOCKERHUB_PASSWORD\"}" https://hub.docker.com/v2/users/login/ | jq -r .token)
-curl -i -X DELETE \
-  -H "Accept: application/json" \
-  -H "Authorization: JWT $HUB_TOKEN" \
-  "https://hub.docker.com/v2/repositories/${DOCKERHUB_USERNAME}/rhel-edge/tags/${DOCKERHUB_REPO_TAG}/"
-
 ############################################################
 ##
 ## Build edge-raw-image
