@@ -7,6 +7,7 @@ on:
     - cron: '0 4 * * *'
 
 env:
+  COMPOSE_URL_94: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
   COMPOSE_URL_95: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
 
 jobs:
@@ -19,6 +20,44 @@ jobs:
       - uses: actions/checkout@v3
 
       - run: sudo dnf install -y gh
+
+      - name: Check RHEL 9.4 compose
+        id: check_compose_id_94
+        run: |
+          curl -s ${COMPOSE_URL_94}/latest-RHEL-9.4.0/STATUS --output STATUS_94
+          STATUS_94=$(cat STATUS_94)
+          if [[ "$STATUS_94" == "FINISHED" ]]; then
+              curl -s ${COMPOSE_URL_94}/latest-RHEL-9.4.0/COMPOSE_ID --output COMPOSE_ID_94
+              COMPOSE_ID_94=$(cat COMPOSE_ID_94)
+              TESTED_COMPOSE_94=( $( cat compose/compose.94 ) )
+              if [[ " ${TESTED_COMPOSE_94[*]} " =~ "$COMPOSE_ID_94" ]]; then
+                  COMPOSE_ID_94="false"
+              fi
+          else
+              COMPOSE_ID_94="false"
+          fi
+          if [[ "$COMPOSE_ID_94" != "false" ]]; then
+              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST_94
+              PR_LIST_94=$(cat PR_LIST_94)
+              if [[ $PR_LIST_94 == *"$COMPOSE_ID_94"* ]]; then
+                  echo "pr_running_94=true" >> $GITHUB_OUTPUT
+              else
+                  echo "pr_running_94=false" >> $GITHUB_OUTPUT
+              fi
+              OSBUILD_VERSION_94=$(curl -s "${COMPOSE_URL_94}/${COMPOSE_ID_94}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION_94=$(curl -s "${COMPOSE_URL_94}/${COMPOSE_ID_94}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION_94=$(curl -s "${COMPOSE_URL_94}/${COMPOSE_ID_94}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "osbuild_version_94=$OSBUILD_VERSION_94" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_94=$OSBUILD_COMPOSER_VERSION_94" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_94=$COMPOSER_CLI_VERSION_94" >> $GITHUB_OUTPUT
+          else
+              echo "osbuild_version_94=Null" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_94=Null" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_94=Null" >> $GITHUB_OUTPUT
+          fi
+          echo "rhel94_compose=$COMPOSE_ID_94" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check RHEL 9.5 compose
         id: check_compose_id_95
@@ -72,6 +111,57 @@ jobs:
       composer_cli_version_95: ${{ steps.check_compose_id_95.outputs.composer_cli_version_95 }}
       pr_running_94: ${{ steps.check_compose_id_94.outputs.pr_running_94 }}
       pr_running_95: ${{ steps.check_compose_id_95.outputs.pr_running_95 }}
+
+  rhel-9-4:
+    needs: check-compose
+    if: ${{ needs.check-compose.outputs.rhel94_compose != 'false' && needs.check-compose.outputs.pr_running_94 == 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Add new compose id in compose.94
+        run: |
+          compose_id="${{ needs.check-compose.outputs.rhel94_compose }}"
+          echo $compose_id >> compose/compose.94
+          cat compose/compose.94
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "${{ needs.check-compose.outputs.rhel94_compose }} - ${{ steps.date.outputs.date }}"
+          committer: cloudkitebot <henrywangxf1@gmail.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: cpr
+          branch-suffix: random
+          delete-branch: true
+          title: "${{ needs.check-compose.outputs.rhel94_compose }} - ${{ steps.date.outputs.date }}"
+          labels: auto-merge,RHEL-9.4.0
+          body: |
+            RHEL 9.4 compose ${{ needs.check-compose.outputs.rhel94_compose }}
+            - Date: ${{ steps.date.outputs.date }}
+            - Packages:
+                - ${{ needs.check-compose.outputs.osbuild_version_94 }}
+                - ${{ needs.check-compose.outputs.osbuild_composer_version_94 }}
+                - ${{ needs.check-compose.outputs.composer_cli_version_94 }}
+      - name: Enable Pull Request Automerge
+        if: steps.cpr.outputs.pull-request-operation == 'created'
+        uses: peter-evans/enable-pull-request-automerge@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: rebase
+
+      - name: Add a comment to trigger test workflow
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          token: ${{ secrets.PAT }}
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          body: /test-rhel-9-4
 
   rhel-9-5:
     needs: check-compose
