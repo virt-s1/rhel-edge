@@ -8,8 +8,8 @@ on:
 
 env:
   COMPOSE_URL_rawhide: https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide
-  COMPOSE_URL_F41: https://dl.fedoraproject.org/pub/fedora/linux/development/41
-  UPDATES_URL_F41: https://dl.fedoraproject.org/pub/fedora/linux/development/41
+  COMPOSE_URL_F41: https://dl.fedoraproject.org/pub/fedora/linux/releases/41
+  UPDATES_URL_F41: https://dl.fedoraproject.org/pub/fedora/linux/releases/41
 
 jobs:
 
