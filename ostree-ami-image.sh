@@ -51,8 +51,18 @@ case "${ID}-${VERSION_ID}" in
         SYSROOT_RO="true"
         ANSIBLE_OS_NAME="rhel-edge"
         ;;
+    "rhel-9.6")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        SYSROOT_RO="true"
+        ANSIBLE_OS_NAME="rhel-edge"
+        ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
+        SYSROOT_RO="true"
+        ANSIBLE_OS_NAME="rhel-edge"
+        ;;
+    "centos-10")
+        OSTREE_REF="centos/10/${ARCH}/edge"
         SYSROOT_RO="true"
         ANSIBLE_OS_NAME="rhel-edge"
         ;;

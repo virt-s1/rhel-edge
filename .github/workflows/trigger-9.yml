@@ -9,6 +9,7 @@ on:
 env:
   COMPOSE_URL_94: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
   COMPOSE_URL_95: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
+  COMPOSE_URL_96: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
 
 jobs:
   check-compose:
@@ -100,17 +101,63 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check RHEL 9.6 compose
+        id: check_compose_id_96
+        run: |
+          curl -s ${COMPOSE_URL_96}/latest-RHEL-9.6.0/STATUS --output STATUS_96
+          STATUS_96=$(cat STATUS_96)
+          if [[ "$STATUS_96" == "FINISHED" ]]; then
+              curl -s ${COMPOSE_URL_96}/latest-RHEL-9.6.0/COMPOSE_ID --output COMPOSE_ID_96
+              COMPOSE_ID_96=$(cat COMPOSE_ID_96)
+              TESTED_COMPOSE_96=( $( cat compose/compose.96 ) )
+              if [[ " ${TESTED_COMPOSE_96[*]} " =~ "$COMPOSE_ID_96" ]]; then
+                  COMPOSE_ID_96="false"
+              fi
+          else
+              COMPOSE_ID_96="false"
+          fi
+
+          if [[ "$COMPOSE_ID_96" != "false" ]]; then
+              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST_96
+              PR_LIST_96=$(cat PR_LIST_96)
+              if [[ $PR_LIST_96 == *"$COMPOSE_ID_96"* ]]; then
+                  echo "pr_running_96=true" >> $GITHUB_OUTPUT
+              else
+                  echo "pr_running_96=false" >> $GITHUB_OUTPUT
+              fi
+
+              OSBUILD_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "osbuild_version_96=$OSBUILD_VERSION_96" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_96=$OSBUILD_COMPOSER_VERSION_96" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_96=$COMPOSER_CLI_VERSION_96" >> $GITHUB_OUTPUT
+          else
+              echo "osbuild_version_96=Null" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_96=Null" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_96=Null" >> $GITHUB_OUTPUT
+          fi
+
+          echo "rhel96_compose=$COMPOSE_ID_96" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     outputs:
       rhel94_compose: ${{ steps.check_compose_id_94.outputs.rhel94_compose }}
-      rhel95_compose: ${{ steps.check_compose_id_95.outputs.rhel95_compose }}
       osbuild_version_94: ${{ steps.check_compose_id_94.outputs.osbuild_version_94 }}
       osbuild_composer_version_94: ${{ steps.check_compose_id_94.outputs.osbuild_composer_version_94 }}
       composer_cli_version_94: ${{ steps.check_compose_id_94.outputs.composer_cli_version_94 }}
+      pr_running_94: ${{ steps.check_compose_id_94.outputs.pr_running_94 }}
+      rhel95_compose: ${{ steps.check_compose_id_95.outputs.rhel95_compose }}
       osbuild_version_95: ${{ steps.check_compose_id_95.outputs.osbuild_version_95 }}
       osbuild_composer_version_95: ${{ steps.check_compose_id_95.outputs.osbuild_composer_version_95 }}
       composer_cli_version_95: ${{ steps.check_compose_id_95.outputs.composer_cli_version_95 }}
-      pr_running_94: ${{ steps.check_compose_id_94.outputs.pr_running_94 }}
       pr_running_95: ${{ steps.check_compose_id_95.outputs.pr_running_95 }}
+      rhel96_compose: ${{ steps.check_compose_id_96.outputs.rhel96_compose }}
+      osbuild_version_96: ${{ steps.check_compose_id_96.outputs.osbuild_version_96 }}
+      osbuild_composer_version_96: ${{ steps.check_compose_id_96.outputs.osbuild_composer_version_96 }}
+      composer_cli_version_96: ${{ steps.check_compose_id_96.outputs.composer_cli_version_96 }}
+      pr_running_96: ${{ steps.check_compose_id_96.outputs.pr_running_96 }}
 
   rhel-9-4:
     needs: check-compose
@@ -215,3 +262,56 @@ jobs:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-rhel-9-5
+
+  rhel-9-6:
+    needs: check-compose
+    if: ${{ needs.check-compose.outputs.rhel96_compose != 'false' && needs.check-compose.outputs.pr_running_96 == 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Add new compose id in compose.96
+        run: |
+          compose_id="${{ needs.check-compose.outputs.rhel96_compose }}"
+          echo $compose_id >> compose/compose.96
+          cat compose/compose.96
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "${{ needs.check-compose.outputs.rhel96_compose }} - ${{ steps.date.outputs.date }}"
+          committer: cloudkitebot <henrywangxf1@gmail.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: cpr
+          branch-suffix: random
+          delete-branch: true
+          title: "${{ needs.check-compose.outputs.rhel96_compose }} - ${{ steps.date.outputs.date }}"
+          labels: auto-merge,RHEL-9.6.0
+          body: |
+            RHEL 9.6 compose ${{ needs.check-compose.outputs.rhel96_compose }}
+            - Date: ${{ steps.date.outputs.date }}
+            - Packages:
+                - ${{ needs.check-compose.outputs.osbuild_version_96 }}
+                - ${{ needs.check-compose.outputs.osbuild_composer_version_96 }}
+                - ${{ needs.check-compose.outputs.composer_cli_version_96 }}
+
+      - name: Enable Pull Request Automerge
+        if: steps.cpr.outputs.pull-request-operation == 'created'
+        uses: peter-evans/enable-pull-request-automerge@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: rebase
+
+      - name: Add a comment to trigger test workflow
+        uses: peter-evans/create-or-update-comment@v1
+        with:
+          token: ${{ secrets.PAT }}
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          body: /test-rhel-9-6

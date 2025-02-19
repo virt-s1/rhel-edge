@@ -61,9 +61,20 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="rhel9-unknown"
         OS_NAME="rhel-edge"
         ;;
+    "rhel-9.6")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        OS_NAME="rhel-edge"
+        ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
+        OS_NAME="rhel-edge"
+        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
+        ;;
+    "centos-10")
+        OSTREE_REF="centos/10/${ARCH}/edge"
+        OS_VARIANT="centos-stream10"
         OS_NAME="rhel-edge"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;

@@ -41,15 +41,7 @@ BOOT_ARGS="uefi"
 SYSROOT_RO="false"
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-9.4")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        PARENT_REF="rhel/8/${ARCH}/edge"
-        OS_VARIANT="rhel8-unknown"
-        DISTRO="rhel-810"
-        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-8/nightly/RHEL-8/latest-RHEL-8.10.0/compose/BaseOS/x86_64/os/"
-        SYSROOT_RO="true"
-        ;;
-    "rhel-9.5")
+    "rhel-9*")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
@@ -62,7 +54,16 @@ case "${ID}-${VERSION_ID}" in
         PARENT_REF="centos/8/${ARCH}/edge"
         OS_VARIANT="centos-stream8"
         DISTRO="centos-8"
-        BOOT_LOCATION="http://mirror.centos.org/centos/8-stream/BaseOS/x86_64/os/"
+        BOOT_LOCATION="https://odcs.stream.centos.org/stream-8/production/latest-CentOS-Stream/compose/BaseOS/x86_64/os/"
+        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
+        SYSROOT_RO="true"
+        ;;
+    "centos-10")
+        OSTREE_REF="centos/10/${ARCH}/edge"
+        PARENT_REF="centos/9/${ARCH}/edge"
+        OS_VARIANT="centos-stream9"
+        DISTRO="centos-9"
+        BOOT_LOCATION="https://odcs.stream.centos.org/production/latest-CentOS-Stream/compose/BaseOS/x86_64/os/"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         SYSROOT_RO="true"
         ;;

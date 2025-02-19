@@ -45,8 +45,19 @@ case "${ID}-${VERSION_ID}" in
         MINIMAL_RAW_DECOMPRESSED=disk.raw
         MINIMAL_RAW_FILENAME=disk.raw.xz
         ;;
+    "rhel-9.6")
+        OS_VARIANT="rhel9-unknown"
+        MINIMAL_RAW_DECOMPRESSED=disk.raw
+        MINIMAL_RAW_FILENAME=disk.raw.xz
+        ;;
     "centos-9")
         OS_VARIANT="centos-stream9"
+        MINIMAL_RAW_DECOMPRESSED=disk.raw
+        MINIMAL_RAW_FILENAME=disk.raw.xz
+        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
+        ;;
+    "centos-10")
+        OS_VARIANT="centos-stream10"
         MINIMAL_RAW_DECOMPRESSED=disk.raw
         MINIMAL_RAW_FILENAME=disk.raw.xz
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"

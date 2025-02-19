@@ -72,8 +72,20 @@ case "${ID}-${VERSION_ID}" in
         GUEST_ID_DC70="rhel9_64Guest"
         OS_NAME="rhel-edge"
         ;;
+    "rhel-9.6" )
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        # GUEST_ID_DC67="rhel8_64Guest"
+        GUEST_ID_DC70="rhel9_64Guest"
+        OS_NAME="rhel-edge"
+        ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
+        # GUEST_ID_DC67="centos8_64Guest"
+        GUEST_ID_DC70="centos9_64Guest"
+        OS_NAME="rhel-edge"
+        ;;
+    "centos-10")
+        OSTREE_REF="centos/10/${ARCH}/edge"
         # GUEST_ID_DC67="centos8_64Guest"
         GUEST_ID_DC70="centos9_64Guest"
         OS_NAME="rhel-edge"
