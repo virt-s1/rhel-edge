@@ -105,9 +105,34 @@ case "${ID}-${VERSION_ID}" in
         BLUEPRINT_USER="simple"
         OS_NAME="rhel-edge"
         ;;
+    "rhel-9.6")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        IMAGE_NAME="image.raw.xz"
+        SYSROOT_RO="true"
+        ANSIBLE_USER=fdouser
+        FDO_USER_ONBOARDING="true"
+        USER_IN_BLUEPRINT="true"
+        BLUEPRINT_USER="simple"
+        OS_NAME="rhel-edge"
+        ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         PARENT_REF="centos/9/${ARCH}/edge"
+        OS_VARIANT="centos-stream9"
+        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
+        IMAGE_NAME="image.raw.xz"
+        SYSROOT_RO="true"
+        ANSIBLE_USER=fdouser
+        FDO_USER_ONBOARDING="true"
+        USER_IN_BLUEPRINT="true"
+        BLUEPRINT_USER="simple"
+        OS_NAME="rhel-edge"
+        ;;
+    "centos-10")
+        OSTREE_REF="centos/10/${ARCH}/edge"
+        PARENT_REF="centos/10/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         IMAGE_NAME="image.raw.xz"

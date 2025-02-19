@@ -58,8 +58,14 @@ case "${ID}-${VERSION_ID}" in
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-10-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-810.json > /dev/null
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-4-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-94.json > /dev/null
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-5-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-95.json > /dev/null;;
+    "rhel-9.6")
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-10-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-810.json > /dev/null
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-5-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-95.json > /dev/null
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-6-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-96.json > /dev/null;;
     "centos-9")
         sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
+    "centos-10")
+        sudo cp files/centos-stream-10.json /etc/osbuild-composer/repositories/centos-10.json;;
     "fedora-41")
         sudo cp files/fedora-41.json /etc/osbuild-composer/repositories/fedora-41.json
         ;;

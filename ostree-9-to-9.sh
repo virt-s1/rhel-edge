@@ -56,6 +56,15 @@ case "${ID}-${VERSION_ID}" in
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.5.0/compose/BaseOS/x86_64/os/"
         SYSROOT_RO="true"
         ;;
+    "rhel-9.6")
+        OS_VARIANT="rhel9-unknown"
+        PARENT_REF="rhel/9/${ARCH}/edge"
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OSTREE_REBASE_REF="rhel/96/${ARCH}/edge"
+        DISTRO="rhel-95"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.6.0/compose/BaseOS/x86_64/os/"
+        SYSROOT_RO="true"
+        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;
