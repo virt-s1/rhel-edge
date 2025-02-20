@@ -1229,7 +1229,7 @@
       when:
         - ansible_facts['distribution'] != 'Fedora'
 
-# case: checking files and directories customizations
+    # case: checking files and directories customizations
     - name: Check that custom files and directories are present
       block:
         # Test basic custom files and directories creation
