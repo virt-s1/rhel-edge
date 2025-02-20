@@ -95,18 +95,6 @@ case "${ID}-${VERSION_ID}" in
         SYSROOT_RO="true"
         DIRS_FILES_CUSTOMIZATION="true"
         ;;
-    "centos-10")
-        OSTREE_REF="centos/10/${ARCH}/edge"
-        USER_IN_COMMIT="true"
-        OS_VARIANT="centos-stream10"
-        CUT_DIRS=6
-        ADD_SSSD="true"
-        EMBEDDED_CONTAINER="true"
-        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
-        FIREWALL_FEATURE="true"
-        SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        ;;
     "fedora-41")
         IMAGE_TYPE=fedora-iot-commit
         USER_IN_COMMIT="false"

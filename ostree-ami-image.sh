@@ -61,11 +61,6 @@ case "${ID}-${VERSION_ID}" in
         SYSROOT_RO="true"
         ANSIBLE_OS_NAME="rhel-edge"
         ;;
-    "centos-10")
-        OSTREE_REF="centos/10/${ARCH}/edge"
-        SYSROOT_RO="true"
-        ANSIBLE_OS_NAME="rhel-edge"
-        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;

@@ -94,16 +94,6 @@ case "${ID}-${VERSION_ID}" in
         SYSROOT_RO="true"
         ANSIBLE_OS_NAME="rhel-edge"
         ;;
-    "centos-10")
-        OSTREE_REF="centos/10/${ARCH}/edge"
-        PARENT_REF="centos/10/${ARCH}/edge"
-        OS_VARIANT="centos-stream10"
-        ADD_SSSD="true"
-        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
-        USER_IN_RAW="true"
-        SYSROOT_RO="true"
-        ANSIBLE_OS_NAME="rhel-edge"
-        ;;
     "fedora-41")
         CONTAINER_TYPE=fedora-iot-container
         RAW_TYPE=iot-raw-image

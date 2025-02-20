@@ -72,12 +72,6 @@ case "${ID}-${VERSION_ID}" in
         OS_NAME="rhel-edge"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
-    "centos-10")
-        OSTREE_REF="centos/10/${ARCH}/edge"
-        OS_VARIANT="centos-stream10"
-        OS_NAME="rhel-edge"
-        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
-        ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
         exit 1;;

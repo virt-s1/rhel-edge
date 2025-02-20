@@ -115,17 +115,6 @@ case "${ID}-${VERSION_ID}" in
         DIRS_FILES_CUSTOMIZATION="true"
         ANSIBLE_OS_NAME="rhel-edge"
         ;;
-    "centos-10")
-        OSTREE_REF="centos/10/${ARCH}/edge"
-        OS_VARIANT="centos-stream10"
-        NEW_MKKSISO="true"
-        CONTAINER_PUSHING_FEAT="true"
-        EMBEDDED_CONTAINER="true"
-        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
-        SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
-        ANSIBLE_OS_NAME="rhel-edge"
-        ;;
     "fedora-41")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
         INSTALLER_IMAGE_TYPE=fedora-iot-installer

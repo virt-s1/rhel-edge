@@ -56,12 +56,6 @@ case "${ID}-${VERSION_ID}" in
         MINIMAL_RAW_FILENAME=disk.raw.xz
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         ;;
-    "centos-10")
-        OS_VARIANT="centos-stream10"
-        MINIMAL_RAW_DECOMPRESSED=disk.raw
-        MINIMAL_RAW_FILENAME=disk.raw.xz
-        BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
-        ;;
     "fedora-41")
         OS_VARIANT="fedora-unknown"
         MINIMAL_RAW_DECOMPRESSED=disk.raw
