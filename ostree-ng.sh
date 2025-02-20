@@ -128,6 +128,15 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_IMAGE_TYPE=fedora-iot-container
         INSTALLER_IMAGE_TYPE=fedora-iot-installer
         OSTREE_REF="fedora-iot/42/${ARCH}/iot"
+        OS_VARIANT="fedora-unknown"
+        ANSIBLE_OS_NAME="fedora-iot"
+        SYSROOT_RO="true"
+        DIRS_FILES_CUSTOMIZATION="true"
+        ;;
+    "fedora-43")
+        CONTAINER_IMAGE_TYPE=fedora-iot-container
+        INSTALLER_IMAGE_TYPE=fedora-iot-installer
+        OSTREE_REF="fedora-iot/43/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"
         ANSIBLE_OS_NAME="fedora-iot"
         SYSROOT_RO="true"
