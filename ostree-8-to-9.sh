@@ -41,7 +41,7 @@ BOOT_ARGS="uefi"
 SYSROOT_RO="false"
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-9*")
+    "rhel-9"*)
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/8/${ARCH}/edge"
         OS_VARIANT="rhel8-unknown"
