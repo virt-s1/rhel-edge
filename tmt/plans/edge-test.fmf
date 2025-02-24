@@ -117,6 +117,8 @@ provision:
       enabled: false
     - when: distro == rhel-8-10
       enabled: false
+    - when: distro==cs-9
+      enabled: false
 
 /edge-x86-9to9:
   summary: Test edge installer image
@@ -126,6 +128,8 @@ provision:
     - when: distro == fedora
       enabled: false
     - when: distro == rhel-8-10
+      enabled: false
+    - when: distro==cs-9
       enabled: false
 
 /edge-arm-ami-image:
