@@ -54,6 +54,12 @@ provision:
       enabled: false
     - when: distro == rhel-8-10
       enabled: false
+    - when: distro==cs-9
+      enabled: false
+    - when: distro==rhel-9-5
+      enabled: false
+    - when: distro==rhel-9-4
+      enabled: false
 
 /edge-x86-ignition:
   summary: Test edge ignition feature
@@ -76,8 +82,6 @@ provision:
       enabled: false
     - when: distro==cs-9
       enabled: false
-    - when: distro==cs-10
-      enabled: false
 
 /edge-x86-vsphere:
   summary: Test edge vsphere image
@@ -89,8 +93,6 @@ provision:
     - when: distro == rhel-8-10
       enabled: false
     - when: distro==cs-9
-      enabled: false
-    - when: distro==cs-10
       enabled: false
 
 /edge-x86-ami-image:
