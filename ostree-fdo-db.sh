@@ -38,17 +38,6 @@ FDO_USER=fdouser
 SYSROOT_RO="true"
 
 case "${ID}-${VERSION_ID}" in
-    "rhel-9.4")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9-unknown"
-        BOOT_ARGS="uefi"
-        ;;
-    "rhel-9.5")
-        OSTREE_REF="rhel/9/${ARCH}/edge"
-        OS_VARIANT="rhel9-unknown"
-        BOOT_ARGS="uefi"
-        OS_NAME="rhel-edge"
-        ;;
     "rhel-9.6")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
@@ -206,17 +195,14 @@ check_result () {
 
 import_ov () {
     greenprint "🔧 Export OV and import into owner db"
-    mkdir -p "${TEMPDIR}/export-ov"
-    if [[ $DB_TYPE == 0 ]]; then
-        sudo /usr/libexec/fdo/fdo-owner-tool export-manufacturer-vouchers sqlite "${manufacturer_db_file}" "${TEMPDIR}/export-ov/"
-        EXPORTED_FILE=$(ls -1 "${TEMPDIR}/export-ov")
-        sudo /usr/libexec/fdo/fdo-owner-tool import-ownership-vouchers sqlite "${owner_db_file}" "${TEMPDIR}/export-ov/${EXPORTED_FILE}"
-    else
-        /usr/libexec/fdo/fdo-owner-tool export-manufacturer-vouchers postgres "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_IP}/${POSTGRES_DB}" "${TEMPDIR}/export-ov/"
-        EXPORTED_FILE=$(ls -1 "${TEMPDIR}/export-ov")
-        /usr/libexec/fdo/fdo-owner-tool import-ownership-vouchers postgres "postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_IP}/${POSTGRES_DB}" "${TEMPDIR}/export-ov/${EXPORTED_FILE}"
-    fi
-    rm -rf "${TEMPDIR}/export-ov"
+    MANUFACTURER_EXPORT_DIR="${TEMPDIR}/export-ov"
+    rm -rf "${MANUFACTURER_EXPORT_DIR}"
+    mkdir -p "${MANUFACTURER_EXPORT_DIR}"
+    fdo-owner-tool export-manufacturer-vouchers "http://${FDO_SERVER_ADDRESS}:8080" --path "${MANUFACTURER_EXPORT_DIR}"
+    sudo tar xvf "${MANUFACTURER_EXPORT_DIR}"/export.tar -C "${MANUFACTURER_EXPORT_DIR}"
+    sudo rm -rf "${MANUFACTURER_EXPORT_DIR}"/export.tar
+    fdo-owner-tool import-ownership-vouchers "$(tr "[:upper:]" "[:lower:]" <<< "${DATABASE_DRIVER}")" "${DB_URL}" "${MANUFACTURER_EXPORT_DIR}"
+    rm -rf "${MANUFACTURER_EXPORT_DIR}"
 }
 
 ###########################################################
@@ -254,8 +240,8 @@ getenforce
 # Install dependencies
 greenprint "🔧 Install FDO and other dependencies"
 sudo dnf install -y fdo-admin-cli fdo-rendezvous-server fdo-owner-onboarding-server fdo-owner-cli fdo-manufacturing-server
-sudo dnf install -y make gcc openssl openssl-devel findutils golang git tpm2-tss-devel \
-    swtpm swtpm-tools git clevis clevis-luks cryptsetup cryptsetup-devel clang-devel \
+sudo dnf install -y make gcc openssl openssl-devel findutils golang git \
+    swtpm swtpm-tools git clevis clevis-luks cryptsetup clang-devel \
     cracklib-dicts sqlite sqlite-devel libpq libpq-devel cargo python3-pip
 sudo pip3 install yq
 
@@ -285,84 +271,54 @@ fdouser ALL=(ALL) NOPASSWD: ALL
 EOF
 sudo /usr/local/bin/yq -iy '.service_info.files |= [{path: "/etc/sudoers.d/fdouser", source_path: "/var/lib/fdo/fdouser"}]' /etc/fdo/serviceinfo-api-server.conf.d/serviceinfo-api-server.yml
 
-# Setup FDO database
-DB_TYPE=$((RANDOM % 2))
-if [[ $DB_TYPE == 0 ]]; then
+# Randomly select a database type to test, sqlite or postgres
+DATABASE_DIR=/var/lib/fdo
+MIGRATIONS_BASE_DIR=/usr/share/doc/fdo/migrations/
+OWNER_DATABASE="owner_onboarding"
+MANUFACTURER_DATABASE="manufacturing"
+RENDEZVOUS_DATABASE="rendezvous"
+DATABASES="${MANUFACTURER_DATABASE} ${OWNER_DATABASE} ${RENDEZVOUS_DATABASE}"
+DB_RANDOM_CHOICE=$((RANDOM % 2))
+if [[ $DB_RANDOM_CHOICE == 0 ]]; then
     # Setup FDO SQLite database
     greenprint "🔧 FDO SQLite DB configurations"
+    DATABASE_DRIVER="Sqlite"
     cargo install --force diesel_cli --version 2.1.1 --no-default-features --features sqlite
-    rm -fr /tmp/fdo
-    mkdir -p /tmp/fdo
-    manufacturer_db_file="/tmp/fdo/manufacturer-db.sqlite"
-    owner_db_file="/tmp/fdo/owner-db.sqlite"
-    rendezvous_db_file="/tmp/fdo/rendezvous-db.sqlite"
-    ~/.cargo/bin/diesel migration run --migration-dir /usr/share/doc/fdo/migrations/migrations_manufacturing_server_sqlite --database-url "${manufacturer_db_file}"
-    ~/.cargo/bin/diesel migration run --migration-dir /usr/share/doc/fdo/migrations/migrations_owner_onboarding_server_sqlite --database-url "${owner_db_file}"
-    ~/.cargo/bin/diesel migration run --migration-dir /usr/share/doc/fdo/migrations/migrations_rendezvous_server_sqlite --database-url "${rendezvous_db_file}"
-
-    tee "create_table.sql" > /dev/null << EOF
-CREATE TABLE manufacturer_vouchers (
-    guid varchar(36) NOT NULL PRIMARY KEY,
-    contents blob NOT NULL,
-    ttl bigint
-);
-EOF
-    sqlite3 "${manufacturer_db_file}" < create_table.sql
-
-    tee "create_table.sql" > /dev/null << EOF
-CREATE TABLE owner_vouchers (
-    guid varchar(36) NOT NULL PRIMARY KEY,
-    contents blob NOT NULL,
-    to2_performed bool,
-    to0_accept_owner_wait_seconds bigint
-);
-EOF
-    sqlite3 "${owner_db_file}" < create_table.sql
-
-    tee "create_table.sql" > /dev/null << EOF
-CREATE TABLE rendezvous_vouchers (
-    guid varchar(36) NOT NULL PRIMARY KEY,
-    contents blob NOT NULL,
-    ttl bigint
-);
-EOF
-    sqlite3 "${rendezvous_db_file}" < create_table.sql
+    mkdir -p ${DATABASE_DIR}
+    DATABASE_FILE="${DATABASE_DIR}/fido-device-onboard.db"
+    DB_URL="sqlite://${DATABASE_DIR}/fido-device-onboard.db"
+    true > ${DATABASE_FILE}
+    for DATABASE in ${DATABASES}; do
+        sqlite3 ${DATABASE_FILE} < "${MIGRATIONS_BASE_DIR}/migrations_${DATABASE}_server_sqlite/up.sql"
+    done
+    chmod 666 ${DATABASE_FILE}
 
     # Update FDO configuration files
-    greenprint "🔧 Update FDO configuration files"
+    greenprint "🔧 Set fdo db store driver to Sqlite"
     sudo /usr/local/bin/yq -yi 'del(.ownership_voucher_store_driver.Directory)' /etc/fdo/manufacturing-server.conf.d/manufacturing-server.yml
-    sudo /usr/local/bin/yq -yi '.ownership_voucher_store_driver += {"Sqlite": "Manufacturer"}' /etc/fdo/manufacturing-server.conf.d/manufacturing-server.yml
+    sudo /usr/local/bin/yq -yi '.ownership_voucher_store_driver += {"Sqlite":{"server": "Manufacturer", "url": "'$DB_URL'"}}' /etc/fdo/manufacturing-server.conf.d/manufacturing-server.yml
     sudo /usr/local/bin/yq -yi 'del(.ownership_voucher_store_driver.Directory)' /etc/fdo/owner-onboarding-server.conf.d/owner-onboarding-server.yml
-    sudo /usr/local/bin/yq -yi '.ownership_voucher_store_driver += {"Sqlite": "Owner"}' /etc/fdo/owner-onboarding-server.conf.d/owner-onboarding-server.yml
+    sudo /usr/local/bin/yq -yi '.ownership_voucher_store_driver += {"Sqlite":{"server": "Owner", "url": "'$DB_URL'"}}' /etc/fdo/owner-onboarding-server.conf.d/owner-onboarding-server.yml
     sudo /usr/local/bin/yq -yi 'del(.storage_driver.Directory)' /etc/fdo/rendezvous-server.conf.d/rendezvous-server.yml
-    sudo /usr/local/bin/yq -yi '.storage_driver += {"Sqlite": "Rendezvous"}' /etc/fdo/rendezvous-server.conf.d/rendezvous-server.yml
-
-    # Update FDO service unit file
-    sudo sed -i \
-        "/Environment=LOG_LEVEL=info/a Environment=SQLITE_MANUFACTURER_DATABASE_URL=${manufacturer_db_file}" \
-        /usr/lib/systemd/system/fdo-manufacturing-server.service
-    sudo sed -i \
-        "/Environment=LOG_LEVEL=info/a Environment=SQLITE_OWNER_DATABASE_URL=${owner_db_file}" \
-        /usr/lib/systemd/system/fdo-owner-onboarding-server.service
-    sudo sed -i \
-        "/Environment=LOG_LEVEL=info/a Environment=SQLITE_RENDEZVOUS_DATABASE_URL=${rendezvous_db_file}" \
-        /usr/lib/systemd/system/fdo-rendezvous-server.service
+    sudo /usr/local/bin/yq -yi '.storage_driver += {"Sqlite":{"server": "Rendezvous", "url": "'$DB_URL'"}}' /etc/fdo/rendezvous-server.conf.d/rendezvous-server.yml
 else
     # Setup FDO POSTGRES database
     greenprint "🔧 FDO Postgres DB configurations"
+    DATABASE_DRIVER="Postgres"
     POSTGRES_USERNAME=postgres
     POSTGRES_PASSWORD=foobar
     POSTGRES_DB=postgres
     POSTGRES_IP=192.168.200.2
+    DB_URL="postgresql://${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_IP}/${POSTGRES_DB}"
 
     # Prepare postgres db init sql script
     greenprint "🔧 Prepare postgres db init sql script"
     mkdir -p initdb
-    cp /usr/share/doc/fdo/migrations/migrations_manufacturing_server_postgres/up.sql initdb/manufacturing.sql
-    cp /usr/share/doc/fdo/migrations/migrations_owner_onboarding_server_postgres/up.sql initdb/owner-onboarding.sql
-    cp /usr/share/doc/fdo/migrations/migrations_rendezvous_server_postgres/up.sql initdb/rendezvous.sql
+    cp "${MIGRATIONS_BASE_DIR}"/migrations_manufacturing_server_postgres/up.sql initdb/manufacturing.sql
+    cp "${MIGRATIONS_BASE_DIR}"/migrations_owner_onboarding_server_postgres/up.sql initdb/owner-onboarding.sql
+    cp "${MIGRATIONS_BASE_DIR}"/migrations_rendezvous_server_postgres/up.sql initdb/rendezvous.sql
 
-    greenprint "🔧 Starting postgres"
+    greenprint "🔧 Starting postgres database"
     sudo podman run -d \
         --ip "$POSTGRES_IP" \
         --name postgres \
@@ -375,26 +331,13 @@ else
         sleep 5
     done
 
-    # Set servers store driver to postgres
-    greenprint "🔧 Set servers store driver to postgres"
+    greenprint "🔧 Set fdo db store driver to postgres"
     sudo /usr/local/bin/yq -yi 'del(.ownership_voucher_store_driver.Directory)' /etc/fdo/manufacturing-server.conf.d/manufacturing-server.yml
-    sudo /usr/local/bin/yq -yi '.ownership_voucher_store_driver += {"Postgres": "Manufacturer"}' /etc/fdo/manufacturing-server.conf.d/manufacturing-server.yml
+    sudo /usr/local/bin/yq -yi '.ownership_voucher_store_driver += {"Postgres":{"server": "Manufacturer", "url": "'$DB_URL'"}}' /etc/fdo/manufacturing-server.conf.d/manufacturing-server.yml
     sudo /usr/local/bin/yq -yi 'del(.ownership_voucher_store_driver.Directory)' /etc/fdo/owner-onboarding-server.conf.d/owner-onboarding-server.yml
-    sudo /usr/local/bin/yq -yi '.ownership_voucher_store_driver += {"Postgres": "Owner"}' /etc/fdo/owner-onboarding-server.conf.d/owner-onboarding-server.yml
+    sudo /usr/local/bin/yq -yi '.ownership_voucher_store_driver += {"Postgres":{"server": "Owner", "url": "'$DB_URL'"}}' /etc/fdo/owner-onboarding-server.conf.d/owner-onboarding-server.yml
     sudo /usr/local/bin/yq -yi 'del(.storage_driver.Directory)' /etc/fdo/rendezvous-server.conf.d/rendezvous-server.yml
-    sudo /usr/local/bin/yq -yi '.storage_driver += {"Postgres": "Rendezvous"}' /etc/fdo/rendezvous-server.conf.d/rendezvous-server.yml
-
-    # Configure environment variables for Postgres connection
-    greenprint "🔧 Configure environment variables for Postgres connection"
-    sudo sed -i \
-        "/Environment=LOG_LEVEL=info/a Environment=POSTGRES_MANUFACTURER_DATABASE_URL=postgresql:\/\/${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_IP}\/${POSTGRES_DB}" \
-        /usr/lib/systemd/system/fdo-manufacturing-server.service
-    sudo sed -i \
-        "/Environment=LOG_LEVEL=info/a Environment=POSTGRES_OWNER_DATABASE_URL=postgresql:\/\/${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_IP}\/${POSTGRES_DB}" \
-        /usr/lib/systemd/system/fdo-owner-onboarding-server.service
-    sudo sed -i \
-        "/Environment=LOG_LEVEL=info/a Environment=POSTGRES_RENDEZVOUS_DATABASE_URL=postgresql:\/\/${POSTGRES_USERNAME}:${POSTGRES_PASSWORD}@${POSTGRES_IP}\/${POSTGRES_DB}" \
-        /usr/lib/systemd/system/fdo-rendezvous-server.service
+    sudo /usr/local/bin/yq -yi '.storage_driver += {"Postgres":{"server": "Rendezvous", "url": "'$DB_URL'"}}' /etc/fdo/rendezvous-server.conf.d/rendezvous-server.yml
 fi
 
 # Start FDO services
