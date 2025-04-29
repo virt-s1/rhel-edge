@@ -8,22 +8,21 @@ on:
 
 env:
   COMPOSE_URL_rawhide: https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide
-  COMPOSE_URL_F42: https://dl.fedoraproject.org/pub/fedora/linux/development/42
-  UPDATES_URL_F42: https://dl.fedoraproject.org/pub/fedora/linux/development/42
+  COMPOSE_URL_F42: https://dl.fedoraproject.org/pub/fedora/linux/releases/42
+  UPDATES_URL_F42: https://dl.fedoraproject.org/pub/fedora/linux/updates/42
   COMPOSE_URL_F41: https://dl.fedoraproject.org/pub/fedora/linux/releases/41
   UPDATES_URL_F41: https://dl.fedoraproject.org/pub/fedora/linux/updates/41
 
 jobs:
 
   check-compose:
-    # Do not run this job on any fork repos
     if: github.repository == 'virt-s1/rhel-edge'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
       - name: Check if fedora rawhide compose is new
-        id: check_compose_id
+        id: check_compose_id_rawhide
         run: |
           curl -s "${COMPOSE_URL_rawhide}/COMPOSE_ID" --output COMPOSE_ID
           COMPOSE_ID=$(cat COMPOSE_ID)
@@ -41,12 +40,12 @@ jobs:
                   echo "pr_running=false" >> $GITHUB_OUTPUT
               fi
 
-              OSBUILD_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
-              OSBUILD_COMPOSER_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
-              COMPOSER_CLI_VERSION=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
-              echo "osbuild_version=$OSBUILD_VERSION" >> $GITHUB_OUTPUT
-              echo "osbuild_composer_version=$OSBUILD_COMPOSER_VERSION" >> $GITHUB_OUTPUT
-              echo "composer_cli_version=$COMPOSER_CLI_VERSION" >> $GITHUB_OUTPUT
+              OSBUILD_VERSION_RAWHIDE=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION_RAWHIDE=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION_RAWHIDE=$(curl -s "${COMPOSE_URL_rawhide}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "osbuild_version=$OSBUILD_VERSION_RAWHIDE" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version=$OSBUILD_COMPOSER_VERSION_RAWHIDE" >> $GITHUB_OUTPUT
+              echo "composer_cli_version=$COMPOSER_CLI_VERSION_RAWHIDE" >> $GITHUB_OUTPUT
 
           else
               echo "osbuild_version=Null" >> $GITHUB_OUTPUT
@@ -54,20 +53,100 @@ jobs:
               echo "composer_cli_version=Null" >> $GITHUB_OUTPUT
           fi
 
-          echo "rawhide_compose=$COMPOSE_ID" >> $GITHUB_OUTPUT
+          echo "compose_id=$COMPOSE_ID" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if fedora f41 compose is new
+        id: check_compose_id_f41
+        run: |
+          COMPOSE_ID=$(curl -s "${UPDATES_URL_F41}/Everything/state" | cut -d '/' -f 6)
+          TESTED_COMPOSE=( $( cat compose/compose.f41 ) )
+          if [[ " ${TESTED_COMPOSE[*]} " =~ "$COMPOSE_ID" ]]; then
+              COMPOSE_ID="false"
+          fi
+
+          if [[ "$COMPOSE_ID" != "false" ]]; then
+              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST
+              PR_LIST=$(cat PR_LIST)
+              if [[ $PR_LIST == *"$COMPOSE_ID"* ]]; then
+                  echo "pr_running=true" >> $GITHUB_OUTPUT
+              else
+                  echo "pr_running=false" >> $GITHUB_OUTPUT
+              fi
+
+              OSBUILD_VERSION_F41=$(curl -s "${UPDATES_URL_F41}/Everything/x86_64/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION_F41=$(curl -s "${UPDATES_URL_F41}/Everything/x86_64/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION_F41=$(curl -s "${COMPOSE_URL_F41}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "osbuild_version=$OSBUILD_VERSION_F41" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version=$OSBUILD_COMPOSER_VERSION_F41" >> $GITHUB_OUTPUT
+              echo "composer_cli_version=$COMPOSER_CLI_VERSION_F41" >> $GITHUB_OUTPUT
+
+          else
+              echo "osbuild_version=Null" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version=Null" >> $GITHUB_OUTPUT
+              echo "composer_cli_version=Null" >> $GITHUB_OUTPUT
+          fi
+
+          echo "compose_id=$COMPOSE_ID" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if fedora f42 compose is new
+        id: check_compose_id_f42
+        run: |
+          COMPOSE_ID=$(curl -s "${UPDATES_URL_F42}/Everything/state" | cut -d '/' -f 6)
+          TESTED_COMPOSE=( $( cat compose/compose.f42 ) )
+          if [[ " ${TESTED_COMPOSE[*]} " =~ "$COMPOSE_ID" ]]; then
+              COMPOSE_ID="false"
+          fi
+
+          if [[ "$COMPOSE_ID" != "false" ]]; then
+              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST
+              PR_LIST=$(cat PR_LIST)
+              if [[ $PR_LIST == *"$COMPOSE_ID"* ]]; then
+                  echo "pr_running=true" >> $GITHUB_OUTPUT
+              else
+                  echo "pr_running=false" >> $GITHUB_OUTPUT
+              fi
+
+              OSBUILD_VERSION_F42=$(curl -s "${UPDATES_URL_F42}/Everything/x86_64/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION_F42=$(curl -s "${UPDATES_URL_F42}/Everything/x86_64/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION_F42=$(curl -s "${COMPOSE_URL_F42}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "osbuild_version=$OSBUILD_VERSION_F42" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version=$OSBUILD_COMPOSER_VERSION_F42" >> $GITHUB_OUTPUT
+              echo "composer_cli_version=$COMPOSER_CLI_VERSION_F42" >> $GITHUB_OUTPUT
+
+          else
+              echo "osbuild_version=Null" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version=Null" >> $GITHUB_OUTPUT
+              echo "composer_cli_version=Null" >> $GITHUB_OUTPUT
+          fi
+
+          echo "compose_id=$COMPOSE_ID" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     outputs:
-      rawhide_compose: ${{ steps.check_compose_id.outputs.rawhide_compose }}
-      osbuild_version: ${{ steps.check_compose_id.outputs.osbuild_version }}
-      osbuild_composer_version: ${{ steps.check_compose_id.outputs.osbuild_composer_version }}
-      composer_cli_version: ${{ steps.check_compose_id.outputs.composer_cli_version }}
-      pr_running: ${{ steps.check_compose_id.outputs.pr_running }}
+      rawhide_compose: ${{ steps.check_compose_id_rawhide.outputs.compose_id }}
+      osbuild_version_rawhide: ${{ steps.check_compose_id_rawhide.outputs.osbuild_version }}
+      osbuild_composer_version_rawhide: ${{ steps.check_compose_id_rawhide.outputs.osbuild_composer_version }}
+      composer_cli_version_rawhide: ${{ steps.check_compose_id_rawhide.outputs.composer_cli_version }}
+      pr_running_rawhide: ${{ steps.check_compose_id_rawhide.outputs.pr_running }}
+      f41_compose: ${{ steps.check_compose_id_f41.outputs.compose_id }}
+      osbuild_version_f41: ${{ steps.check_compose_id_f41.outputs.osbuild_version }}
+      osbuild_composer_version_f41: ${{ steps.check_compose_id_f41.outputs.osbuild_composer_version }}
+      composer_cli_version_f41: ${{ steps.check_compose_id_f41.outputs.composer_cli_version }}
+      pr_running_f41: ${{ steps.check_compose_id_f41.outputs.pr_running }}
+      f42_compose: ${{ steps.check_compose_id_f42.outputs.compose_id }}
+      osbuild_version_f42: ${{ steps.check_compose_id_f42.outputs.osbuild_version }}
+      osbuild_composer_version_f42: ${{ steps.check_compose_id_f42.outputs.osbuild_composer_version }}
+      composer_cli_version_f42: ${{ steps.check_compose_id_f42.outputs.composer_cli_version }}
+      pr_running_f42: ${{ steps.check_compose_id_f42.outputs.pr_running }}
 
   fedora-rawhide:
     needs: check-compose
-    if: ${{ needs.check-compose.outputs.rawhide_compose != 'false' && needs.check-compose.outputs.pr_running == 'false' }}
+    if: ${{ needs.check-compose.outputs.rawhide_compose != 'false' && needs.check-compose.outputs.pr_running_rawhide == 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -120,30 +199,15 @@ jobs:
           body: /test-rawhide
 
   fedora-41:
-    # Do not need check-compose and make "workflow_dispatch" work for this job
-    if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule != '0 4 * * *'
+    needs: check-compose
+    if: ${{ needs.check-compose.outputs.f41_compose != 'false' && needs.check-compose.outputs.pr_running_f41 == 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get package version
-        id: package_version
-        run: |
-          curl -s "${COMPOSE_URL_F41}/COMPOSE_ID" --output COMPOSE_ID_F41
-          COMPOSE_ID_F41=$(cat COMPOSE_ID_F41)
-
-          OSBUILD_VERSION_F41=$(curl -s "${UPDATES_URL_F41}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
-          OSBUILD_COMPOSER_VERSION_F41=$(curl -s "${UPDATES_URL_F41}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
-          COMPOSER_CLI_VERSION_F41=$(curl -s "${COMPOSE_URL_F41}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
-          echo "osbuild_version_f41=$OSBUILD_VERSION_F41" >> $GITHUB_OUTPUT
-          echo "osbuild_composer_version_f41=$OSBUILD_COMPOSER_VERSION_F41" >> $GITHUB_OUTPUT
-          echo "composer_cli_version_f41=$COMPOSER_CLI_VERSION_F41" >> $GITHUB_OUTPUT
-
-          echo "f41_compose=$COMPOSE_ID_F41" >> $GITHUB_OUTPUT
-
       - name: Add new compose id in compose.f41
         run: |
-          compose_id="${{ steps.package_version.outputs.f41_compose }}"
+          compose_id="${{ needs.check-compose.outputs.f41_compose }}"
           echo $compose_id >> compose/compose.f41
           cat compose/compose.f41
 
@@ -165,14 +229,14 @@ jobs:
           title: " Fedora 41 Daily Compose Test- ${{ steps.date.outputs.date }}"
           labels: DO_NOT_MERGE,fedora-41
           body: |
-            Fedora 41 compose ${{ steps.package_version.outputs.f41_compose }}
+            Fedora 41 compose ${{ needs.check-compose.outputs.f41_compose }}
             - Date: ${{ steps.date.outputs.date }}
             - Compose URL: ${{ env.COMPOSE_URL_F41 }}
             - Updates URL: ${{ env.UPDATES_URL_F41 }}
             - Packages:
-                - ${{ steps.package_version.outputs.osbuild_version_f41 }}
-                - ${{ steps.package_version.outputs.osbuild_composer_version_f41 }}
-                - ${{ steps.package_version.outputs.composer_cli_version_f41 }}
+                - ${{ needs.check-compose.outputs.osbuild_version_f41 }}
+                - ${{ needs.check-compose.outputs.osbuild_composer_version_f41 }}
+                - ${{ needs.check-compose.outputs.composer_cli_version_f41 }}
 
       - name: Add a comment to trigger test workflow
         uses: peter-evans/create-or-update-comment@v2
@@ -181,32 +245,16 @@ jobs:
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-f41
 
-
   fedora-42:
-    # Do not need check-compose and make "workflow_dispatch" work for this job
-    if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule != '0 4 * * *'
+    needs: check-compose
+    if: ${{ needs.check-compose.outputs.f42_compose != 'false' && needs.check-compose.outputs.pr_running_f42 == 'false' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - name: Get package version
-        id: package_version
-        run: |
-          curl -s "${COMPOSE_URL_F42}/COMPOSE_ID" --output COMPOSE_ID_F42
-          COMPOSE_ID_F42=$(cat COMPOSE_ID_F42)
-
-          OSBUILD_VERSION_F42=$(curl -s "${UPDATES_URL_F42}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
-          OSBUILD_COMPOSER_VERSION_F42=$(curl -s "${UPDATES_URL_F42}/Everything/x86_64/os/Packages/o/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
-          COMPOSER_CLI_VERSION_F42=$(curl -s "${COMPOSE_URL_F42}/Everything/x86_64/os/Packages/w/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
-          echo "osbuild_version_f42=$OSBUILD_VERSION_F42" >> $GITHUB_OUTPUT
-          echo "osbuild_composer_version_f42=$OSBUILD_COMPOSER_VERSION_F42" >> $GITHUB_OUTPUT
-          echo "composer_cli_version_f42=$COMPOSER_CLI_VERSION_F42" >> $GITHUB_OUTPUT
-
-          echo "f42_compose=$COMPOSE_ID_F42" >> $GITHUB_OUTPUT
-
       - name: Add new compose id in compose.f42
         run: |
-          compose_id="${{ steps.package_version.outputs.f42_compose }}"
+          compose_id="${{ needs.check-compose.outputs.f42_compose }}"
           echo $compose_id >> compose/compose.f42
           cat compose/compose.f42
 
@@ -228,14 +276,14 @@ jobs:
           title: " Fedora 42 Daily Compose Test- ${{ steps.date.outputs.date }}"
           labels: DO_NOT_MERGE,fedora-42
           body: |
-            Fedora 42 compose ${{ steps.package_version.outputs.f42_compose }}
+            Fedora 42 compose ${{ needs.check-compose.outputs.f42_compose }}
             - Date: ${{ steps.date.outputs.date }}
             - Compose URL: ${{ env.COMPOSE_URL_F42 }}
             - Updates URL: ${{ env.UPDATES_URL_F42 }}
             - Packages:
-                - ${{ steps.package_version.outputs.osbuild_version_f42 }}
-                - ${{ steps.package_version.outputs.osbuild_composer_version_f42 }}
-                - ${{ steps.package_version.outputs.composer_cli_version_f42 }}
+                - ${{ needs.check-compose.outputs.osbuild_version_f42 }}
+                - ${{ needs.check-compose.outputs.osbuild_composer_version_f42 }}
+                - ${{ needs.check-compose.outputs.composer_cli_version_f42 }}
 
       - name: Add a comment to trigger test workflow
         uses: peter-evans/create-or-update-comment@v2
