@@ -1,2 +1,2 @@
 test: ./test.sh
-duration: 360m
+duration: 300m
