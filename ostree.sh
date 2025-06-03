@@ -166,6 +166,12 @@ EOF
 sudo sed -i 's/default="1"/default="3"/' "${GRUB_CFG}"
 sudo sed -i 's/timeout=60/timeout=10/' "${GRUB_CFG}"
 
+# For CentOS Stream test, grub default menuentry has to be changed to workaround issue
+# https://github.com/virt-s1/rhel-edge/issues/9968
+if [[ "${ID}-${VERSION_ID}" == "centos-9" ]]; then
+    sudo sed -i 's/default="3"/default="4"/' "${GRUB_CFG}"
+fi
+
 # SSH setup.
 SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5)
 SSH_KEY=key/ostree_key
