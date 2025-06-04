@@ -1,0 +1,82 @@
+---
+name: Test Packages
+
+on:
+  issue_comment:
+    types:
+      - created
+
+env:
+  COMPOSE_URL_96: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
+
+jobs:
+  check-compose:
+    runs-on: container-runner
+    container: quay.io/fedora/fedora:38-x86_64
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: sudo dnf install -y gh
+
+      - name: Check RHEL 9.6 compose
+        id: check_compose_id_96
+        run: |
+          curl -s ${COMPOSE_URL_96}/latest-RHEL-9.6.0/STATUS --output STATUS_96
+          STATUS_96=$(cat STATUS_96)
+          if [[ "$STATUS_96" == "FINISHED" ]]; then
+              curl -s ${COMPOSE_URL_96}/latest-RHEL-9.6.0/COMPOSE_ID --output COMPOSE_ID_96
+              COMPOSE_ID_96=$(cat COMPOSE_ID_96)
+          else
+              COMPOSE_ID_96="false"
+          fi
+
+          echo "COMPOSE_ID_96=$(cat COMPOSE_ID_96)"
+
+          if [[ "$COMPOSE_ID_96" != "false" ]]; then
+              OSBUILD_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "osbuild_version_96=$OSBUILD_VERSION_96" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_96=$OSBUILD_COMPOSER_VERSION_96" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_96=$COMPOSER_CLI_VERSION_96" >> $GITHUB_OUTPUT
+
+              echo "osbuild_version_96=$OSBUILD_VERSION_96"
+              echo "osbuild_composer_version_96=$OSBUILD_COMPOSER_VERSION_96"
+              echo "composer_cli_version_96=$COMPOSER_CLI_VERSION_96"
+
+              line=$(curl -s $COMPOSE_URL_96 | cat -n -s | grep $COMPOSE_ID_96 | cut -b 1-7)
+              old_line=$((line - 1))
+              OLD_COMPOSE_ID_96=$(curl -s $COMPOSE_URL_96 | cat -n -s | grep $old_line | tr -d "><" | grep -oP 'RHEL-.+?-updates-\d+\.\d+' | tail -1)
+
+              echo "OLD_COMPOSE_ID_96=$OLD_COMPOSE_ID_96"
+
+              OLD_OSBUILD_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OLD_OSBUILD_COMPOSER_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              OLD_COMPOSER_CLI_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "old_osbuild_version_96=$OLD_OSBUILD_VERSION_96" >> $GITHUB_OUTPUT
+              echo "old_osbuild_composer_version_96=$OLD_OSBUILD_COMPOSER_VERSION_96" >> $GITHUB_OUTPUT
+              echo "old_composer_cli_version_96=$OLD_COMPOSER_CLI_VERSION_96" >> $GITHUB_OUTPUT
+
+              echo "old_osbuild_version_96=$OLD_OSBUILD_VERSION_96"
+              echo "old_osbuild_composer_version_96=$OLD_OSBUILD_COMPOSER_VERSION_96"
+              echo "old_composer_cli_version_96=$OLD_COMPOSER_CLI_VERSION_96"
+
+          else
+              echo "osbuild_version_96=Null" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_96=Null" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_96=Null" >> $GITHUB_OUTPUT
+          fi
+
+          echo "rhel96_compose=$COMPOSE_ID_96" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    outputs:
+      rhel96_compose: ${{ steps.check_compose_id_96.outputs.rhel96_compose }}
+      osbuild_version_96: ${{ steps.check_compose_id_96.outputs.osbuild_version_96 }}
+      osbuild_composer_version_96: ${{ steps.check_compose_id_96.outputs.osbuild_composer_version_96 }}
+      composer_cli_version_96: ${{ steps.check_compose_id_96.outputs.composer_cli_version_96 }}
+      old_osbuild_version_96: ${{ steps.check_compose_id_96.outputs.old_osbuild_version_96 }}
+      old_osbuild_composer_version_96: ${{ steps.check_compose_id_96.outputs.old_osbuild_composer_version_96 }}
+      old_composer_cli_version_96: ${{ steps.check_compose_id_96.outputs.old_composer_cli_version_96 }}
+      pr_running_96: ${{ steps.check_compose_id_96.outputs.pr_running_96 }}
