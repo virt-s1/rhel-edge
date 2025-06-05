@@ -133,9 +133,24 @@ jobs:
               echo "osbuild_composer_version_96=$OSBUILD_COMPOSER_VERSION_96" >> $GITHUB_OUTPUT
               echo "composer_cli_version_96=$COMPOSER_CLI_VERSION_96" >> $GITHUB_OUTPUT
 
-              line=$(curl -s $COMPOSE_URL_96 | cat -n -s | grep $COMPOSE_ID_96 | cut -b 1-7)
+              GRUB2_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${COMPOSE_ID_96}/compose/BaseOS/x86_64/os/Packages/" | grep -ioE ">grub2-common-[0-9].*<" | tr -d "><")
+              echo "grub2_version_96=$GRUB2_VERSION_96" >> $GITHUB_OUTPUT
+
+              OSTREE_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">ostree-[0-9].*<" | tr -d "><")
+              echo "ostree_version_96=$OSTREE_VERSION_96" >> $GITHUB_OUTPUT
+
+              RPM_OSTREE_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">rpm-ostree-[0-9].*<" | tr -d "><")
+              echo "rpm_ostree_version_96=$RPM_OSTREE_VERSION_96" >> $GITHUB_OUTPUT
+
+              KERNEL_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${COMPOSE_ID_96}/compose/BaseOS/x86_64/os/Packages/" | grep -ioE ">kernel-modules-[0-9].*<" | tr -d "><")
+              echo "kernel_version_96=$KERNEL_VERSION_96" >> $GITHUB_OUTPUT
+
+
+              curl -s ${COMPOSE_URL_96}/ --output COMPOSES
+              COMPOSES=$(cat -n COMPOSES)
+              line=$(echo "${COMPOSES}" | grep ${COMPOSE_ID_96} | cut -b 1-7)
               old_line=$((line - 1))
-              OLD_COMPOSE_ID_96=$(curl -s $COMPOSE_URL_96 | cat -n -s | grep $old_line | tr -d "><" | grep -oP 'RHEL-.+?-updates-\d+\.\d+' | tail -1)
+              OLD_COMPOSE_ID_96=$(echo "${COMPOSES}" | grep $old_line | tr -d "><" | grep -oP 'RHEL-.+?-updates-\d+\.\d+' | tail -1)
 
               OLD_OSBUILD_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
               OLD_OSBUILD_COMPOSER_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
@@ -143,6 +158,18 @@ jobs:
               echo "old_osbuild_version_96=$OLD_OSBUILD_VERSION_96" >> $GITHUB_OUTPUT
               echo "old_osbuild_composer_version_96=$OLD_OSBUILD_COMPOSER_VERSION_96" >> $GITHUB_OUTPUT
               echo "old_composer_cli_version_96=$OLD_COMPOSER_CLI_VERSION_96" >> $GITHUB_OUTPUT
+
+              OLD_GRUB2_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/BaseOS/x86_64/os/Packages/" | grep -ioE ">grub2-common-[0-9].*<" | tr -d "><")
+              echo "old_grub2_version_96=$OLD_GRUB2_VERSION_96" >> $GITHUB_OUTPUT
+
+              OLD_OSTREE_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">ostree-[0-9].*<" | tr -d "><")
+              echo "old_ostree_version_96=$OLD_OSTREE_VERSION_96" >> $GITHUB_OUTPUT
+
+              OLD_RPM_OSTREE_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">rpm-ostree-[0-9].*<" | tr -d "><")
+              echo "old_rpm_ostree_version_96=$OLD_RPM_OSTREE_VERSION_96" >> $GITHUB_OUTPUT
+
+              OLD_KERNEL_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/BaseOS/x86_64/os/Packages/" | grep -ioE ">kernel-modules-[0-9].*<" | tr -d "><")
+              echo "old_kernel_version_96=$OLD_KERNEL_VERSION_96" >> $GITHUB_OUTPUT
 
           else
               echo "osbuild_version_96=Null" >> $GITHUB_OUTPUT
@@ -160,18 +187,28 @@ jobs:
       osbuild_composer_version_94: ${{ steps.check_compose_id_94.outputs.osbuild_composer_version_94 }}
       composer_cli_version_94: ${{ steps.check_compose_id_94.outputs.composer_cli_version_94 }}
       pr_running_94: ${{ steps.check_compose_id_94.outputs.pr_running_94 }}
+
       rhel95_compose: ${{ steps.check_compose_id_95.outputs.rhel95_compose }}
       osbuild_version_95: ${{ steps.check_compose_id_95.outputs.osbuild_version_95 }}
       osbuild_composer_version_95: ${{ steps.check_compose_id_95.outputs.osbuild_composer_version_95 }}
       composer_cli_version_95: ${{ steps.check_compose_id_95.outputs.composer_cli_version_95 }}
       pr_running_95: ${{ steps.check_compose_id_95.outputs.pr_running_95 }}
+
       rhel96_compose: ${{ steps.check_compose_id_96.outputs.rhel96_compose }}
       osbuild_version_96: ${{ steps.check_compose_id_96.outputs.osbuild_version_96 }}
       osbuild_composer_version_96: ${{ steps.check_compose_id_96.outputs.osbuild_composer_version_96 }}
       composer_cli_version_96: ${{ steps.check_compose_id_96.outputs.composer_cli_version_96 }}
+      grub2_version_96: ${{ steps.check_compose_id_96.outputs.grub2_version_96 }}
+      ostree_version_96: ${{ steps.check_compose_id_96.outputs.ostree_version_96 }}
+      rpm_ostree_version_96: ${{ steps.check_compose_id_96.outputs.rpm_ostree_version_96 }}
+      kernel_version_96: ${{ steps.check_compose_id_96.outputs.kernel_version_96 }}
       old_osbuild_version_96: ${{ steps.check_compose_id_96.outputs.old_osbuild_version_96 }}
       old_osbuild_composer_version_96: ${{ steps.check_compose_id_96.outputs.old_osbuild_composer_version_96 }}
       old_composer_cli_version_96: ${{ steps.check_compose_id_96.outputs.old_composer_cli_version_96 }}
+      old_grub2_version_96: ${{ steps.check_compose_id_96.outputs.old_grub2_version_96 }}
+      old_ostree_version_96: ${{ steps.check_compose_id_96.outputs.old_ostree_version_96 }}
+      old_rpm_ostree_version_96: ${{ steps.check_compose_id_96.outputs.old_rpm_ostree_version_96 }}
+      old_kernel_version_96: ${{ steps.check_compose_id_96.outputs.old_kernel_version_96 }}
       pr_running_96: ${{ steps.check_compose_id_96.outputs.pr_running_96 }}
 
   rhel-9-4:
@@ -315,10 +352,18 @@ jobs:
                 - ${{ needs.check-compose.outputs.osbuild_version_96 }}
                 - ${{ needs.check-compose.outputs.osbuild_composer_version_96 }}
                 - ${{ needs.check-compose.outputs.composer_cli_version_96 }}
-            - Packages in previous compose:
+                - ${{ needs.check-compose.outputs.grub2_version_96 }}
+                - ${{ needs.check-compose.outputs.ostree_version_96 }}
+                - ${{ needs.check-compose.outputs.rpm_ostree_version_96 }}
+                - ${{ needs.check-compose.outputs.kernel_version_96 }}
+            - Packages(in previous compose):
                 - ${{ needs.check-compose.outputs.old_osbuild_version_96 }}
                 - ${{ needs.check-compose.outputs.old_osbuild_composer_version_96 }}
                 - ${{ needs.check-compose.outputs.old_composer_cli_version_96 }}
+                - ${{ needs.check-compose.outputs.old_grub2_version_96 }}
+                - ${{ needs.check-compose.outputs.old_ostree_version_96 }}
+                - ${{ needs.check-compose.outputs.old_rpm_ostree_version_96 }}
+                - ${{ needs.check-compose.outputs.old_kernel_version_96 }}
 
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
