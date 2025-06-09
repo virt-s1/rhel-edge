@@ -487,7 +487,7 @@ fi
 greenprint "Install ostree image via anaconda"
 sudo virt-install  --name="${IMAGE_KEY}"\
                    --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
-                   --ram 3072 \
+                   --ram 4096 \
                    --vcpus 2 \
                    --network network=integration,mac=34:49:22:B0:83:30 \
                    --os-type linux \
