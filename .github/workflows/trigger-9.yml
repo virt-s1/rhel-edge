@@ -136,7 +136,7 @@ jobs:
               GRUB2_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${COMPOSE_ID_96}/compose/BaseOS/x86_64/os/Packages/" | grep -ioE ">grub2-common-[0-9].*<" | tr -d "><")
               echo "grub2_version_96=$GRUB2_VERSION_96" >> $GITHUB_OUTPUT
 
-              OSTREE_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">ostree-[0-9].*<" | tr -d "><")
+              OSTREE_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">ostree-[0-9].*x86_64.*<" | tr -d "><")
               echo "ostree_version_96=$OSTREE_VERSION_96" >> $GITHUB_OUTPUT
 
               RPM_OSTREE_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">rpm-ostree-[0-9].*<" | tr -d "><")
@@ -162,7 +162,7 @@ jobs:
               OLD_GRUB2_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/BaseOS/x86_64/os/Packages/" | grep -ioE ">grub2-common-[0-9].*<" | tr -d "><")
               echo "old_grub2_version_96=$OLD_GRUB2_VERSION_96" >> $GITHUB_OUTPUT
 
-              OLD_OSTREE_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">ostree-[0-9].*<" | tr -d "><")
+              OLD_OSTREE_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">ostree-[0-9].*x86_64.*<" | tr -d "><")
               echo "old_ostree_version_96=$OLD_OSTREE_VERSION_96" >> $GITHUB_OUTPUT
 
               OLD_RPM_OSTREE_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">rpm-ostree-[0-9].*<" | tr -d "><")
@@ -170,11 +170,6 @@ jobs:
 
               OLD_KERNEL_VERSION_96=$(curl -s "${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/BaseOS/x86_64/os/Packages/" | grep -ioE ">kernel-modules-[0-9].*<" | tr -d "><")
               echo "old_kernel_version_96=$OLD_KERNEL_VERSION_96" >> $GITHUB_OUTPUT
-
-          else
-              echo "osbuild_version_96=Null" >> $GITHUB_OUTPUT
-              echo "osbuild_composer_version_96=Null" >> $GITHUB_OUTPUT
-              echo "composer_cli_version_96=Null" >> $GITHUB_OUTPUT
           fi
 
           echo "rhel96_compose=$COMPOSE_ID_96" >> $GITHUB_OUTPUT
@@ -187,13 +182,11 @@ jobs:
       osbuild_composer_version_94: ${{ steps.check_compose_id_94.outputs.osbuild_composer_version_94 }}
       composer_cli_version_94: ${{ steps.check_compose_id_94.outputs.composer_cli_version_94 }}
       pr_running_94: ${{ steps.check_compose_id_94.outputs.pr_running_94 }}
-
       rhel95_compose: ${{ steps.check_compose_id_95.outputs.rhel95_compose }}
       osbuild_version_95: ${{ steps.check_compose_id_95.outputs.osbuild_version_95 }}
       osbuild_composer_version_95: ${{ steps.check_compose_id_95.outputs.osbuild_composer_version_95 }}
       composer_cli_version_95: ${{ steps.check_compose_id_95.outputs.composer_cli_version_95 }}
       pr_running_95: ${{ steps.check_compose_id_95.outputs.pr_running_95 }}
-
       rhel96_compose: ${{ steps.check_compose_id_96.outputs.rhel96_compose }}
       osbuild_version_96: ${{ steps.check_compose_id_96.outputs.osbuild_version_96 }}
       osbuild_composer_version_96: ${{ steps.check_compose_id_96.outputs.osbuild_composer_version_96 }}
