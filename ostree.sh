@@ -111,7 +111,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_COMMIT="false"
         OSTREE_REF="fedora/42/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
-        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/development/42/Everything/x86_64/os/"
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/releases/42/Everything/x86_64/os/"
         CUT_DIRS=8
         ADD_SSSD="false"
         SYSROOT_RO="true"
