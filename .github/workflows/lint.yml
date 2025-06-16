@@ -26,7 +26,7 @@ jobs:
 
   shellcheck:
     name: "🔭 Shellcheck"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: ludeeus/action-shellcheck@master
@@ -35,7 +35,7 @@ jobs:
 
   yamllint:
     name: "🔬 yamlint"
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: ibiqlik/action-yamllint@v3
