@@ -146,6 +146,7 @@ jobs:
               OLD_BASEOS_URL="${COMPOSE_URL_96}/${OLD_COMPOSE_ID_96}/compose/BaseOS/x86_64/os/Packages/"
               special_pkgs=("selinux-policy" "grub2-common" "osbuild" "container-selinux" "crypto-policies" "basesystem" "ca-certificates" "libssh-config" "passt-selinux" "publicsuffix-list-dafsa" "setup" "systemd-rpm-macros" "tzdata")
               updated_pkgs=""
+              count=0
               for pkg in "${packages[@]}"; do
                   if [[ " ${special_pkgs[*]} " == *" ${pkg} "* ]]; then
                       if curl -s "${APPS_URL}" | grep -ioE ">${pkg}-[0-9].*<"; then
@@ -154,7 +155,8 @@ jobs:
                           if [[ "$new" == "$old" ]]; then
                               echo "Package ${pkg} not updated"
                           else
-                              updated_pkgs+=$'\n'"${new}"
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
                           fi
                       elif curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*<"; then
                           new=$(curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*<" | tr -d "><")
@@ -162,7 +164,8 @@ jobs:
                           if [[ "$new" == "$old" ]]; then
                               echo "Package ${pkg} not updated"
                           else
-                              updated_pkgs+=$'\n'"${new}"
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
                           fi
                       else
                           echo "NOT FOUND: $pkg" >&2
@@ -174,7 +177,8 @@ jobs:
                           if [[ "$new" == "$old" ]]; then
                               echo "Package ${pkg} not updated"
                           else
-                              updated_pkgs+=$'\n'"${new}"
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
                           fi
                       elif curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<"; then
                           new=$(curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<" | tr -d "><")
@@ -182,7 +186,8 @@ jobs:
                           if [[ "$new" == "$old" ]]; then
                               echo "Package ${pkg} not updated"
                           else
-                              updated_pkgs+=$'\n'"${new}"
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
                           fi
                       else
                           echo "NOT FOUND: $pkg" >&2
@@ -192,6 +197,7 @@ jobs:
               echo "updated_pkgs<<EOF" >> $GITHUB_OUTPUT
               echo "${updated_pkgs}" >> $GITHUB_OUTPUT
               echo "EOF" >> $GITHUB_OUTPUT
+              echo "count=$count" >> $GITHUB_OUTPUT
           fi
           echo "rhel96_compose=$COMPOSE_ID_96" >> $GITHUB_OUTPUT
         env:
@@ -214,6 +220,7 @@ jobs:
       composer_cli_version_96: ${{ steps.check_compose_id_96.outputs.composer_cli_version_96 }}
       pr_running_96: ${{ steps.check_compose_id_96.outputs.pr_running_96 }}
       updated_pkgs: ${{ steps.check_compose_id_96.outputs.updated_pkgs }}
+      count: ${{ steps.check_compose_id_96.outputs.count }}
 
   rhel-9-4:
     needs: check-compose
@@ -356,8 +363,8 @@ jobs:
                 - ${{ needs.check-compose.outputs.osbuild_version_96 }}
                 - ${{ needs.check-compose.outputs.osbuild_composer_version_96 }}
                 - ${{ needs.check-compose.outputs.composer_cli_version_96 }}
-            - Updated packages:
-                - ${{ needs.check-compose.outputs.updated_pkgs }}
+            - Updated packages(${{ needs.check-compose.outputs.count }}):
+                  ${{ needs.check-compose.outputs.updated_pkgs }}
 
 
       - name: Enable Pull Request Automerge
