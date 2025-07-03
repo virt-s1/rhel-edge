@@ -51,10 +51,77 @@ jobs:
               echo "osbuild_version_810=$OSBUILD_VERSION_810" >> $GITHUB_OUTPUT
               echo "osbuild_composer_version_810=$OSBUILD_COMPOSER_VERSION_810" >> $GITHUB_OUTPUT
               echo "composer_cli_version_810=$COMPOSER_CLI_VERSION_810" >> $GITHUB_OUTPUT
-          else
-              echo "osbuild_version_810=Null" >> $GITHUB_OUTPUT
-              echo "osbuild_composer_version_810=Null" >> $GITHUB_OUTPUT
-              echo "composer_cli_version_810=Null" >> $GITHUB_OUTPUT
+
+              curl -s ${COMPOSE_URL_810}/ --output COMPOSES
+              COMPOSES=$(cat -n COMPOSES)
+              line=$(echo "${COMPOSES}" | grep ${COMPOSE_ID_810} | cut -b 1-7)
+              old_line=$((line - 1))
+              OLD_COMPOSE_ID_810=$(awk "NR==${old_line}" <<< "${COMPOSES}" | tr -d "><" | grep -oP 'RHEL-.+?-updates-\d+\.\d+' | tail -1)
+              echo "Found previous compose: ${OLD_COMPOSE_ID_810}"
+
+              APPS_URL="${COMPOSE_URL_810}/${COMPOSE_ID_810}/compose/AppStream/x86_64/os/Packages/"
+              OLD_APPS_URL="${COMPOSE_URL_810}/${OLD_COMPOSE_ID_810}/compose/AppStream/x86_64/os/Packages/"
+              BASEOS_URL="${COMPOSE_URL_810}/${COMPOSE_ID_810}/compose/BaseOS/x86_64/os/Packages/"
+              OLD_BASEOS_URL="${COMPOSE_URL_810}/${OLD_COMPOSE_ID_810}/compose/BaseOS/x86_64/os/Packages/"
+              packages=("osbuild" "osbuild-composer" "weldr-client" "aardvark-dns" "acl" "alternatives" "audit-libs" "bootc" "bootupd" "bubblewrap" "bzip2-libs" "composefs" "conmon" "container-selinux" "containers-common" "coreutils" "cpio" "cracklib" "criu" "crun" "crypto-policies" "cryptsetup-libs" "cyrus-sasl-lib" "dbus" "device-mapper" "diffutils" "dracut" "expat" "file" "filesystem" "findutils" "fuse" "fuse3" "gawk" "gdbm-libs" "gettext" "glib2" "glibc" "gmp" "gnupg2" "gnutls" "gpgme" "grub2-common" "gzip" "iptables-libs" "jansson" "json-c" "json-glib" "kernel-modules" "keyutils-libs" "kmod" "kpartx" "krb5-libs" "libacl" "libarchive" "libassuan" "libattr" "libblkid" "libbrotli" "libcap" "libcom_err" "libcurl" "libdb" "libeconf" "libevent" "libfdisk" "libffi" "libgcc" "libgcrypt" "libgomp" "libgpg-error" "libidn2" "libkcapi" "libksba" "libmnl" "libmodulemd" "libmount" "libnet" "libnetfilter_conntrack" "libnfnetlink" "libnftnl" "libnghttp2" "libnl3" "libpsl" "libpwquality" "librepo" "librhsm" "libseccomp" "libselinux" "libsemanage" "libsepol" "libsigsegv" "libslirp" "libsmartcols" "libsolv" "libssh" "libtasn1" "libtool-ltdl" "libunistring" "libutempter" "libuuid" "libverto" "libxcrypt" "libxcrypt-compat" "libxml2" "libyaml" "libzstd" "lua-libs" "lz4-libs" "mpfr" "ncurses-libs" "netavark" "nettle" "nftables" "npth" "openldap" "openssl" "os-prober" "ostree" "p11-kit" "pam" "passt" "pcre" "pcre2" "pigz" "podman" "policycoreutils" "polkit-libs" "popt" "procps-ng" "protobuf-c" "python3" "readline" "redhat-release" "redhat-release-eula" "rpm" "rpm-libs" "rpm-ostree" "rpm-plugin-selinux" "selinux-policy" "shadow-utils" "skopeo" "slirp4netns" "sqlite-libs" "systemd" "systemd-libs" "systemd-pam" "systemd-udev" "tpm2-tss" "util-linux" "which" "xz" "xz-libs" "yajl" "zlib")
+              special_pkgs=("selinux-policy" "grub2-common" "osbuild" "container-selinux" "crypto-policies" "basesystem" "ca-certificates" "libssh-config" "passt-selinux" "publicsuffix-list-dafsa" "setup" "systemd-rpm-macros" "tzdata")
+              updated_pkgs=""
+              count=0
+              for pkg in "${packages[@]}"; do
+                  if [[ " ${special_pkgs[*]} " == *" ${pkg} "* ]]; then
+                      if curl -s "${APPS_URL}" | grep -ioE ">${pkg}-[0-9].*<"; then
+                          new=$(curl -s "${APPS_URL}" | grep -ioE ">${pkg}-[0-9].*<" | tr -d "><")
+                          old=$(curl -s "${OLD_APPS_URL}" | grep -ioE ">${pkg}-[0-9].*<" | tr -d "><")
+                          if [[ "$new" == "$old" ]]; then
+                              echo "======= Package ${pkg} NOT updated ========="
+                          else
+                              echo "======= Package ${pkg} updated ========="
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
+                          fi
+                      elif curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*<"; then
+                          new=$(curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*<" | tr -d "><")
+                          old=$(curl -s "${OLD_BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*<" | tr -d "><")
+                          if [[ "$new" == "$old" ]]; then
+                              echo "======= Package ${pkg} NOT updated ========="
+                          else
+                              echo "======= Package ${pkg} updated ========="
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
+                          fi
+                      else
+                          echo "NOT FOUND: $pkg" >&2
+                      fi
+                  else
+                      if curl -s "${APPS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<"; then
+                          new=$(curl -s "${APPS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<" | tr -d "><")
+                          old=$(curl -s "${OLD_APPS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<" | tr -d "><")
+                          if [[ "$new" == "$old" ]]; then
+                              echo "======= Package ${pkg} NOT updated ========="
+                          else
+                              echo "======= Package ${pkg} updated ========="
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
+                          fi
+                      elif curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<"; then
+                          new=$(curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<" | tr -d "><")
+                          old=$(curl -s "${OLD_BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<" | tr -d "><")
+                          if [[ "$new" == "$old" ]]; then
+                              echo "======= Package ${pkg} NOT updated ========="
+                          else
+                              echo "======= Package ${pkg} updated ========="
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
+                          fi
+                      else
+                          echo "NOT FOUND: $pkg" >&2
+                      fi
+                  fi
+              done
+              echo "updated_pkgs<<EOF" >> $GITHUB_OUTPUT
+              echo "${updated_pkgs}" >> $GITHUB_OUTPUT
+              echo "EOF" >> $GITHUB_OUTPUT
+              echo "count=$count" >> $GITHUB_OUTPUT
           fi
 
           echo "rhel810_compose=$COMPOSE_ID_810" >> $GITHUB_OUTPUT
@@ -67,6 +134,8 @@ jobs:
       osbuild_composer_version_810: ${{ steps.check_compose_id_810.outputs.osbuild_composer_version_810 }}
       composer_cli_version_810: ${{ steps.check_compose_id_810.outputs.composer_cli_version_810 }}
       pr_running_810: ${{ steps.check_compose_id_810.outputs.pr_running_810 }}
+      updated_pkgs_810: ${{ steps.check_compose_id_810.outputs.updated_pkgs }}
+      count_810: ${{ steps.check_compose_id_810.outputs.count }}
 
   rhel-8-10:
     needs: check-compose
