@@ -40,9 +40,19 @@ provision:
   environment+:
     TEST_CASE: edge-fdo-aio
   adjust+:
-    - when: arch != x86_64 or distro == fedora
+    - when: arch != x86_64
+      enabled: false
+    - when: distro == fedora
+      enabled: false
+    - when: distro==cs-9
       enabled: false
     - when: distro == rhel-8-10
+      enabled: false
+    - when: distro==rhel-9-4
+      enabled: false
+    - when: distro==rhel-9-5
+      enabled: false
+    - when: distro==rhel-9-6
       enabled: false
 
 /edge-x86-fdo-db:
@@ -76,11 +86,19 @@ provision:
   environment+:
     TEST_CASE: edge-pulp
   adjust+:
-    - when: arch != x86_64 or distro == fedora
+    - when: arch != x86_64
+      enabled: false
+    - when: distro == fedora
+      enabled: false
+    - when: distro==cs-9
       enabled: false
     - when: distro == rhel-8-10
       enabled: false
-    - when: distro==cs-9
+    - when: distro==rhel-9-4
+      enabled: false
+    - when: distro==rhel-9-5
+      enabled: false
+    - when: distro==rhel-9-6
       enabled: false
 
 /edge-x86-vsphere:
