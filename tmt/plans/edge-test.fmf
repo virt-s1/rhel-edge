@@ -70,6 +70,8 @@ provision:
       enabled: false
     - when: distro==rhel-9-4
       enabled: false
+    - when: distro==rhel-9-6
+      enabled: false
 
 /edge-x86-ignition:
   summary: Test edge ignition feature
