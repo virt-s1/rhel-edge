@@ -32,6 +32,10 @@ function run_tests() {
 		./ostree-9-to-9.sh
 	elif [ "$TEST_CASE" = "edge-fdo-container" ]; then
 		./ostree-fdo-container.sh
+	elif [ "$TEST_CASE" = "iot-installer" ]; then
+		./iot-installer.sh
+	elif [ "$TEST_CASE" = "iot-simplified-installer" ]; then
+		./iot-simplified-installer.sh
 	else
 		echo "Error: Test case $TEST_CASE not found!"
 		exit 1
