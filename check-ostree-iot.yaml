@@ -1,0 +1,393 @@
+---
+- hosts: ostree_guest
+  become: no
+  vars:
+    fdo_credential: "false"
+    total_counter: "0"
+    failed_counter: "0"
+
+  tasks:
+    # current target host's IP address
+    - debug: var=ansible_all_ipv4_addresses
+    - debug: var=ansible_facts['distribution_version']
+    - debug: var=ansible_facts['distribution']
+    - debug: var=ansible_facts['architecture']
+
+    # check BIOS or UEFI
+    - name: check bios or uefi
+      stat:
+        path: /sys/firmware/efi
+
+    # check secure boot status if it's enabled
+    - name: check secure boot status
+      command: mokutil --sb-state
+      ignore_errors: yes
+      when:
+        - ansible_facts['architecture'] == "x86_64"
+
+    # check tpm device
+    - name: check tpm device
+      stat:
+        path: /dev/tpm0
+      ignore_errors: yes
+      when: fdo_credential == "true"
+
+    - name: check partition size
+      command: df -h
+      ignore_errors: yes
+      become: yes
+
+    - name: check disk partition table
+      command: fdisk -l
+      ignore_errors: yes
+      become: yes
+
+    - name: check rpm-ostree status
+      command: rpm-ostree status
+      ignore_errors: yes
+
+    # Check fdo onboarding
+    - name: check if fdo onboarding completed successfully
+      block:
+        - name: wait until the file /etc/device-credentials is present before continuing
+          wait_for:
+            path: /etc/device-credentials
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: fdo_credential == "true"
+
+    - name: check fdo-client-linuxapp logs
+      command: journalctl -u fdo-client-linuxapp
+      register: result_fdo_client_linuxapp_journalctl
+      become: yes
+      when:
+        - fdo_credential == "true"
+
+    # case: check ostree-remount status
+    - name: check ostree-remount status
+      command: systemctl is-active ostree-remount.service
+      register: result_remount
+
+    - name: ostree-remount should be started
+      block:
+        - assert:
+            that:
+              - result_remount.stdout == "active"
+            fail_msg: "ostree-remount is not started by default"
+            success_msg: "starting ostree-remount successful"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
+    # case: check ostree ref
+    - name: check ostree ref
+      shell: rpm-ostree status --json | jq -r '.deployments[0].origin'
+      register: result_ref
+
+    - name: check ostree ref deployed
+      block:
+        - assert:
+            that:
+              - result_ref.stdout == ostree_ref
+            fail_msg: "deployed ostree ref failed"
+            success_msg: "ostree ref successful building and deployment"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
+    # case: check /sysroot mount status
+    - name: check /sysroot mount status
+      shell: findmnt -r -o OPTIONS -n /sysroot | awk -F "," '{print $1}'
+      register: result_sysroot_mount_status
+
+    - name: /sysroot should be mount with ro permission
+      block:
+        - assert:
+            that:
+              - result_sysroot_mount_status.stdout == "ro"
+            fail_msg: "/sysroot is not mounted with ro permission"
+            success_msg: "/sysroot is mounted with ro permission"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
+    # case: check /var mount status
+    - name: check /var mount status
+      shell: findmnt -r -o OPTIONS -n /var | awk -F "," '{print $1}'
+      register: result_var_mount_status
+
+    - name: /var should be mount with rw permission
+      block:
+        - assert:
+            that:
+              - result_var_mount_status.stdout == "rw"
+            fail_msg: "/var is not mounted with rw permission"
+            success_msg: "/var is mounted with rw permission"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
+    # case: check podman run image with root
+    - name: run ubi8 image with root
+      command: podman run ubi8-minimal:latest cat /etc/redhat-release
+      register: podman_result
+      become: yes
+      retries: 30
+      delay: 2
+      until: podman_result is success
+      ignore_errors: yes
+
+    - name: run container test
+      block:
+        - assert:
+            that:
+              - podman_result is succeeded
+              - "'Red Hat Enterprise Linux release' in podman_result.stdout"
+            fail_msg: "failed run container with podman (root)"
+            success_msg: "running container with podman (root) succeeded"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
+    # case: check podman run image with non-root
+    - name: run ubi8 image with non-root
+      command: podman run ubi8:latest cat /etc/redhat-release
+      register: podman_result
+      retries: 30
+      delay: 2
+      until: podman_result is success
+      ignore_errors: yes
+
+    - name: run container test
+      block:
+        - assert:
+            that:
+              - podman_result is succeeded
+              - "'Red Hat Enterprise Linux release' in podman_result.stdout"
+            fail_msg: "failed run container with podman (non-root)"
+            success_msg: "running container with podman (non-root) succeeded"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
+    # case: check installed greenboot packages
+    - name: greenboot should be installed
+      block:
+        - name: greenboot should be installed
+          shell: rpm -qa | grep greenboot
+          register: result_greenboot_packages
+
+        - assert:
+            that:
+              - "'greenboot-0' in result_greenboot_packages.stdout"
+              - "'greenboot-default-health-checks' in result_greenboot_packages.stdout"
+            fail_msg: "greenboot is not installed"
+            success_msg: "greenboot is installed"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
+    # case: check greenboot* services
+    - name: greenboot healthcheck service should be enabled
+      block:
+        - name: greenboot healthcheck service should be enabled
+          command: systemctl is-enabled greenboot-healthcheck
+          register: result_greenboot_service
+
+        - assert:
+            that:
+              - result_greenboot_service.stdout == 'enabled'
+            fail_msg: "at least one greenboot service is not enabled"
+            success_msg: "greenboot services are enabled"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
+      # case: check greenboot* service status
+    - name: greenboot healthcheck service should be active
+      block:
+        - name: greenboot healthcheck service should be active
+          command: systemctl is-active greenboot-healthcheck.service
+          register: result_greenboot_active
+
+        - assert:
+            that:
+              - result_greenboot_active.stdout == "active"
+            fail_msg: "greenboot healthcheck service is not active"
+            success_msg: "greenboot healthcheck service is active"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
+    # case: check rollback function if boot error found
+    - name: install sanely failing health check unit to test red boot status behavior
+      block:
+        - name: install sanely failing health check unit to test red boot status behavior
+          command: rpm-ostree install --cache-only https://kite-webhook-prod.s3.amazonaws.com/greenboot-failing-unit-1.0-1.el8.noarch.rpm --reboot
+          become: yes
+          ignore_errors: yes
+          ignore_unreachable: yes
+
+        - name: delay 60 seconds before reboot to make system stable
+          pause:
+            seconds: 60
+          delegate_to: 127.0.0.1
+
+        - name: wait for connection to become reachable/usable
+          wait_for_connection:
+            delay: 30
+
+        - name: waits until instance is reachable
+          wait_for:
+            host: "{{ ansible_all_ipv4_addresses[0] }}"
+            port: 22
+            search_regex: OpenSSH
+            delay: 10
+          register: result_rollback
+          until: result_rollback is success
+          retries: 6
+          delay: 10
+
+        - assert:
+            that:
+              - result_rollback is succeeded
+            fail_msg: "Rollback failed"
+            success_msg: "Rollback success"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
+    # case: check boot-complete.target status
+    - name: boot-complete.target should be active
+      block:
+        - name: check boot-complete.target
+          command: systemctl --no-pager status boot-complete.target
+          become: yes
+          register: result
+          retries: 10
+          delay: 60
+          until: "'inactive' not in result.stdout"
+
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
+    # case: check fallback log
+    - name: fallback log should be found here
+      block:
+        - name: fallback log should be found here
+          command: journalctl -u greenboot -u greenboot-healthcheck
+          become: yes
+          register: result_greenboot_log
+        - assert:
+            that:
+              - "'FALLBACK BOOT DETECTED! Default rpm-ostree deployment has been rolled back' in result_greenboot_log.stdout"
+            fail_msg: "Fallback log not found"
+            success_msg: "Found fallback log"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when:
+        - (ansible_facts['distribution'] == 'Fedora' and ansible_facts ['distribution_version'] is version('43', '>='))
+
+    # case: check fallback log
+    - name: fallback log should be found here
+      block:
+        - name: fallback log should be found here
+          command: journalctl  -u greenboot-rpm-ostree-grub2-check-fallback.service
+          become: yes
+          register: result_greenboot_log
+        - assert:
+            that:
+              - "'FALLBACK BOOT DETECTED! Default rpm-ostree deployment has been rolled back' in result_greenboot_log.stdout"
+            fail_msg: "Fallback log not found"
+            success_msg: "Found fallback log"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when:
+        - (ansible_facts['distribution'] == 'Fedora' and ansible_facts ['distribution_version'] is version('42', '=='))
+
+    # case: check grubenv variables
+    - name: grubenv variables should contain boot_success=1
+      block:
+        - name: grubenv variables should contain boot_success=1
+          command: grub2-editenv list
+          register: result_grubenv
+          become: yes
+
+        - assert:
+            that:
+              - "'boot_success=1' in result_grubenv.stdout"
+            fail_msg: "Not found boot_success=1"
+            success_msg: "Found boot_success=1"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
+    - assert:
+        that:
+          - failed_counter == "0"
+        fail_msg: "Run {{ total_counter }} tests, but {{ failed_counter }} of them failed"
+        success_msg: "Totally {{ total_counter }} test passed"
