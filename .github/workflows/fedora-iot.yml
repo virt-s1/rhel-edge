@@ -1,0 +1,85 @@
+name: Trigger Testing Farm on Comment
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  check-permissions:
+    runs-on: ubuntu-latest
+    # Only run if the comment is "/test-iot" on a pull request
+    if: github.event.issue.pull_request && github.event.comment.body == '/test-iot'
+    outputs:
+      user_has_permission: ${{ steps.check-permissions.outputs.has_permission }}
+      compose_id: ${{ steps.extract-compose-id.outputs.compose_id }}
+      sha: ${{ steps.get-pr-info.outputs.data.head.sha }}
+      repo_url: ${{ steps.get-pr-info.outputs.data.head.repo.html_url }}
+      ref: ${{ steps.get-pr-info.outputs.data.head.ref }}
+    steps:
+    - name: Check user permissions
+      id: check-permissions
+      uses: actions/github-script@v6
+      with:
+        script: |
+          try {
+            const response = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              username: context.actor
+            });
+            const permission = response.data.permission;
+            const hasPermission = permission === 'admin' || permission === 'write';
+            console.log(`User ${context.actor} has ${permission} permission`);
+            return hasPermission;
+          } catch (error) {
+            console.log('Error checking permissions:', error);
+            return false;
+          }
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Exit if user doesn't have permission
+      if: steps.check-permissions.outputs.result != 'true'
+      run: exit 1
+
+    - name: Get PR information
+      id: get-pr-info
+      uses: octokit/request-action@v2.x
+      with:
+        route: GET /repos/{owner}/{repo}/pulls/{pull_number}
+        owner: ${{ github.repository_owner }}
+        repo: ${{ github.event.repository.name }}
+        pull_number: ${{ github.event.issue.number }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract compose ID from PR body
+      id: extract-compose-id
+      run: |
+        # The PR body should only contain the compose ID
+        COMPOSE_ID="${{ steps.get-pr-info.outputs.data.body }}"
+        echo "compose_id=$COMPOSE_ID" >> $GITHUB_OUTPUT
+        echo "Extracted compose ID: $COMPOSE_ID"
+
+  run-testing-farm:
+    runs-on: ubuntu-latest
+    needs: check-permissions
+    # Only run if user has permission
+    if: needs.check-permissions.outputs.user_has_permission == 'true'
+    steps:
+    - name: Run the tests
+      uses: sclorg/testing-farm-as-github-action@v3.1.2
+      with:
+        compose: RHEL-9.6.0-Nightly
+        arch: x86_64
+        api_key: ${{ secrets.TF_API_KEY }}
+        git_url: ${{ needs.check-permissions.outputs.repo_url }}
+        git_ref: ${{ needs.check-permissions.outputs.ref }}
+        update_pull_request_status: true
+        tmt_context: "arch=x86_64;distro=rhel-9-6"
+        pull_request_status_name: "edge-rhel-9.6-x86"
+        tmt_plan_regex: edge-x86
+        tf_scope: private
+        secrets: "xxxx=${{ secrets.xxxx }}"
+        variables: |
+          ARCH=x86_64
+          COMPOSE_ID=${{ needs.check-permissions.outputs.compose_id }}
