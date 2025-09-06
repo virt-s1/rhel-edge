@@ -1,152 +1,187 @@
-name: Check Compose IDs
+---
+name: Trigger Fedora-IoT test
+
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'  # Runs hourly (adjust as needed)
+    - cron: '0 8 * * *'
 
 env:
-  COMPOSE_URL_44: https://kojipkgs.fedoraproject.org/compose/iot/latest-Fedora-IoT-44/COMPOSE_ID
-  COMPOSE_URL_43: https://kojipkgs.fedoraproject.org/compose/iot/latest-Fedora-IoT-43/COMPOSE_ID
-  COMPOSE_FILE_44: compose_id_44
-  COMPOSE_FILE_43: compose_id_43
+  COMPOSE_URL_44: https://kojipkgs.fedoraproject.org/compose/iot/latest-Fedora-IoT-44
+  COMPOSE_URL_43: https://kojipkgs.fedoraproject.org/compose/iot/latest-Fedora-IoT-43
+  COMPOSE_URL_42: https://kojipkgs.fedoraproject.org/compose/iot/latest-Fedora-IoT-42
 
 jobs:
-  check-compose-44:
+  check-compose:
     runs-on: ubuntu-latest
+    if: github.event.comment.body == '/test'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get compose ID for 42 IoT
+        id: get-compose-f42
+        run: |
+          compose_id_f42=$(curl -s ${COMPOSE_URL_42}/COMPOSE_ID)
+          echo "compose-id-f42=$compose_id_f42" >> $GITHUB_OUTPUT
+          if grep -q "$compose_id_f42" compose/compose.f42-iot; then
+            echo "Compose ID exists in file"
+            echo "need-pr-f42=false" >> $GITHUB_OUTPUT
+          fi
+          response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls?state=open")
+          if echo "$response" | grep -q "$compose_id_f42"; then
+            echo "Open PR exists for this compose ID"
+            echo "need-pr-f42=false" >> $GITHUB_OUTPUT
+          else
+            echo "need-pr-f42=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get compose ID for 43 IoT
+        id: get-compose-f43
+        run: |
+          compose_id_f43=$(curl -s ${COMPOSE_URL_43}/COMPOSE_ID)
+          echo "compose-id-f43=$compose_id_f43" >> $GITHUB_OUTPUT
+          if grep -q "$compose_id_f43" compose/compose.f43-iot; then
+            echo "Compose ID exists in file"
+            echo "need-pr-f43=false" >> $GITHUB_OUTPUT
+          fi
+          response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls?state=open")
+          if echo "$response" | grep -q "$compose_id_f43"; then
+            echo "Open PR exists for this compose ID"
+            echo "need-pr-f43=false" >> $GITHUB_OUTPUT
+          else
+            echo "need-pr-f43=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get compose ID for 44 IoT
+        id: get-compose-f44
+        run: |
+          compose_id_f44=$(curl -s ${COMPOSE_URL_44}/COMPOSE_ID)
+          echo "compose-id-f44=$compose_id_f44" >> $GITHUB_OUTPUT
+          if grep -q "$compose_id_f44" compose/compose.f44-iot; then
+            echo "Compose ID exists in file"
+            echo "need-pr-f44=false" >> $GITHUB_OUTPUT
+          fi
+          response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls?state=open")
+          if echo "$response" | grep -q "$compose_id_f44"; then
+            echo "Open PR exists for this compose ID"
+            echo "need-pr-f44=false" >> $GITHUB_OUTPUT
+          else
+            echo "need-pr-f44=true" >> $GITHUB_OUTPUT
+          fi
+
     outputs:
-      need-pr: ${{ steps.check-compose.outputs.need-pr }}
-      compose-id: ${{ steps.get-compose-id.outputs.compose-id }}
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      need-pr-f42: ${{ steps.get-compose-f42.outputs.need-pr-f42 }}
+      compose-id-f42: ${{ steps.get-compose-f42.outputs.compose-id-f42 }}
+      need-pr-f43: ${{ steps.get-compose-f43.outputs.need-pr-f43 }}
+      compose-id-f43: ${{ steps.get-compose-f43.outputs.compose-id-f43 }}
+      need-pr-f44: ${{ steps.get-compose-f44.outputs.need-pr-f44 }}
+      compose-id-f44: ${{ steps.get-compose-f44.outputs.compose-id-f44 }}
 
-    - name: Get compose ID for IoT 44
-      id: get-compose-id
-      run: |
-        compose_id=$(curl -s $COMPOSE_URL_44)
-        echo "compose-id=$compose_id" >> $GITHUB_OUTPUT
-        echo "COMPOSE_ID=$compose_id" >> $GITHUB_ENV
-
-    - name: Check if compose ID exists in file
-      id: check-compose
-      run: |
-        if grep -q "$COMPOSE_ID" $COMPOSE_FILE_44; then
-          echo "Compose ID exists in file"
-          echo "need-pr=false" >> $GITHUB_OUTPUT
-          exit 0
-        fi
-        
-        # Check if PR already exists for this compose ID
-        response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          "https://api.github.com/repos/${{ github.repository }}/pulls?state=open")
-        if echo "$response" | grep -q "$COMPOSE_ID"; then
-          echo "Open PR exists for this compose ID"
-          echo "need-pr=false" >> $GITHUB_OUTPUT
-        else
-          echo "need-pr=true" >> $GITHUB_OUTPUT
-        fi
-
-  check-compose-43:
+  create-pr-f42:
     runs-on: ubuntu-latest
-    outputs:
-      need-pr: ${{ steps.check-compose.outputs.need-pr }}
-      compose-id: ${{ steps.get-compose-id.outputs.compose-id }}
+    needs: check-compose
+    if: needs.check-compose.outputs.need-pr-f42 == 'true'
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Get compose ID for IoT 43
-      id: get-compose-id
-      run: |
-        compose_id=$(curl -s $COMPOSE_URL_43)
-        echo "compose-id=$compose_id" >> $GITHUB_OUTPUT
-        echo "COMPOSE_ID=$compose_id" >> $GITHUB_ENV
+      - name: Update compose_id_42 file
+        run: |
+          echo "${{ needs.check-compose.outputs.compose-id-f42 }}" >> compose/compose.f42-iot
 
-    - name: Check if compose ID exists in file
-      id: check-compose
-      run: |
-        if grep -q "$COMPOSE_ID" $COMPOSE_FILE_43; then
-          echo "Compose ID exists in file"
-          echo "need-pr=false" >> $GITHUB_OUTPUT
-          exit 0
-        fi
-        
-        # Check if PR already exists for this compose ID
-        response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          "https://api.github.com/repos/${{ github.repository }}/pulls?state=open")
-        if echo "$response" | grep -q "$COMPOSE_ID"; then
-          echo "Open PR exists for this compose ID"
-          echo "need-pr=false" >> $GITHUB_OUTPUT
-        else
-          echo "need-pr=true" >> $GITHUB_OUTPUT
-        fi
+      - name: Create Pull Request for IoT 42
+        id: create-pr
+        uses: peter-evans/create-pull-request@v4
+        with:
+          title: "${{ needs.check-compose.outputs.compose-id-f42 }}"
+          branch: update-compose-42-${{ needs.check-compose.outputs.compose-id-f42 }}
+          base: main
+          body: "${{ needs.check-compose.outputs.compose-id-f42 }}"
+          commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose-id-f42 }} to compose file"
+          labels: |
+            automated-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  create-pr-44:
+      - name: Add test comment to PR
+        if: steps.create-pr.outputs.pull-request-number
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
+          body: "/test-f42-iot"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  create-pr-f43:
     runs-on: ubuntu-latest
-    needs: check-compose-44
-    if: needs.check-compose-44.outputs.need-pr == 'true'
+    needs: check-compose
+    if: needs.check-compose.outputs.need-pr-f43 == 'true'
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Update compose_id_44 file
-      run: |
-        echo "${{ needs.check-compose-44.outputs.compose-id }}" >> $COMPOSE_FILE_44
+      - name: Update compose_id_43 file
+        run: |
+          echo "${{ needs.check-compose.outputs.compose-id-f43 }}" >> compose/compose.f43-iot
 
-    - name: Create Pull Request for IoT 44
-      id: create-pr
-      uses: peter-evans/create-pull-request@v4
-      with:
-        title: "Update compose_id_44 with ${{ needs.check-compose-44.outputs.compose-id }}"
-        branch: update-compose-44-${{ needs.check-compose-44.outputs.compose-id }}
-        base: main
-        body: "${{ needs.check-compose-44.outputs.compose-id }}"
-        commit-message: "Add compose ID ${{ needs.check-compose-44.outputs.compose-id }} to compose_id_44"
-        labels: |
-          automated-pr
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Pull Request for IoT 43
+        id: create-pr
+        uses: peter-evans/create-pull-request@v4
+        with:
+          title: "${{ needs.check-compose.outputs.compose-id-f43 }}"
+          branch: update-compose-43-${{ needs.check-compose.outputs.compose-id-f43 }}
+          base: main
+          body: "${{ needs.check-compose.outputs.compose-id-f43 }}"
+          commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose-id-f43 }} to compose file"
+          labels: |
+            automated-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Add test comment to PR
-      if: steps.create-pr.outputs.pull-request-number
-      uses: peter-evans/create-or-update-comment@v2
-      with:
-        issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
-        body: "/test-iot"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Add test comment to PR
+        if: steps.create-pr.outputs.pull-request-number
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
+          body: "/test-f43-iot"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  create-pr-43:
+  create-pr-f44:
     runs-on: ubuntu-latest
-    needs: check-compose-43
-    if: needs.check-compose-43.outputs.need-pr == 'true'
+    needs: check-compose
+    if: needs.check-compose.outputs.need-pr-f44 == 'true'
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Update compose_id_43 file
-      run: |
-        echo "${{ needs.check-compose-43.outputs.compose-id }}" >> $COMPOSE_FILE_43
+      - name: Update compose_id_44 file
+        run: |
+          echo "${{ needs.check-compose.outputs.compose-id-f44 }}" >> compose/compose.f44-iot
 
-    - name: Create Pull Request for IoT 43
-      id: create-pr
-      uses: peter-evans/create-pull-request@v4
-      with:
-        title: "Update compose_id_43 with ${{ needs.check-compose-43.outputs.compose-id }}"
-        branch: update-compose-43-${{ needs.check-compose-43.outputs.compose-id }}
-        base: main
-        body: "${{ needs.check-compose-43.outputs.compose-id }}"
-        commit-message: "Add compose ID ${{ needs.check-compose-43.outputs.compose-id }} to compose_id_43"
-        labels: |
-          automated-pr
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create Pull Request for IoT 44
+        id: create-pr
+        uses: peter-evans/create-pull-request@v4
+        with:
+          title: "${{ needs.check-compose.outputs.compose-id-f44 }}"
+          branch: update-compose-44-${{ needs.check-compose.outputs.compose-id-f44 }}
+          base: main
+          body: "${{ needs.check-compose.outputs.compose-id-f44 }}"
+          commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose-id-f44 }} to compose file"
+          labels: |
+            automated-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Add test comment to PR
-      if: steps.create-pr.outputs.pull-request-number
-      uses: peter-evans/create-or-update-comment@v2
-      with:
-        issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
-        body: "/test-iot"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Add test comment to PR
+        if: steps.create-pr.outputs.pull-request-number
+        uses: peter-evans/create-or-update-comment@v2
+        with:
+          issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
+          body: "/test-f44-iot"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
