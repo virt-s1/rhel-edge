@@ -14,7 +14,6 @@ env:
 jobs:
   check-compose:
     runs-on: ubuntu-latest
-    if: github.event.comment.body == '/test'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

@@ -83,7 +83,7 @@ jobs:
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "'"$emoji"' *Fedora-IoT-44 | x86_64 | ${{ needs.check-permissions.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
+                  "text": "'"$emoji"' *Fedora-44 | x86_64 | Compose-id: ${{ needs.check-permissions.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
                 }
               }
             ]
@@ -140,7 +140,7 @@ jobs:
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "'"$emoji"' *Fedora-IoT-44 | aarch64 | ${{ needs.check-permissions.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
+                  "text": "'"$emoji"' *Fedora-44 | aarch64 | Compose-id: ${{ needs.check-permissions.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
                 }
               }
             ]
