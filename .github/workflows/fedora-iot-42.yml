@@ -7,7 +7,8 @@ on:
 jobs:
   check-permissions:
     runs-on: ubuntu-latest
-    if: github.event.issue.pull_request && github.event.comment.body == '/test-f42-iot'
+    if: ${{ github.event.issue.pull_request &&
+            (endsWith(github.event.comment.body, '/test-f42-iot')) }}
     steps:
       - name: Query author repository permissions
         uses: octokit/request-action@v2.x

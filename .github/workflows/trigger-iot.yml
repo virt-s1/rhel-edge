@@ -111,7 +111,7 @@ jobs:
         uses: peter-evans/create-or-update-comment@v2
         with:
           issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
-          body: "/test-f42-iot"
+          body: /test-f42-iot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -146,7 +146,7 @@ jobs:
         uses: peter-evans/create-or-update-comment@v2
         with:
           issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
-          body: "/test-f43-iot"
+          body: /test-f43-iot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -181,6 +181,6 @@ jobs:
         uses: peter-evans/create-or-update-comment@v2
         with:
           issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
-          body: "/test-f44-iot"
+          body: /test-f44-iot
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
