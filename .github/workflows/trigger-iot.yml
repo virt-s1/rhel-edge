@@ -110,10 +110,9 @@ jobs:
         if: steps.create-pr.outputs.pull-request-number
         uses: peter-evans/create-or-update-comment@v2
         with:
+          token: ${{ secrets.PAT }}
           issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
           body: /test-f42-iot
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   create-pr-f43:
     runs-on: ubuntu-latest
@@ -145,10 +144,9 @@ jobs:
         if: steps.create-pr.outputs.pull-request-number
         uses: peter-evans/create-or-update-comment@v2
         with:
+          token: ${{ secrets.PAT }}
           issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
           body: /test-f43-iot
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   create-pr-f44:
     runs-on: ubuntu-latest
@@ -180,7 +178,7 @@ jobs:
         if: steps.create-pr.outputs.pull-request-number
         uses: peter-evans/create-or-update-comment@v2
         with:
+          token: ${{ secrets.PAT }}
           issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
           body: /test-f44-iot
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
