@@ -181,4 +181,3 @@ jobs:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
           body: /test-f44-iot
-
