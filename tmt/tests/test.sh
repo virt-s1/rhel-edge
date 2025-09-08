@@ -36,6 +36,8 @@ function run_tests() {
 		./iot-installer.sh
 	elif [ "$TEST_CASE" = "iot-simplified-installer" ]; then
 		./iot-simplified-installer.sh
+	elif [ "$TEST_CASE" = "iot-bootc" ]; then
+		./iot-bootc-image.sh
 	else
 		echo "Error: Test case $TEST_CASE not found!"
 		exit 1

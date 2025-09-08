@@ -22,6 +22,11 @@ provision:
   environment+:
     TEST_CASE: iot-simplified-installer
 
+/iot-x86-bootc:
+  summary: Test fedora-iot x86_64 bootc image
+  environment+:
+    TEST_CASE: iot-bootc
+
 /iot-aarch64-installer:
   summary: Test fedora-iot aarch64 installer ISO image
   environment+:
@@ -31,3 +36,8 @@ provision:
   summary: Test fedora-iot aarch64 simplified installer ISO image
   environment+:
     TEST_CASE: iot-simplified-installer
+
+/iot-aarch64-bootc:
+  summary: Test fedora-iot aarch64 bootc image
+  environment+:
+    TEST_CASE: iot-bootc
