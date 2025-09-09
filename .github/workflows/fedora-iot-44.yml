@@ -90,13 +90,6 @@ jobs:
             ]
           }' ${{ secrets.SLACK_WEBHOOK_URL_FEDORA_IOT_CI }}
 
-      - name: Merge Pull Request
-        if: always()
-        run: |
-          gh pr merge --auto --merge "${{ github.event.issue.number }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
-
   iot-44-aarch64:
     needs: check-permissions
     if: ${{ needs.check-permissions.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
@@ -146,10 +139,3 @@ jobs:
               }
             ]
           }' ${{ secrets.SLACK_WEBHOOK_URL_FEDORA_IOT_CI }}
-
-      - name: Merge Pull Request
-        if: always()
-        run: |
-          gh pr merge --auto --merge "${{ github.event.issue.number }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
