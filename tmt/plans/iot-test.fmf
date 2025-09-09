@@ -9,8 +9,8 @@ provision:
     virtualization:
       is-supported: true
     cpu:
-      processors: ">= 4"
-    memory: ">= 8 GB"
+      processors: ">= 2"
+    memory: ">= 6 GB"
 
 /iot-x86-installer:
   summary: Test fedora-iot x86_64 installer ISO image
