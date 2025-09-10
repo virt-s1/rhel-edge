@@ -1,5 +1,5 @@
 ---
-name: Trigger Fedora-IoT test
+name: Trigger Fedora-IoT image test
 
 on:
   workflow_dispatch:
@@ -18,57 +18,90 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Get compose ID for 42 IoT
+      - name: Get compose ID for Fedora 42 IoT
         id: get-compose-f42
         run: |
+          status=$(curl -s ${COMPOSE_URL_42}/STATUS)
+          if [ "$status" != "FINISHED" ]; then
+            echo "Compose status: $status - no PR needed"
+            echo "need-pr-f42=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           compose_id_f42=$(curl -s ${COMPOSE_URL_42}/COMPOSE_ID)
           echo "compose-id-f42=$compose_id_f42" >> $GITHUB_OUTPUT
+
           if grep -q "$compose_id_f42" compose/compose.f42-iot; then
-            echo "Compose ID exists in file"
+            echo "This compose has been tested already"
             echo "need-pr-f42=false" >> $GITHUB_OUTPUT
+            exit 0
           fi
+
           response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/pulls?state=open")
           if echo "$response" | grep -q "$compose_id_f42"; then
-            echo "Open PR exists for this compose ID"
+            echo "This compose is being tested now, skip it."
             echo "need-pr-f42=false" >> $GITHUB_OUTPUT
           else
+            echo "This is a new compose, will trigger test soon."
             echo "need-pr-f42=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Get compose ID for 43 IoT
+      - name: Get compose ID for Fedora 43 IoT
         id: get-compose-f43
         run: |
+          status=$(curl -s ${COMPOSE_URL_43}/STATUS)
+          if [ "$status" != "FINISHED" ]; then
+            echo "Compose status: $status - no PR needed"
+            echo "need-pr-f43=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           compose_id_f43=$(curl -s ${COMPOSE_URL_43}/COMPOSE_ID)
           echo "compose-id-f43=$compose_id_f43" >> $GITHUB_OUTPUT
+
           if grep -q "$compose_id_f43" compose/compose.f43-iot; then
-            echo "Compose ID exists in file"
+            echo "This compose has been tested already"
             echo "need-pr-f43=false" >> $GITHUB_OUTPUT
+            exit 0
           fi
+
           response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/pulls?state=open")
           if echo "$response" | grep -q "$compose_id_f43"; then
-            echo "Open PR exists for this compose ID"
+            echo "This compose is being tested now, skip it."
             echo "need-pr-f43=false" >> $GITHUB_OUTPUT
           else
+            echo "This is a new compose, will trigger test soon."
             echo "need-pr-f43=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Get compose ID for 44 IoT
+      - name: Get compose ID for Fedora 44 IoT
         id: get-compose-f44
         run: |
+          status=$(curl -s ${COMPOSE_URL_44}/STATUS)
+          if [ "$status" != "FINISHED" ]; then
+            echo "Compose status: $status - no PR needed"
+            echo "need-pr-f44=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           compose_id_f44=$(curl -s ${COMPOSE_URL_44}/COMPOSE_ID)
           echo "compose-id-f44=$compose_id_f44" >> $GITHUB_OUTPUT
+
           if grep -q "$compose_id_f44" compose/compose.f44-iot; then
-            echo "Compose ID exists in file"
+            echo "This compose has been tested already"
             echo "need-pr-f44=false" >> $GITHUB_OUTPUT
+            exit 0
           fi
+
           response=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/${{ github.repository }}/pulls?state=open")
           if echo "$response" | grep -q "$compose_id_f44"; then
-            echo "Open PR exists for this compose ID"
+            echo "This compose is being tested now, skip it."
             echo "need-pr-f44=false" >> $GITHUB_OUTPUT
           else
+            echo "This is a new compose, will trigger test soon."
             echo "need-pr-f44=true" >> $GITHUB_OUTPUT
           fi
 
