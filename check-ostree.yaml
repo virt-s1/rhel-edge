@@ -256,7 +256,7 @@
 
     # case: check /sysroot lv size
     - name: check sysroot lv size
-      shell: df -h | grep sysroot
+      shell: df -h /sysroot
       register: result_sysroot_lv_size
       when: "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
 
