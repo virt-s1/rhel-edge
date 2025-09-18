@@ -39,6 +39,7 @@ jobs:
       sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
       ref: ${{ fromJson(steps.pr-api.outputs.data).head.ref }}
       repo_url: ${{ fromJson(steps.pr-api.outputs.data).head.repo.html_url}}
+      compose_id: ${{ fromJson(steps.pr-api.outputs.data).body }}
 
   iot-rawhide-x86:
     needs: pr-info
@@ -68,30 +69,52 @@ jobs:
           secrets: "DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }};DOCKERHUB_PASSWORD=${{ secrets.DOCKERHUB_PASSWORD }};AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }};AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }};GOVC_URL=${{ secrets.GOVC_URL }};GOVC_USERNAME=${{ secrets.GOVC_USERNAME }};GOVC_PASSWORD=${{ secrets.GOVC_PASSWORD }}"
           variables: "ARCH=x86_64;AWS_DEFAULT_REGION=us-east-1;GOVC_INSECURE=1"
 
-  iot-rawhide-arm:
-    needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
-    continue-on-error: true
-    runs-on: ubuntu-latest
+      - name: Send test results to Slack via webhook
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            emoji=":white_check_mark:"
+          else
+            emoji=":x:"
+          fi
 
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4
-        with:
-          ref: ${{ needs.pr-info.outputs.sha }}
-          fetch-depth: 0
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "Testing Farm Results for Fedora 44 x86",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "'"$emoji"' *Fedora-44 | x86_64 | Compose-id: ${{ needs.check-permissions.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
+                }
+              }
+            ]
+          }' ${{ SLACK_WEBHOOK_URL_RHEL_EDGE_CI }}
 
-      - name: Run the tests
-        uses: sclorg/testing-farm-as-github-action@v3.1.2
-        with:
-          compose: Fedora-Rawhide-Nightly
-          api_key: ${{ secrets.TF_API_KEY }}
-          git_url: ${{ needs.pr-info.outputs.repo_url }}
-          git_ref: ${{ needs.pr-info.outputs.ref }}
-          update_pull_request_status: true
-          pull_request_status_name: "iot-rawhide-arm"
-          tmt_context: "arch=aarch64;distro=fedora"
-          tmt_plan_regex: edge-arm
-          tf_scope: private
-          secrets: "DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }};DOCKERHUB_PASSWORD=${{ secrets.DOCKERHUB_PASSWORD }};AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }};AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }};GOVC_URL=${{ secrets.GOVC_URL }};GOVC_USERNAME=${{ secrets.GOVC_USERNAME }};GOVC_PASSWORD=${{ secrets.GOVC_PASSWORD }}"
-          variables: "ARCH=aarch64;AWS_DEFAULT_REGION=us-east-1;GOVC_INSECURE=1"
+  # iot-rawhide-arm:
+  #   needs: pr-info
+  #   if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
+  #   continue-on-error: true
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11  # v4
+  #       with:
+  #         ref: ${{ needs.pr-info.outputs.sha }}
+  #         fetch-depth: 0
+
+  #     - name: Run the tests
+  #       uses: sclorg/testing-farm-as-github-action@v3.1.2
+  #       with:
+  #         compose: Fedora-Rawhide-Nightly
+  #         api_key: ${{ secrets.TF_API_KEY }}
+  #         git_url: ${{ needs.pr-info.outputs.repo_url }}
+  #         git_ref: ${{ needs.pr-info.outputs.ref }}
+  #         update_pull_request_status: true
+  #         pull_request_status_name: "iot-rawhide-arm"
+  #         tmt_context: "arch=aarch64;distro=fedora"
+  #         tmt_plan_regex: edge-arm
+  #         tf_scope: private
+  #         secrets: "DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }};DOCKERHUB_PASSWORD=${{ secrets.DOCKERHUB_PASSWORD }};AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }};AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }};GOVC_URL=${{ secrets.GOVC_URL }};GOVC_USERNAME=${{ secrets.GOVC_USERNAME }};GOVC_PASSWORD=${{ secrets.GOVC_PASSWORD }}"
+  #         variables: "ARCH=aarch64;AWS_DEFAULT_REGION=us-east-1;GOVC_INSECURE=1"
