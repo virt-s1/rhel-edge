@@ -143,6 +143,15 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_IMAGE_TYPE=fedora-iot-container
         INSTALLER_IMAGE_TYPE=fedora-iot-installer
         OSTREE_REF="fedora-iot/43/${ARCH}/iot"
+        OS_VARIANT="fedora-unknown"
+        ANSIBLE_OS_NAME="fedora-iot"
+        SYSROOT_RO="true"
+        DIRS_FILES_CUSTOMIZATION="true"
+        ;;
+    "fedora-44")
+        CONTAINER_IMAGE_TYPE=fedora-iot-container
+        INSTALLER_IMAGE_TYPE=fedora-iot-installer
+        OSTREE_REF="fedora-iot/44/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"
         ANSIBLE_OS_NAME="fedora-iot"
         SYSROOT_RO="true"
@@ -298,8 +307,13 @@ build_image() {
     while true; do
         sudo composer-cli --json compose info "${COMPOSE_ID}" | tee "$COMPOSE_INFO" > /dev/null
 
+
         if nvrGreaterOrEqual "weldr-client" "35.6"; then
-            COMPOSE_STATUS=$(jq -r '.[0].body.queue_status' "$COMPOSE_INFO")
+            if [[ "${ID}-${VERSION_ID}" == "fedora-44" ]]; then
+                COMPOSE_STATUS=$(jq -r '.[1].body.queue_status' "$COMPOSE_INFO")
+            else
+                COMPOSE_STATUS=$(jq -r '.[0].body.queue_status' "$COMPOSE_INFO")
+            fi
         else
             COMPOSE_STATUS=$(jq -r '.body.queue_status' "$COMPOSE_INFO")
         fi
@@ -398,7 +412,7 @@ install_edge_vm_http_boot() {
     text
     network --bootproto=dhcp --device=link --activate --onboot=on
     zerombr
-    clearpart --all --initlabel --disklabel=msdos
+    clearpart --all --initlabel --disklabel=gpt
     autopart --nohome --noswap --type=plain
     ostreesetup --osname=rhel --url=http://192.168.100.1/httpboot/ostree/repo --ref=${OSTREE_REF} --nogpg
     user --name installeruser --password \$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl. --iscrypted --groups wheel --homedir /home/installeruser
