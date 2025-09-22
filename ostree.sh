@@ -121,6 +121,17 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_TYPE=fedora-iot-commit
         USER_IN_COMMIT="false"
         OSTREE_REF="fedora/43/${ARCH}/iot"
+        OS_VARIANT="fedora-unknown"
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/development/43/Everything/x86_64/os/"
+        CUT_DIRS=8
+        ADD_SSSD="false"
+        SYSROOT_RO="true"
+        DIRS_FILES_CUSTOMIZATION="true"
+        ;;
+    "fedora-44")
+        IMAGE_TYPE=fedora-iot-commit
+        USER_IN_COMMIT="false"
+        OSTREE_REF="fedora/44/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"
         BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/"
         CUT_DIRS=8
