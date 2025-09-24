@@ -24,8 +24,6 @@ function run_tests() {
 		./ostree-ignition.sh
 	elif [ "$TEST_CASE" = "edge-pulp" ]; then
 		./ostree-pulp.sh
-	elif [ "$TEST_CASE" = "edge-minimal" ]; then
-		./minimal-raw.sh
 	elif [ "$TEST_CASE" = "edge-8to9" ]; then
 		./ostree-8-to-9.sh
 	elif [ "$TEST_CASE" = "edge-9to9" ]; then

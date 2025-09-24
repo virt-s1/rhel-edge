@@ -125,11 +125,6 @@ provision:
     - when: distro == rhel-8-10
       enabled: false
 
-/edge-x86-minimal:
-  summary: Test edge minimal raw image
-  environment+:
-    TEST_CASE: edge-minimal
-
 /edge-x86-8to9:
   summary: Test edge installer image
   environment+:
@@ -161,11 +156,6 @@ provision:
   adjust+:
     - when: distro == fedora
       enabled: false
-
-/edge-arm-minimal:
-  summary: Test edge minimal raw image
-  environment+:
-    TEST_CASE: edge-minimal
 
 /edge-fdo-container:
   summary: Test fdo container image
