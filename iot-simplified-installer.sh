@@ -260,7 +260,7 @@ setup_fdo_server
 setup_ignition
 
 log_info "Starting VM installation..."
-sudo cp ${IMAGE_FILENAME} /var/lib/libvirt/images/${IMAGE_FILENAME}
+sudo cp "${IMAGE_FILENAME}" /var/lib/libvirt/images/"${IMAGE_FILENAME}"
 
 sudo virt-install \
     --name "iot-${TEST_UUID}" \
