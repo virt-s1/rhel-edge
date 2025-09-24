@@ -344,7 +344,7 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when:
         - (ansible_facts['distribution'] == 'Fedora' and ansible_facts ['distribution_version'] is version('43', '>='))
-        - bootc_system: "false"
+        - bootc_system == "false"
 
     # case: check fallback log in bootc systems
     - name: fallback log should be found here
@@ -367,7 +367,7 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when:
         - (ansible_facts['distribution'] == 'Fedora' and ansible_facts ['distribution_version'] is version('43', '>='))
-        - bootc_system: "true"
+        - bootc_system == "true"
 
     # case: check fallback log
     - name: fallback log should be found here
@@ -390,7 +390,7 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when:
         - (ansible_facts['distribution'] == 'Fedora' and ansible_facts ['distribution_version'] is version('42', '=='))
-        - bootc_system: "false"
+        - bootc_system == "false"
 
     # case: check grubenv variables
     - name: grubenv variables should contain boot_success=1
