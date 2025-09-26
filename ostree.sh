@@ -31,7 +31,14 @@ FIREWALL_FEATURE="false"
 # Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
 # It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
 SYSROOT_RO="false"
-FEDORA_IMAGE_DIGEST="sha256:4d76a7480ce1861c95975945633dc9d03807ffb45c64b664ef22e673798d414b"
+CONTAINER_ARCH=""
+case "$ARCH" in
+  "x86_64") CONTAINER_ARCH="amd64" ;;
+  "aarch64") CONTAINER_ARCH="arm64" ;;
+  *) echo "Unknown arch $ARCH"; exit 1 ;;
+esac
+FEDORA_IMAGE_SOURCE="registry.gitlab.com/redhat/services/products/image-builder/ci/osbuild-composer/fedora-minimal"
+FEDORA_IMAGE_DIGEST=$(skopeo inspect --raw "docker://$FEDORA_IMAGE_SOURCE" | jq -r --arg CONTAINER_ARCH "$CONTAINER_ARCH" '.manifests[] | select(.platform.architecture == $CONTAINER_ARCH) | .digest')
 FEDORA_LOCAL_NAME="localhost/fedora-minimal:v1"
 
 # Set os-variant and boot location used by virt-install.
@@ -374,7 +381,7 @@ if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
 source = "quay.io/fedora/fedora:latest"
 
 [[containers]]
-source = "registry.gitlab.com/redhat/services/products/image-builder/ci/osbuild-composer/fedora-minimal@${FEDORA_IMAGE_DIGEST}"
+source = "${FEDORA_IMAGE_SOURCE}@${FEDORA_IMAGE_DIGEST}"
 name = "${FEDORA_LOCAL_NAME}"
 EOF
 fi
@@ -578,7 +585,7 @@ if [[ "${EMBEDDED_CONTAINER}" == "true" ]]; then
 source = "quay.io/fedora/fedora:latest"
 
 [[containers]]
-source = "registry.gitlab.com/redhat/services/products/image-builder/ci/osbuild-composer/fedora-minimal@${FEDORA_IMAGE_DIGEST}"
+source = "${FEDORA_IMAGE_SOURCE}@${FEDORA_IMAGE_DIGEST}"
 name = "${FEDORA_LOCAL_NAME}"
 EOF
 fi
@@ -691,7 +698,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-podman run --network=host --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e firewall_feature="${FIREWALL_FEATURE}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
+podman run --network=host --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e fedora_image_digest="${FEDORA_IMAGE_DIGEST}" -e firewall_feature="${FIREWALL_FEATURE}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
