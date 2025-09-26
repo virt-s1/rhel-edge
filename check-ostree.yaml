@@ -732,7 +732,7 @@
 
     # case: check fedora-minimal container with podman
     - name: run fedora-minimal image
-      command: podman run localhost/fedora-minimal@sha256:4d76a7480ce1861c95975945633dc9d03807ffb45c64b664ef22e673798d414b cat /etc/os-release
+      command: "podman run localhost/fedora-minimal@{{ fedora_image_digest }} cat /etc/os-release"
       register: fminimal_container_result
       become: yes
       retries: 30  # due to https://github.com/osbuild/osbuild-composer/issues/2492
@@ -749,7 +749,7 @@
         - assert:
             that:
               - fminimal_container_result is succeeded
-              - "'Fedora Linux 36 (Container Image)' in fminimal_container_result.stdout"
+              - "'Fedora Linux 42 (Container Image)' in fminimal_container_result.stdout"
               - "'Trying to pull' not in fminimal_container_result.stdout"
             fail_msg: "failed run fedora-minimal container with podman"
             success_msg: "running fedora-minimal container with podman succeeded"
@@ -767,7 +767,7 @@
 
     # case: check fedora-aarch64 container with podman
     - name: run fedora-aarch64 image
-      command: podman run localhost/fedora-aarch64@sha256:8fd6ac4c552bbec7910df7b0625310561d56513ecbcc418825a2f5635efecfab cat /etc/os-release
+      command: "podman run localhost/fedora-aarch64@{{ fedora_image_digest }} cat /etc/os-release"
       register: faarch64_container_result
       become: yes
       retries: 30  # due to https://github.com/osbuild/osbuild-composer/issues/2492
