@@ -86,7 +86,7 @@ jobs:
           echo $compose_id >> compose/compose.rawhide
           cat compose/compose.rawhide
 
-      - name: Create Pull Request for IoT 42
+      - name: Create Pull Request for IoT Rawhide
         id: create-pr
         uses: peter-evans/create-pull-request@v4
         with:
@@ -120,7 +120,7 @@ jobs:
           echo $compose_id >> compose/compose.f43
           cat compose/compose.f43
 
-      - name: Create Pull Request for IoT 42
+      - name: Create Pull Request for IoT 43
         id: create-pr
         uses: peter-evans/create-pull-request@v4
         with:
