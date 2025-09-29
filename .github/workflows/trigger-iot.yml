@@ -13,6 +13,7 @@ env:
 
 jobs:
   check-compose:
+    if: github.repository == 'virt-s1/rhel-edge'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

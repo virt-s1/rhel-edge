@@ -39,6 +39,7 @@ jobs:
       sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
       ref: ${{ fromJson(steps.pr-api.outputs.data).head.ref }}
       repo_url: ${{ fromJson(steps.pr-api.outputs.data).head.repo.html_url}}
+      compose_id: ${{ fromJson(steps.pr-api.outputs.data).title }}
 
   iot-f43-x86:
     needs: pr-info
@@ -78,13 +79,13 @@ jobs:
           fi
 
           curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Testing Farm Results for Fedora 44 aarch64",
+            "text": "Testing Farm Results for Fedora 43 x86_64",
             "blocks": [
               {
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "'"$emoji"' *Fedora-44 | aarch64 | Compose-id: ${{ needs.check-permissions.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
+                  "text": "'"$emoji"' *Fedora-43 | x86_64 | Compose-id: ${{ needs.pr-info.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
                 }
               }
             ]

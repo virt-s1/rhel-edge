@@ -163,7 +163,7 @@ jobs:
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "${{ needs.check-compose.outputs.cs9_compose }} - ${{ steps.date.outputs.date }}"
+          title: "${{ needs.check-compose.outputs.cs9_compose }}"
           labels: auto-merge,CentOS-Stream-9
           body: |
             CentOS Stream 9 compose ${{ needs.check-compose.outputs.cs9_compose }}

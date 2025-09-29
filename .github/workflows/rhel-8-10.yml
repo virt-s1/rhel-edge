@@ -40,6 +40,7 @@ jobs:
       sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
       ref: ${{ fromJson(steps.pr-api.outputs.data).head.ref }}
       repo_url: ${{ fromJson(steps.pr-api.outputs.data).head.repo.html_url }}
+      compose_id: ${{ fromJson(steps.pr-api.outputs.data).title }}
 
   edge-rhel-810-x86:
     needs: pr-info
@@ -69,3 +70,25 @@ jobs:
           tf_scope: private
           secrets: "DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }};OCP4_TOKEN=${{ secrets.OCP4_TOKEN }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }};DOCKERHUB_PASSWORD=${{ secrets.DOCKERHUB_PASSWORD }}"
           variables: "ARCH=x86_64"
+
+      - name: Send test results to Slack via webhook
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            emoji=":white_check_mark:"
+          else
+            emoji=":x:"
+          fi
+
+          curl -X POST -H 'Content-type: application/json' --data '{
+            "text": "Testing Farm Results for RHEL 8.10 x86",
+            "blocks": [
+              {
+                "type": "section",
+                "text": {
+                  "type": "mrkdwn",
+                  "text": "'"$emoji"' *RHEL-8.10 | x86_64 | Compose-id: ${{ needs.pr-info.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
+                }
+              }
+            ]
+          }' ${{ SLACK_WEBHOOK_URL_RHEL_EDGE_CI }}

@@ -39,7 +39,7 @@ jobs:
       sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
       ref: ${{ fromJson(steps.pr-api.outputs.data).head.ref }}
       repo_url: ${{ fromJson(steps.pr-api.outputs.data).head.repo.html_url}}
-      compose_id: ${{ fromJson(steps.pr-api.outputs.data).body }}
+      compose_id: ${{ fromJson(steps.pr-api.outputs.data).title }}
 
   iot-rawhide-x86:
     needs: pr-info
@@ -85,7 +85,7 @@ jobs:
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "'"$emoji"' *Fedora-44 | x86_64 | Compose-id: ${{ needs.check-permissions.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
+                  "text": "'"$emoji"' *Fedora-44 | x86_64 | Compose-id: ${{ needs.pr-info.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
                 }
               }
             ]

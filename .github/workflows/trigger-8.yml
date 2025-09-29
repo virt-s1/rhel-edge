@@ -165,7 +165,7 @@ jobs:
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "${{ needs.check-compose.outputs.rhel810_compose }} - ${{ steps.date.outputs.date }}"
+          title: "${{ needs.check-compose.outputs.rhel810_compose }}"
           labels: auto-merge,RHEL-8.10.0
           body: |
             RHEL 8.10 compose ${{ needs.check-compose.outputs.rhel810_compose }}
