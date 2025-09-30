@@ -165,7 +165,8 @@ jobs:
         uses: peter-evans/create-pull-request@v4
         with:
           title: "${{ needs.check-compose.outputs.compose-id-f43 }}"
-          branch: update-compose-43-${{ needs.check-compose.outputs.compose-id-f43 }}
+          branch: cpr
+          branch-suffix: random
           base: main
           body: "${{ needs.check-compose.outputs.compose-id-f43 }}"
           commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose-id-f43 }} to compose file"
@@ -199,7 +200,8 @@ jobs:
         uses: peter-evans/create-pull-request@v4
         with:
           title: "${{ needs.check-compose.outputs.compose-id-f44 }}"
-          branch: update-compose-44-${{ needs.check-compose.outputs.compose-id-f44 }}
+          branch: cpr
+          branch-suffix: random
           base: main
           body: "${{ needs.check-compose.outputs.compose-id-f44 }}"
           commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose-id-f44 }} to compose file"

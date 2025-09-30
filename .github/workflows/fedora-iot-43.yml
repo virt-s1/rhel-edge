@@ -1,8 +1,10 @@
 ---
 name: Run Fedora 43 IoT test
+
 on:
   issue_comment:
-    types: [created]
+    types:
+      - created
 
 jobs:
   check-permissions:
