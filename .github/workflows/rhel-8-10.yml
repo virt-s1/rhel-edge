@@ -91,4 +91,4 @@ jobs:
                 }
               }
             ]
-          }' ${{ SLACK_WEBHOOK_URL_RHEL_EDGE_CI }}
+          }' ${{ secrets.SLACK_WEBHOOK_URL_RHEL_EDGE_CI }}
