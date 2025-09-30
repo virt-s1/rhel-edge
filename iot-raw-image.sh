@@ -82,14 +82,17 @@ ADD_STORAGE="+10G"
 # Set OS-specific variables
 case "${ID}-${VERSION_ID}" in
     "fedora-42")
+        OSTREE_REF="fedora/stable/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
         RAW_IMAGE="Fedora-IoT-raw-42-${COMPOSE_ID}.${ARCH}.raw.xz"
         ;;
     "fedora-43")
+        OSTREE_REF="fedora/devel/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
         RAW_IMAGE="Fedora-IoT-raw-43-${COMPOSE_ID}.${ARCH}.raw.xz"
         ;;
     "fedora-44")
+        OSTREE_REF="fedora/rawhide/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"
         RAW_IMAGE="Fedora-IoT-raw-44-${COMPOSE_ID}.${ARCH}.raw.xz"
         ;;
@@ -258,7 +261,7 @@ EOF
 
 # Run Ansible playbook
 log_info "Running Ansible playbook..."
-if ! sudo ansible-playbook -v -i "${TEMPDIR}/inventory" check-ostree-iot.yaml; then
+if ! sudo ansible-playbook -v -i "${TEMPDIR}/inventory" -e ostree_ref="fedora-iot:${OSTREE_REF}" check-ostree-iot.yaml; then
     log_error "Ansible playbook check failed"
     exit 1
 fi
