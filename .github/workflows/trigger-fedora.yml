@@ -24,18 +24,18 @@ jobs:
           COMPOSE_ID=$(cat COMPOSE_ID)
           TESTED_COMPOSE=( $( cat compose/compose.f43 ) )
           if [[ " ${TESTED_COMPOSE[*]} " =~ "$COMPOSE_ID" ]]; then
-              echo "need-pr=false" >> $GITHUB_OUTPUT
+              echo "need_pr=false" >> $GITHUB_OUTPUT
               exit 0
           fi
 
           gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST
           PR_LIST=$(cat PR_LIST)
           if [[ $PR_LIST == *"$COMPOSE_ID"* ]]; then
-              echo "need-pr=false" >> $GITHUB_OUTPUT
+              echo "need_pr=false" >> $GITHUB_OUTPUT
               exit 0
           fi
-          echo "need-pr=true" >> $GITHUB_OUTPUT
-          echo "compose-id=$COMPOSE_ID" >> $GITHUB_OUTPUT
+          echo "need_pr=true" >> $GITHUB_OUTPUT
+          echo "compose_id=$COMPOSE_ID" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -46,36 +46,30 @@ jobs:
           COMPOSE_ID=$(cat COMPOSE_ID)
           TESTED_COMPOSE=( $( cat compose/compose.rawhide ) )
           if [[ " ${TESTED_COMPOSE[*]} " =~ "$COMPOSE_ID" ]]; then
-              echo "need-pr=false" >> $GITHUB_OUTPUT
+              echo "need_pr=false" >> $GITHUB_OUTPUT
               exit 0
           fi
 
           gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST
           PR_LIST=$(cat PR_LIST)
           if [[ $PR_LIST == *"$COMPOSE_ID"* ]]; then
-              echo "need-pr=false" >> $GITHUB_OUTPUT
+              echo "need_pr=false" >> $GITHUB_OUTPUT
               exit 0
           fi
-          echo "need-pr=true" >> $GITHUB_OUTPUT
-          echo "compose-id=$COMPOSE_ID" >> $GITHUB_OUTPUT
+          echo "need_pr=true" >> $GITHUB_OUTPUT
+          echo "compose_id=$COMPOSE_ID" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     outputs:
       compose_id_rawhide: ${{ steps.check_compose_id_rawhide.outputs.compose_id }}
-      osbuild_version_rawhide: ${{ steps.check_compose_id_rawhide.outputs.osbuild_version }}
-      osbuild_composer_version_rawhide: ${{ steps.check_compose_id_rawhide.outputs.osbuild_composer_version }}
-      composer_cli_version_rawhide: ${{ steps.check_compose_id_rawhide.outputs.composer_cli_version }}
-      need-pr-rawhide: ${{ steps.check_compose_id_rawhide.outputs.need-pr }}
+      need_pr_rawhide: ${{ steps.check_compose_id_rawhide.outputs.need_pr }}
       compose_id_43: ${{ steps.check_compose_id_43.outputs.compose_id }}
-      osbuild_version_43: ${{ steps.check_compose_id_43.outputs.osbuild_version }}
-      osbuild_composer_version_43: ${{ steps.check_compose_id_43.outputs.osbuild_composer_version }}
-      composer_cli_version_43: ${{ steps.check_compose_id_43.outputs.composer_cli_version }}
-      need-pr-43: ${{ steps.check_compose_id_43.outputs.need-pr }}
+      need_pr_43: ${{ steps.check_compose_id_43.outputs.need_pr }}
 
   fedora-rawhide:
     needs: check-compose
-    if: ${{ needs.check-compose.outputs.need-pr-rawhide == 'true' }}
+    if: ${{ needs.check-compose.outputs.need_pr_rawhide == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -86,12 +80,13 @@ jobs:
           echo $compose_id >> compose/compose.rawhide
           cat compose/compose.rawhide
 
-      - name: Create Pull Request for IoT 42
+      - name: Create Pull Request for fedora rawhide
         id: create-pr
         uses: peter-evans/create-pull-request@v4
         with:
           title: "${{ needs.check-compose.outputs.compose_id_rawhide }}"
-          branch: update-compose-42-${{ needs.check-compose.outputs.compose_id_rawhide }}
+          branch: cpr
+          branch-suffix: random
           base: main
           body: "${{ needs.check-compose.outputs.compose_id_rawhide }}"
           commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose_id_rawhide }} to compose file"
@@ -104,12 +99,12 @@ jobs:
         uses: peter-evans/create-or-update-comment@v2
         with:
           token: ${{ secrets.PAT }}
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
           body: /test-rawhide
 
   fedora-43:
     needs: check-compose
-    if: ${{ needs.check-compose.outputs.need-pr-43 == 'true' }}
+    if: ${{ needs.check-compose.outputs.need_pr_43 == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -120,12 +115,13 @@ jobs:
           echo $compose_id >> compose/compose.f43
           cat compose/compose.f43
 
-      - name: Create Pull Request for IoT 42
+      - name: Create Pull Request for fedora 43
         id: create-pr
         uses: peter-evans/create-pull-request@v4
         with:
           title: "${{ needs.check-compose.outputs.compose_id_43 }}"
-          branch: update-compose-42-${{ needs.check-compose.outputs.compose_id_43 }}
+          branch: cpr
+          branch-suffix: random
           base: main
           body: "${{ needs.check-compose.outputs.compose_id_43 }}"
           commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose_id_43 }} to compose file"
@@ -138,5 +134,5 @@ jobs:
         uses: peter-evans/create-or-update-comment@v2
         with:
           token: ${{ secrets.PAT }}
-          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
           body: /test-f43
