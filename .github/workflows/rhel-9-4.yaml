@@ -90,7 +90,7 @@ jobs:
                 }
               }
             ]
-          }' ${{ SLACK_WEBHOOK_URL_RHEL_EDGE_CI }}
+          }' ${{ secrets.SLACK_WEBHOOK_URL_RHEL_EDGE_CI }}
 
   edge-rhel-94-arm:
     needs: pr-info
@@ -141,4 +141,4 @@ jobs:
                 }
               }
             ]
-          }' ${{ SLACK_WEBHOOK_URL_RHEL_EDGE_CI }}
+          }' ${{ secrets.SLACK_WEBHOOK_URL_RHEL_EDGE_CI }}
