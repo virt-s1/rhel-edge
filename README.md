@@ -4,7 +4,7 @@ RHEL-Edge help [documentation](HELP.md)
 
 ## RHEL-Edge Test Scope
 
-RHEL for Edge test from QE is more like an integration test. The test flow aligns with the customer scenario. The whole test includes three parts:
+RHEL for Edge test from QE is more like an integration test. The test flow aligns with the customer scenario. The whole test includes three parts:.
 
 1. RHEL for Edge image building with [osbuild-composer](https://github.com/osbuild/osbuild-composer.git)
 
