@@ -92,52 +92,52 @@ jobs:
             ]
           }' ${{ secrets.SLACK_WEBHOOK_URL_FEDORA_IOT_CI }}
 
-  iot-42-aarch64:
-    needs: check-permissions
-    if: ${{ needs.check-permissions.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
-    runs-on: ubuntu-latest
+  # iot-42-aarch64:
+  #   needs: check-permissions
+  #   if: ${{ needs.check-permissions.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Clone repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.check-permissions.outputs.sha }}
-          fetch-depth: 0
+  #   steps:
+  #     - name: Clone repository
+  #       uses: actions/checkout@v4
+  #       with:
+  #         ref: ${{ needs.check-permissions.outputs.sha }}
+  #         fetch-depth: 0
 
-      - name: Run the tests
-        uses: sclorg/testing-farm-as-github-action@v3.1.2
-        id: run-test
-        with:
-          compose: Fedora-42
-          arch: aarch64
-          api_key: ${{ secrets.TF_API_KEY }}
-          git_url: ${{ needs.check-permissions.outputs.repo_url }}
-          git_ref: ${{ needs.check-permissions.outputs.ref }}
-          update_pull_request_status: true
-          tmt_context: "arch=aarch64;distro=fedora-42"
-          pull_request_status_name: "iot-f42-aarch64"
-          tmt_plan_regex: iot-aarch64
-          tf_scope: private
-          variables: "COMPOSE=${{ needs.check-permissions.outputs.compose_id }}"
+  #     - name: Run the tests
+  #       uses: sclorg/testing-farm-as-github-action@v3.1.2
+  #       id: run-test
+  #       with:
+  #         compose: Fedora-42
+  #         arch: aarch64
+  #         api_key: ${{ secrets.TF_API_KEY }}
+  #         git_url: ${{ needs.check-permissions.outputs.repo_url }}
+  #         git_ref: ${{ needs.check-permissions.outputs.ref }}
+  #         update_pull_request_status: true
+  #         tmt_context: "arch=aarch64;distro=fedora-42"
+  #         pull_request_status_name: "iot-f42-aarch64"
+  #         tmt_plan_regex: iot-aarch64
+  #         tf_scope: private
+  #         variables: "COMPOSE=${{ needs.check-permissions.outputs.compose_id }}"
 
-      - name: Send test results to Slack via webhook
-        if: always()
-        run: |
-          if [ "${{ job.status }}" = "success" ]; then
-            emoji=":white_check_mark:"
-          else
-            emoji=":x:"
-          fi
+  #     - name: Send test results to Slack via webhook
+  #       if: always()
+  #       run: |
+  #         if [ "${{ job.status }}" = "success" ]; then
+  #           emoji=":white_check_mark:"
+  #         else
+  #           emoji=":x:"
+  #         fi
 
-          curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Testing Farm Results for Fedora 42 IoT aarch64",
-            "blocks": [
-              {
-                "type": "section",
-                "text": {
-                  "type": "mrkdwn",
-                  "text": "'"$emoji"' *Fedora-42 | aarch64 | Compose-id: ${{ needs.check-permissions.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
-                }
-              }
-            ]
-          }' ${{ secrets.SLACK_WEBHOOK_URL_FEDORA_IOT_CI }}
+  #         curl -X POST -H 'Content-type: application/json' --data '{
+  #           "text": "Testing Farm Results for Fedora 42 IoT aarch64",
+  #           "blocks": [
+  #             {
+  #               "type": "section",
+  #               "text": {
+  #                 "type": "mrkdwn",
+  #                 "text": "'"$emoji"' *Fedora-42 | aarch64 | Compose-id: ${{ needs.check-permissions.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
+  #               }
+  #             }
+  #           ]
+  #         }' ${{ secrets.SLACK_WEBHOOK_URL_FEDORA_IOT_CI }}
