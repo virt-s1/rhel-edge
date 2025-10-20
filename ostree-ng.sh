@@ -305,7 +305,7 @@ build_image() {
         fi
 
         # Is the compose finished?
-        if [[ $COMPOSE_STATUS != RUNNING ]] && [[ $COMPOSE_STATUS != WAITING ]]; then
+        if [[ $COMPOSE_STATUS != RUNNING ]] && [[ $COMPOSE_STATUS != WAITING ]] && [[ $COMPOSE_STATUS != null ]]; then
             break
         fi
 
