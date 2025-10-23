@@ -1,0 +1,6 @@
+[webservice]
+url=https://polarion.engineering.redhat.com/polarion
+svn_repo=https://polarion.engineering.redhat.com/repo
+user=rheledge_machine
+password=<password>
+default_project=RHEL_EDGE
