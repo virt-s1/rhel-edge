@@ -1,0 +1,41 @@
+summary: Basic smoke test
+
+execute:
+    how: tmt
+
+discover:
+    how: fmf
+    test: export-tc-to-polarion
+
+provision:
+    hardware:
+        virtualization:
+            is-supported: true
+        cpu:
+            processors: ">= 2"
+        memory: ">= 6 GB"
+
+prepare:
+  - how: shell
+    script: |
+      # Ensure reporter and client are available (adjust if your base image has them)
+      if command -v dnf >/dev/null 2>&1; then
+        sudo dnf -y install tmt-report-polarion python3-pylero || true
+      fi
+      # Write ~/.pylero with values from env (provided by the action)
+      install -m 600 /dev/null "$HOME/.pylero"
+      cat > "$HOME/.pylero" << EOF
+      [webservice]
+      url=${POLARION_UR}L/polarion
+      svn_repo=${POLARION_URL}/repo
+      user=${POLARION_USER}
+      password=${POLARION_PASSWORD}
+      default_project=${POLARION_PROJECT}
+      EOF
+
+report:
+    how: polarion
+    file: test.xml
+    project-id: ${POLARION_PROJECT}
+    title: test_title
+    assignee: mcattamo

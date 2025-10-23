@@ -1,0 +1,35 @@
+name: export tmt test run to Polarion
+
+on:
+  workflow_dispatch:
+    inputs:
+      compose:
+        required: true
+        default: RHEL-9.6.0
+      arch:
+        required: true
+        default: x86_64
+
+jobs:
+  export-test-case:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Export the test case to Polarion
+        uses: sclorg/testing-farm-as-github-action@v3.1.2
+        with:
+          compose: RHEL-9.6.0-Nightly
+          arch: x86_64
+          api_key: ${{ secrets.TF_API_KEY }}
+          git_url: ${{ needs.pr-info.outputs.repo_url }}
+          git_ref: ${{ needs.pr-info.outputs.ref }}
+          update_pull_request_status: true
+          tmt_context: "arch=x86_64;distro=rhel-9-6"
+          pull_request_status_name: "edge-rhel-9.6-x86"
+          tmt_plan_regex: "export-to-polarion-plan"
+          secrets: |
+            POLARION_USER=${{ secrets.POLARION_USER }}
+            POLARION_PASSWORD=${{ secrets.POLARION_PASSWORD }}
+            POLARION_PROJECT=${{ secrets.POLARION_PROJECT }}
+            POLARION_URL=${{ secrets.POLARION_URL }}
