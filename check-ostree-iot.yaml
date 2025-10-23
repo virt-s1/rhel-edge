@@ -332,7 +332,7 @@
           register: result_greenboot_log
         - assert:
             that:
-              - "'FALLBACK BOOT DETECTED! Default rpm-ostree deployment has been rolled back' in result_greenboot_log.stdout"
+              - "'FALLBACK BOOT DETECTED! Default bootc deployment has been rolled back' in result_greenboot_log.stdout"
             fail_msg: "Fallback log not found"
             success_msg: "Found fallback log"
       always:
