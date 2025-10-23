@@ -4,7 +4,7 @@ name: Trigger Fedora-IoT image test
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *'
+    - cron: '0 13 * * *'
 
 env:
   COMPOSE_URL_44: https://kojipkgs.fedoraproject.org/compose/iot/latest-Fedora-IoT-44
