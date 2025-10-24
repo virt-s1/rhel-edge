@@ -1,0 +1,7 @@
+summary: Exporting tc to Polarion test
+component:
+  - rpm-ostree
+description: This is a first test to export tmt test case to polarion work items
+contact: Mario Cattamo <mcattamo@redhat.com>
+test: tmt --help
+id: bf400e62-b1cc-4843-9e3a-8b6fc502339e
