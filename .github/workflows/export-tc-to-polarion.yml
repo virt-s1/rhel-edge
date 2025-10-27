@@ -49,10 +49,10 @@ jobs:
 
     outputs:
       allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
-      sha: ${{ (fromJson(steps.pr-api.outputs.data).head.sha) || steps.manual-defaults.outputs.sha }}
-      ref: ${{ (fromJson(steps.pr-api.outputs.data).head.ref) || steps.manual-defaults.outputs.ref }}
-      repo_url: ${{ (fromJson(steps.pr-api.outputs.data).head.repo.html_url) || steps.manual-defaults.outputs.repo_url }}
-      compose_id: ${{ (fromJson(steps.pr-api.outputs.data).title) || steps.manual-defaults.outputs.compose_id }}
+      sha: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || steps['manual-defaults'].outputs.sha }}
+      ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || steps['manual-defaults'].outputs.ref }}
+      repo_url: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.html_url || steps['manual-defaults'].outputs.repo_url }}
+      compose_id: ${{ github.event_name == 'pull_request' && github.event.pull_request.title || steps['manual-defaults'].outputs.compose_id }}
 
   export-test-case:
     needs: pr-info
