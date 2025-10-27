@@ -46,7 +46,7 @@ jobs:
 
   export-test-case:
     needs: pr-info
-    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' }}
     continue-on-error: true
     runs-on: ubuntu-latest
     steps:
