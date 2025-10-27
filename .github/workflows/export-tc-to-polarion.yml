@@ -30,6 +30,7 @@ jobs:
           echo "allowed_user=true" >> $GITHUB_OUTPUT
 
       - name: Get information for pull request
+        if: ${{ github.event_name == 'pull_request' }}
         uses: octokit/request-action@v2.x
         id: pr-api
         with:
@@ -37,12 +38,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Defaults for manual runs
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        id: manual-defaults
+        run: |
+          echo "sha=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "ref=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "repo_url=https://github.com/${{ github.repository }}" >> $GITHUB_OUTPUT
+          echo "compose_id=${{ inputs.compose }}" >> $GITHUB_OUTPUT
+
     outputs:
       allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
-      sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
-      ref: ${{ fromJson(steps.pr-api.outputs.data).head.ref }}
-      repo_url: ${{ fromJson(steps.pr-api.outputs.data).head.repo.html_url }}
-      compose_id: ${{ fromJson(steps.pr-api.outputs.data).title }}
+      sha: ${{ (fromJson(steps.pr-api.outputs.data).head.sha) || steps.manual-defaults.outputs.sha }}
+      ref: ${{ (fromJson(steps.pr-api.outputs.data).head.ref) || steps.manual-defaults.outputs.ref }}
+      repo_url: ${{ (fromJson(steps.pr-api.outputs.data).head.repo.html_url) || steps.manual-defaults.outputs.repo_url }}
+      compose_id: ${{ (fromJson(steps.pr-api.outputs.data).title) || steps.manual-defaults.outputs.compose_id }}
 
   export-test-case:
     needs: pr-info
@@ -60,8 +70,8 @@ jobs:
           api_key: ${{ secrets.TF_API_KEY }}
           git_url: ${{ needs.pr-info.outputs.repo_url }}
           git_ref: ${{ needs.pr-info.outputs.ref }}
-          update_pull_request_status: true
-          tmt_context: "arch=x86_64;distro=rhel-9-6"
+          update_pull_request_status: ${{ github.event_name == 'pull_request' }}
+          tmt_context: "arch=${{ inputs.arch }};distro=rhel-9-6"
           pull_request_status_name: "edge-rhel-9.6-x86"
           tmt_plan_regex: "export-to-polarion-plan"
           secrets: |
