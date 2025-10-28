@@ -38,4 +38,3 @@ report:
     file: test.xml
     project-id: ${POLARION_PROJECT}
     title: test_title
-    assignee: mcattamo
