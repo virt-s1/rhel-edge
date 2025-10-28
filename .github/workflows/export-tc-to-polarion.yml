@@ -5,7 +5,7 @@ on:
     inputs:
       compose:
         required: true
-        default: RHEL-9.6.0
+        default: Fedora-42
       arch:
         required: true
         default: x86_64
@@ -65,14 +65,14 @@ jobs:
       - name: Export the test case to Polarion
         uses: sclorg/testing-farm-as-github-action@v3.1.2
         with:
-          compose: RHEL-9.6.0-Nightly
+          compose: Fedora-42
           arch: x86_64
           api_key: ${{ secrets.TF_API_KEY }}
           git_url: ${{ needs.pr-info.outputs.repo_url }}
           git_ref: ${{ needs.pr-info.outputs.ref }}
           update_pull_request_status: ${{ github.event_name == 'pull_request' }}
-          tmt_context: "arch=${{ inputs.arch }};distro=rhel-9-6"
-          pull_request_status_name: "edge-rhel-9.6-x86"
+          tmt_context: "arch=${{ inputs.arch }};distro=fedora-42"
+          pull_request_status_name: "edge-fedora-42-x86"
           tmt_plan_regex: "export-to-polarion-plan"
           secrets: |
             POLARION_USER=${{ secrets.POLARION_USER }}
