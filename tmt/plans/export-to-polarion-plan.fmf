@@ -26,8 +26,8 @@ prepare:
       install -m 600 /dev/null "$HOME/.pylero"
       cat > "$HOME/.pylero" << EOF
       [webservice]
-      url=https://polarion.engineering.redhat.com/polarion
-      svn_repo=https://polarion.engineering.redhat.com/repo
+      url=${POLARION_URL}/polarion
+      svn_repo=${POLARION_URL}/repo
       user=${POLARION_USER}
       password=${POLARION_PASSWORD}
       default_project=${POLARION_PROJECT}

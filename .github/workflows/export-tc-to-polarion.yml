@@ -74,8 +74,4 @@ jobs:
           tmt_context: "arch=${{ inputs.arch }};distro=fedora-42"
           pull_request_status_name: "edge-fedora-42-x86"
           tmt_plan_regex: "export-to-polarion-plan"
-          secrets: |
-            POLARION_USER=${{ secrets.POLARION_USER }}
-            POLARION_PASSWORD=${{ secrets.POLARION_PASSWORD }}
-            POLARION_PROJECT=${{ secrets.POLARION_PROJECT }}
-            POLARION_URL=${{ secrets.POLARION_URL }}
+          secrets: "POLARION_USER=${{ secrets.POLARION_USER }};POLARION_PASSWORD=${{ secrets.POLARION_PASSWORD }};POLARION_PROJECT=${{ secrets.POLARION_PROJECT }};POLARION_URL=${{ secrets.POLARION_URL }}"
