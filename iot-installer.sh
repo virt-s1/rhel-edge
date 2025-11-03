@@ -77,7 +77,7 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_FILENAME="Fedora-IoT-ostree-42-${COMPOSE_ID}.${ARCH}.iso"
         ;;
     "fedora-43")
-        OSTREE_REF="fedora/devel/${ARCH}/iot"
+        OSTREE_REF="fedora/stable/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
         IMAGE_FILENAME="Fedora-IoT-ostree-43-${COMPOSE_ID}.${ARCH}.iso"
         ;;

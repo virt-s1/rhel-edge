@@ -87,7 +87,7 @@ case "${ID}-${VERSION_ID}" in
         RAW_IMAGE="Fedora-IoT-raw-42-${COMPOSE_ID}.${ARCH}.raw.xz"
         ;;
     "fedora-43")
-        OSTREE_REF="fedora/devel/${ARCH}/iot"
+        OSTREE_REF="fedora/stable/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
         RAW_IMAGE="Fedora-IoT-raw-43-${COMPOSE_ID}.${ARCH}.raw.xz"
         ;;
