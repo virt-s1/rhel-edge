@@ -1,2 +1,8 @@
+summary: downstream edge test case
+component:
+  - component1
+description: invoke specific edge test script for osbuild generated artifacts
+contact: Mario Cattamo <mcattamo@redhat.com>
 test: ./test.sh
 duration: 300m
+id: 81e69342-1a8c-4046-9274-659632db220c
