@@ -1,7 +1,7 @@
 summary: Exporting test run to Polarion test
-# Example component
 component:
   - component1
 description: This is a first test to export tmt test case run to Polarion
 contact: Mario Cattamo <mcattamo@redhat.com>
 test: tmt --help
+id: 06898805-7efb-46d4-9f62-f73a9a9e8e0e
