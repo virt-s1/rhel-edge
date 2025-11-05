@@ -1,0 +1,122 @@
+name: Export tmt tests to Polarion work items
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        type: boolean
+        default: false
+        description: Export preview only
+
+jobs:
+  pr-info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query author repository permissions
+        uses: octokit/request-action@v2.x
+        id: user_permission
+        with:
+          route: GET /repos/${{ github.repository }}/collaborators/${{ github.actor }}/permission
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if user does have correct permissions
+        if: contains('admin write', fromJson(steps.user_permission.outputs.data).permission)
+        id: check_user_perm
+        run: |
+          echo "User '${{ github.actor }}' has permission '${{ fromJson(steps.user_permission.outputs.data).permission }}' allowed values: 'admin', 'write'"
+          echo "allowed_user=true" >> $GITHUB_OUTPUT
+
+      - name: Get information for pull request
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: octokit/request-action@v2.x
+        id: pr-api
+        with:
+          route: GET /repos/${{ github.repository }}/pulls/${{ github.event.issue.number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    outputs:
+      allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
+
+  export-to-polarion:
+    needs: pr-info
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' }}
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install tmt and Polarion exporter
+        run: |
+          python -m pip install --upgrade pip
+          # Install tmt
+          pip install tmt
+          # tmt report polarion export plugin
+          pip install tmt-polarion pylero
+
+      - name: Configure pylero
+        env:
+          POLARION_URL: ${{ secrets.POLARION_URL }}
+          POLARION_USER: ${{ secrets.POLARION_USER }}
+          POLARION_PASSWORD: ${{ secrets.POLARION_PASSWORD }}
+          POLARION_PROJECT: ${{ secrets.POLARION_PROJECT }}
+        run: |
+          install -m 600 /dev/null "${HOME}/.pylero"
+          cat > "${HOME}/.pylero" << EOF
+          [webservice]
+          url=${POLARION_URL}/polarion
+          svn_repo=${POLARION_URL}/repo
+          user=${POLARION_USER}
+          password=${POLARION_PASSWORD}
+          default_project=${POLARION_PROJECT}
+          cert_path="${HOME}"
+          EOF
+
+      - name: Dry run test cases not exported to Polarion
+        if: ${{ inputs.dry_run }}
+        env:
+          POLARION_PROJECT: ${{ secrets.POLARION_PROJECT }}
+        run: |
+          tmt tests export --how polarion --project-id "$POLARION_PROJECT" --dry
+
+      - name: Export (create new, optionally update existing)
+        if: ${{ !inputs.dry_run }}
+        env:
+          POLARION_PROJECT: ${{ secrets.POLARION_PROJECT }}
+        run: |
+          tmt tests export --how polarion --project-id "$POLARION_PROJECT" --create
+
+      - name: Create Pull Request with TMT IDs
+        if: ${{ !inputs.dry_run }}
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: append Polarion identifiers to tmt test cases"
+          title: "chore: Append Polarion identifiers to tmt test cases"
+          body: |
+            This PR was automatically created after exporting tmt test cases to Polarion.
+
+            The following test case files have been updated with TMT IDs created by Polarion:
+            - Files in `tmt/tests/` directory with appended `id:` field.
+
+            **Note:** These identifiers are required by Polarion to link tmt test cases to future test run results that will be exported with testing-farm request command.
+
+            Please review the changes and merge if everything looks correct.
+          branch: update-polarion-ids-${{ github.run_number }}
+          delete-branch: true
+          labels: |
+            automation
+            polarion
+          draft: false
