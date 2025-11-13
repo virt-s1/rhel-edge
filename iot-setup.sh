@@ -67,6 +67,7 @@ install_packages() {
         libvirt-daemon-kvm
         libvirt-daemon
         virt-install
+        gobject-introspection
         rpmdevtools
         createrepo_c
         lsof
