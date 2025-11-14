@@ -1,2 +1,8 @@
+summary: downstream iot test case
+component:
+  - component2
+description: invoke specific IoT test script for koji composes artifacts
+contact: Mario Cattamo <mcattamo@redhat.com>
 test: ./test.sh
 duration: 90m
+id: 2f8ab735-17df-44e2-af6f-5ea2269db01b
