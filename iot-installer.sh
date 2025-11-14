@@ -122,7 +122,7 @@ modksiso() {
 text
 network --bootproto=dhcp --device=link --activate --onboot=on
 zerombr
-clearpart --all --initlabel --disklabel=msdos
+clearpart --all --initlabel --disklabel=gpt
 autopart --nohome --noswap --type=plain
 bootloader --append="console=tty0 console=ttyS0,115200n8"
 user --name=admin --groups=wheel --iscrypted --password=\$6\$1LgwKw9aOoAi/Zy9\$Pn3ErY1E8/yEanJ98evqKEW.DZp24HTuqXPJl6GYCm8uuobAmwxLv7rGCvTRZhxtcYdmC0.XnYRSR9Sh6de3p0
