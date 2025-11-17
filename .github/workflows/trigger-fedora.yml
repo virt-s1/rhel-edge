@@ -67,40 +67,40 @@ jobs:
       compose_id_43: ${{ steps.check_compose_id_43.outputs.compose_id }}
       need_pr_43: ${{ steps.check_compose_id_43.outputs.need_pr }}
 
-  fedora-rawhide:
-    needs: check-compose
-    if: ${{ needs.check-compose.outputs.need_pr_rawhide == 'true' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+#   fedora-rawhide:
+#     needs: check-compose
+#     if: ${{ needs.check-compose.outputs.need_pr_rawhide == 'true' }}
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v3
 
-      - name: Add new compose id in compose.rawhide
-        run: |
-          compose_id="${{ needs.check-compose.outputs.compose_id_rawhide }}"
-          echo $compose_id >> compose/compose.rawhide
-          cat compose/compose.rawhide
+#       - name: Add new compose id in compose.rawhide
+#         run: |
+#           compose_id="${{ needs.check-compose.outputs.compose_id_rawhide }}"
+#           echo $compose_id >> compose/compose.rawhide
+#           cat compose/compose.rawhide
 
-      - name: Create Pull Request for fedora rawhide
-        id: create-pr
-        uses: peter-evans/create-pull-request@v4
-        with:
-          title: "${{ needs.check-compose.outputs.compose_id_rawhide }}"
-          branch: cpr
-          branch-suffix: random
-          base: main
-          body: "${{ needs.check-compose.outputs.compose_id_rawhide }}"
-          commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose_id_rawhide }} to compose file"
-          labels: |
-            automated-pr
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#       - name: Create Pull Request for fedora rawhide
+#         id: create-pr
+#         uses: peter-evans/create-pull-request@v4
+#         with:
+#           title: "${{ needs.check-compose.outputs.compose_id_rawhide }}"
+#           branch: cpr
+#           branch-suffix: random
+#           base: main
+#           body: "${{ needs.check-compose.outputs.compose_id_rawhide }}"
+#           commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose_id_rawhide }} to compose file"
+#           labels: |
+#             automated-pr
+#         env:
+#           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v2
-        with:
-          token: ${{ secrets.PAT }}
-          issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
-          body: /test-rawhide
+#       - name: Add a comment to trigger test workflow
+#         uses: peter-evans/create-or-update-comment@v2
+#         with:
+#           token: ${{ secrets.PAT }}
+#           issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
+#           body: /test-rawhide
 
   fedora-43:
     needs: check-compose
