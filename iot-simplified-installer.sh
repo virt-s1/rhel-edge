@@ -73,11 +73,6 @@ COMPOSE_ID=$(echo "${COMPOSE}" | cut -d- -f4)
 
 # Set OS-specific variables
 case "${ID}-${VERSION_ID}" in
-    "fedora-42")
-        OSTREE_REF="fedora/stable/${ARCH}/iot"
-        OS_VARIANT="fedora-unknown"
-        IMAGE_FILENAME="Fedora-IoT-provisioner-42-${COMPOSE_ID}.${ARCH}.iso"
-        ;;
     "fedora-43")
         OSTREE_REF="fedora/stable/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
