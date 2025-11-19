@@ -143,6 +143,15 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_IMAGE_TYPE=fedora-iot-container
         INSTALLER_IMAGE_TYPE=fedora-iot-installer
         OSTREE_REF="fedora-iot/43/${ARCH}/iot"
+        OS_VARIANT="fedora-unknown"
+        ANSIBLE_OS_NAME="fedora-iot"
+        SYSROOT_RO="true"
+        DIRS_FILES_CUSTOMIZATION="true"
+        ;;
+    "fedora-44")
+        CONTAINER_IMAGE_TYPE=fedora-iot-container
+        INSTALLER_IMAGE_TYPE=fedora-iot-installer
+        OSTREE_REF="fedora-iot/44/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"
         ANSIBLE_OS_NAME="fedora-iot"
         SYSROOT_RO="true"
@@ -288,7 +297,7 @@ build_image() {
     fi
 
     if nvrGreaterOrEqual "weldr-client" "35.6"; then
-        COMPOSE_ID=$(jq -r '.[0].body.build_id' "$COMPOSE_START")
+        COMPOSE_ID=$(jq -r '.[1].body.build_id' "$COMPOSE_START")
     else
         COMPOSE_ID=$(jq -r '.body.build_id' "$COMPOSE_START")
     fi
@@ -398,7 +407,7 @@ install_edge_vm_http_boot() {
     text
     network --bootproto=dhcp --device=link --activate --onboot=on
     zerombr
-    clearpart --all --initlabel --disklabel=msdos
+    clearpart --all --initlabel --disklabel=gpt
     autopart --nohome --noswap --type=plain
     ostreesetup --osname=rhel --url=http://192.168.100.1/httpboot/ostree/repo --ref=${OSTREE_REF} --nogpg
     user --name installeruser --password \$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl. --iscrypted --groups wheel --homedir /home/installeruser

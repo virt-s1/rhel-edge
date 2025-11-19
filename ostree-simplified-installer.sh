@@ -284,7 +284,7 @@ build_image() {
     fi
 
     if nvrGreaterOrEqual "weldr-client" "35.6"; then
-        COMPOSE_ID=$(jq -r '.[0].body.build_id' "$COMPOSE_START")
+        COMPOSE_ID=$(jq -r '.[1].body.build_id' "$COMPOSE_START")
     else
         COMPOSE_ID=$(jq -r '.body.build_id' "$COMPOSE_START")
     fi
