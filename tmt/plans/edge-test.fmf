@@ -11,6 +11,8 @@ provision:
     cpu:
       processors: ">= 4"
     memory: ">= 8 GB"
+    disk:
+      - size: ">= 40 GB"
 
 /edge-x86-commit:
   summary: Test edge commit
