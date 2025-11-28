@@ -11,6 +11,8 @@ provision:
     cpu:
       processors: ">= 2"
     memory: ">= 6 GB"
+    disk:
+      - size: ">= 40 GB"
 
 /iot-x86-installer:
   summary: Test fedora-iot x86_64 installer ISO image
