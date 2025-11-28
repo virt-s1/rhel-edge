@@ -128,6 +128,17 @@ case "${ID}-${VERSION_ID}" in
         IMAGE_TYPE=fedora-iot-commit
         USER_IN_COMMIT="false"
         OSTREE_REF="fedora/43/${ARCH}/iot"
+        OS_VARIANT="fedora-unknown"
+        BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/development/43/Everything/x86_64/os/"
+        CUT_DIRS=8
+        ADD_SSSD="false"
+        SYSROOT_RO="true"
+        DIRS_FILES_CUSTOMIZATION="true"
+        ;;
+    "fedora-44")
+        IMAGE_TYPE=fedora-iot-commit
+        USER_IN_COMMIT="false"
+        OSTREE_REF="fedora/44/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"
         BOOT_LOCATION="https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide/Everything/x86_64/os/"
         CUT_DIRS=8
@@ -256,7 +267,7 @@ build_image() {
     fi
 
     if nvrGreaterOrEqual "weldr-client" "35.6"; then
-        COMPOSE_ID=$(jq -r '.[0].body.build_id' "$COMPOSE_START")
+        COMPOSE_ID=$(jq -r '.[1].body.build_id' "$COMPOSE_START")
     else
         COMPOSE_ID=$(jq -r '.body.build_id' "$COMPOSE_START")
     fi
@@ -267,7 +278,11 @@ build_image() {
         sudo composer-cli --json compose info "${COMPOSE_ID}" | tee "$COMPOSE_INFO" > /dev/null
 
         if nvrGreaterOrEqual "weldr-client" "35.6"; then
-            COMPOSE_STATUS=$(jq -r '.[0].body.queue_status' "$COMPOSE_INFO")
+            if [[ "${ID}-${VERSION_ID}" == "fedora-44" ]]; then
+                COMPOSE_STATUS=$(jq -r '.[1].body.queue_status' "$COMPOSE_INFO")
+            else
+                COMPOSE_STATUS=$(jq -r '.[0].body.queue_status' "$COMPOSE_INFO")
+            fi
         else
             COMPOSE_STATUS=$(jq -r '.body.queue_status' "$COMPOSE_INFO")
         fi
