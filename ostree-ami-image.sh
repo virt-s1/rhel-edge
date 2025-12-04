@@ -427,6 +427,12 @@ greenprint "🧽 Clean up container blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete container > /dev/null
 
+
+# Clean osbuild storage (rhel-edge container still running)
+greenprint "🧹 Clean up osbuild storage after container build"
+sudo rm -rf /var/cache/osbuild-worker/* /var/cache/osbuild-composer/* || true
+sudo rm -rf /var/lib/osbuild-composer/artifacts/* /var/lib/osbuild-composer/outputs/* || true
+
 ############################################################
 ##
 ## Setup Ignition
@@ -597,6 +603,11 @@ sudo rm -f "$AMI_FILENAME"
 greenprint "🧹 Clean up raw blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete ami > /dev/null
+
+# Clean up osbuild temporary files to free up space in /run (tmpfs)
+greenprint "🧹 Cleaning up osbuild temporary files after AMI build"
+# Remove all old temporary directories
+sudo find /run/osbuild/tree -mindepth 1 -maxdepth 1 -type d -mmin +2 -exec rm -rf {} + 2>/dev/null || true
 
 # Create container simple file
 CONTAINERS_FILE=containers.json
@@ -892,6 +903,13 @@ greenprint "📋 Preparing upgrade blueprint"
 sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve upgrade
 
+# Clean up osbuild temporary files to free up space in /run (tmpfs)
+greenprint "🧹 Cleaning up osbuild temporary files before upgrade build"
+# Remove all old temporary directories
+sudo find /run/osbuild/tree -mindepth 1 -maxdepth 1 -type d -mmin +2 -exec rm -rf {} + 2>/dev/null || true
+# Also clean up any old compose artifacts that might be lingering
+sudo find /var/lib/osbuild-composer -name "*.tar" -mmin +10 -delete 2>/dev/null || true
+
 # Build upgrade image.
 build_image upgrade  "${CONTAINER_TYPE}" "$PROD_REPO_URL"
 
@@ -938,6 +956,13 @@ UPGRADE_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
 greenprint "🧽 Clean up upgrade blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete upgrade > /dev/null
+
+# Aggressive cleanup to free disk space
+greenprint "🧹 Aggressive cleanup after upgrade build"
+sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f || true
+sudo podman images --filter "dangling=true" --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rmi -f || true
+sudo rm -rf /var/cache/osbuild-worker/* /var/cache/osbuild-composer/* || true
+sudo rm -rf /var/lib/osbuild-composer/artifacts/* /var/lib/osbuild-composer/outputs/* || true
 
 # Upload production repo to S3 Bucket
 greenprint "Uploading upgraded production repo to AWS S3 Bucket"
