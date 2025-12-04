@@ -10,7 +10,9 @@ provision:
       is-supported: true
     cpu:
       processors: ">= 4"
-    memory: ">= 8 GB"
+    memory: ">= 16 GB"
+    disk:
+      - size: ">= 60 GB"
 
 /edge-x86-commit:
   summary: Test edge commit
