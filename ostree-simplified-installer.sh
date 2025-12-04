@@ -481,6 +481,11 @@ greenprint "🧽 Clean up container blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete container > /dev/null
 
+# Clean osbuild storage (rhel-edge container still running)
+greenprint "🧹 Clean up osbuild storage after container build"
+sudo rm -rf /var/cache/osbuild-worker/* /var/cache/osbuild-composer/* || true
+sudo rm -rf /var/lib/osbuild-composer/artifacts/* /var/lib/osbuild-composer/outputs/* || true
+
 if [[ "$NO_FDO" == "true" ]]; then
 ##################################################################
 ##
@@ -1048,6 +1053,18 @@ greenprint "🧽 Clean up rebase blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete rebase > /dev/null
 
+# Aggressive cleanup to free disk space
+greenprint "🧹 Aggressive cleanup after rebase build"
+sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f || true
+sudo podman images --filter "dangling=true" --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rmi -f || true
+sudo rm -rf /var/cache/osbuild-worker/* /var/cache/osbuild-composer/* || true
+sudo rm -rf /var/lib/osbuild-composer/artifacts/* /var/lib/osbuild-composer/outputs/* || true
+
+# Clean up osbuild temporary files to free up space in /run (tmpfs)
+greenprint "🧹 Cleaning up osbuild temporary files after rebase"
+# Remove all old temporary directories
+sudo find /run/osbuild/tree -mindepth 1 -maxdepth 1 -type d -mmin +2 -exec rm -rf {} + 2>/dev/null || true
+
 # Rebase to new REF.
 greenprint "🗳 Rebase to new ostree REF"
 if [[ "$ID" == fedora ]]; then
@@ -1263,6 +1280,13 @@ sudo ausearch -m avc -m user_avc -m selinux_err -i || true
 ##
 ##################################################################
 
+# Clean up osbuild temporary files to free up space in /run (tmpfs)
+greenprint "🧹 Cleaning up osbuild temporary files before upgrade build"
+# Remove all old temporary directories
+sudo find /run/osbuild/tree -mindepth 1 -maxdepth 1 -type d -mmin +2 -exec rm -rf {} + 2>/dev/null || true
+# Also clean up any old compose artifacts that might be lingering
+sudo find /var/lib/osbuild-composer -name "*.tar" -mmin +10 -delete 2>/dev/null || true
+
 # Write a blueprint for ostree image.
 # NB: no ssh key in this blueprint for the admin user
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
@@ -1350,6 +1374,13 @@ UPGRADE_HASH=$(curl "${PROD_REPO_URL}/refs/heads/${OSTREE_REF}")
 greenprint "🧽 Clean up upgrade blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete upgrade > /dev/null
+
+# Aggressive cleanup to free disk space
+greenprint "🧹 Aggressive cleanup after upgrade build"
+sudo podman ps -a -q --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rm -f || true
+sudo podman images --filter "dangling=true" --format "{{.ID}}" | sudo xargs --no-run-if-empty podman rmi -f || true
+sudo rm -rf /var/cache/osbuild-worker/* /var/cache/osbuild-composer/* || true
+sudo rm -rf /var/lib/osbuild-composer/artifacts/* /var/lib/osbuild-composer/outputs/* || true
 
 greenprint "🗳 Upgrade ostree image/commit"
 # Update default Fedora's repository
