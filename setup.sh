@@ -26,6 +26,12 @@ CI MACHINE SPECS
 EOF
 echo "CPU info"
 lscpu
+echo ""
+echo "Filesystem usage:"
+df -h /run /tmp / 2>/dev/null || df -h
+echo ""
+echo "Top space consumers in /run:"
+du -sh /run/* 2>/dev/null | sort -h | tail -10 || echo "No data in /run yet"
 echo -e "\033[0m"
 
 # Get OS data.

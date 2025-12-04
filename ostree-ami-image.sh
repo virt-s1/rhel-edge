@@ -152,6 +152,12 @@ build_image() {
     sudo pkill -P ${WORKER_JOURNAL_PID}
     trap - EXIT
 
+    # Check disk usage after build
+    greenprint "💾 Disk usage after ${image_type} build"
+    df -h / /run 2>/dev/null || df -h
+    echo "Largest directories in /var:"
+    sudo du -sh /var/* 2>/dev/null | sort -h | tail -5 || true
+
     # Did the compose finish with success?
     if [[ $COMPOSE_STATUS != FINISHED ]]; then
         echo "Something went wrong with the compose. 😢"
