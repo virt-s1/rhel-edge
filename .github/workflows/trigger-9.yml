@@ -18,9 +18,9 @@ jobs:
     runs-on: container-runner
     container: quay.io/fedora/fedora:43-x86_64
     steps:
-      - uses: actions/checkout@v3
+      - run: sudo dnf install -y git gh
 
-      - run: sudo dnf install -y gh
+      - uses: actions/checkout@v3
 
       - name: Check RHEL 9.4 compose
         id: check_compose_id_94
