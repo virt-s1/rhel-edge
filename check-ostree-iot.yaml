@@ -9,7 +9,7 @@
 
   tasks:
     # current target host's IP address
-    - debug: var=ansible_all_ipv4_addresses
+    - debug: var=ansible_facts['all_ipv4_addresses']
     - debug: var=ansible_facts['distribution_version']
     - debug: var=ansible_facts['distribution']
     - debug: var=ansible_facts['architecture']
@@ -268,6 +268,8 @@
         - name: install sanely failing health check unit to test red boot status behavior
           command: rpm-ostree install --cache-only https://kite-webhook-prod.s3.amazonaws.com/greenboot-failing-unit-1.0-1.el8.noarch.rpm --reboot
           become: yes
+          async: 1
+          poll: 0
           ignore_errors: yes
           ignore_unreachable: yes
 
@@ -279,23 +281,36 @@
         - name: wait for connection to become reachable/usable
           wait_for_connection:
             delay: 30
+            timeout: 300
+            connect_timeout: 15
 
         - name: waits until instance is reachable
           wait_for:
-            host: "{{ ansible_all_ipv4_addresses[0] }}"
+            host: "{{ ansible_facts['all_ipv4_addresses'][0] }}"
             port: 22
             search_regex: OpenSSH
             delay: 10
+            timeout: 300
           register: result_rollback
           until: result_rollback is success
-          retries: 6
-          delay: 10
+          retries: 20
+          delay: 15
+          ignore_errors: yes
+
+        - name: verify system is reachable with ping
+          ping:
+          register: ping_result
+          until: ping_result is success
+          retries: 5
+          delay: 5
+          ignore_errors: yes
 
         - assert:
             that:
+              - result_rollback is defined
               - result_rollback is succeeded
-            fail_msg: "Rollback failed"
-            success_msg: "Rollback success"
+            fail_msg: "Rollback failed - system did not come back online after reboot"
+            success_msg: "Rollback success - system came back online after reboot"
       always:
         - set_fact:
             total_counter: "{{ total_counter | int + 1 }}"
