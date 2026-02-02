@@ -34,7 +34,9 @@ provision:
   environment+:
     TEST_CASE: edge-simplified-installer
   adjust+:
-    - when: arch != x86_64 or distro == fedora
+    - when: arch != x86_64
+      enabled: false
+    - when: distro == fedora
       enabled: false
 
 /edge-x86-fdo-aio:
@@ -46,15 +48,15 @@ provision:
       enabled: false
     - when: distro == fedora
       enabled: false
-    - when: distro==cs-9
+    - when: distro == cs-9
       enabled: false
     - when: distro == rhel-8-10
       enabled: false
-    - when: distro==rhel-9-4
+    - when: distro == rhel-9-4
       enabled: false
-    - when: distro==rhel-9-5
+    - when: distro == rhel-9-5
       enabled: false
-    - when: distro==rhel-9-6
+    - when: distro == rhel-9-6
       enabled: false
 
 /edge-x86-fdo-db:
@@ -62,17 +64,19 @@ provision:
   environment+:
     TEST_CASE: edge-fdo-db
   adjust+:
-    - when: arch != x86_64 or distro == fedora
+    - when: arch != x86_64
+      enabled: false
+    - when: distro == fedora
+      enabled: false
+    - when: distro == cs-9
       enabled: false
     - when: distro == rhel-8-10
       enabled: false
-    - when: distro==cs-9
+    - when: distro == rhel-9-4
       enabled: false
-    - when: distro==rhel-9-5
+    - when: distro == rhel-9-5
       enabled: false
-    - when: distro==rhel-9-4
-      enabled: false
-    - when: distro==rhel-9-6
+    - when: distro == rhel-9-6
       enabled: false
 
 /edge-x86-ignition:
@@ -80,7 +84,9 @@ provision:
   environment+:
     TEST_CASE: edge-ignition
   adjust+:
-    - when: arch != x86_64 or distro == fedora
+    - when: arch != x86_64
+      enabled: false
+    - when: distro == fedora
       enabled: false
     - when: distro == rhel-8-10
       enabled: false
@@ -94,15 +100,15 @@ provision:
       enabled: false
     - when: distro == fedora
       enabled: false
-    - when: distro==cs-9
+    - when: distro == cs-9
       enabled: false
     - when: distro == rhel-8-10
       enabled: false
-    - when: distro==rhel-9-4
+    - when: distro == rhel-9-4
       enabled: false
-    - when: distro==rhel-9-5
+    - when: distro == rhel-9-5
       enabled: false
-    - when: distro==rhel-9-6
+    - when: distro == rhel-9-6
       enabled: false
 
 /edge-x86-vsphere:
@@ -110,11 +116,13 @@ provision:
   environment+:
     TEST_CASE: edge-vsphere
   adjust+:
-    - when: arch != x86_64 or distro == fedora
+    - when: arch != x86_64
+      enabled: false
+    - when: distro == fedora
+      enabled: false
+    - when: distro == cs-9
       enabled: false
     - when: distro == rhel-8-10
-      enabled: false
-    - when: distro==cs-9
       enabled: false
 
 /edge-x86-ami-image:
@@ -128,27 +136,27 @@ provision:
       enabled: false
 
 /edge-x86-8to9:
-  summary: Test edge installer image
+  summary: Test edge upgrade from 8 to 9
   environment+:
     TEST_CASE: edge-8to9
   adjust+:
     - when: distro == fedora
       enabled: false
-    - when: distro == rhel-8-10
+    - when: distro == cs-9
       enabled: false
-    - when: distro==cs-9
+    - when: distro == rhel-8-10
       enabled: false
 
 /edge-x86-9to9:
-  summary: Test edge installer image
+  summary: Test edge upgrade from 9.x to 9.y
   environment+:
     TEST_CASE: edge-9to9
   adjust+:
     - when: distro == fedora
       enabled: false
-    - when: distro == rhel-8-10
+    - when: distro == cs-9
       enabled: false
-    - when: distro==cs-9
+    - when: distro == rhel-8-10
       enabled: false
 
 /edge-arm-ami-image:
@@ -160,6 +168,6 @@ provision:
       enabled: false
 
 /edge-fdo-container:
-  summary: Test fdo container image
+  summary: Test edge fdo container image
   environment+:
     TEST_CASE: edge-fdo-container
