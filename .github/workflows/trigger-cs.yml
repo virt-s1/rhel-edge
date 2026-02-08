@@ -152,7 +152,7 @@ jobs:
         id: date
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
-      - name: Create Pull Request
+      - name: Create pull request
         id: cpr
         uses: peter-evans/create-pull-request@v4
         with:
@@ -175,7 +175,7 @@ jobs:
             - Updated packages(${{ needs.check-compose.outputs.count }}):
                   ${{ needs.check-compose.outputs.updated_pkgs }}
 
-      - name: Enable Pull Request Automerge
+      - name: Enable pull request automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
         uses: peter-evans/enable-pull-request-automerge@v2
         with:
