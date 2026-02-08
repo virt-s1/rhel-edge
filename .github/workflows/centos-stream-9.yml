@@ -24,7 +24,7 @@ jobs:
         if: contains('admin write', fromJson(steps.user_permission.outputs.data).permission)
         id: check_user_perm
         run: |
-          echo "User '${{ github.event.sender.login }}' has permission '${{ fromJson(steps.user_permission.outputs.data).permission }}' allowed values: 'admin', 'write'"
+          echo "User '${{ github.event.sender.login }}' has permission '${{ fromJson(steps.user_permission.outputs.data).permission }}', allowed values: 'admin', 'write'"
           echo "allowed_user=true" >> $GITHUB_OUTPUT
 
       - name: Get information from pull request
