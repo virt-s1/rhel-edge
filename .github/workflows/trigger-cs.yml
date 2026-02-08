@@ -172,8 +172,8 @@ jobs:
                 - ${{ needs.check-compose.outputs.osbuild_version_cs9 }}
                 - ${{ needs.check-compose.outputs.osbuild_composer_version_cs9 }}
                 - ${{ needs.check-compose.outputs.composer_cli_version_cs9 }}
-            - Updated packages(${{ needs.check-compose.outputs.count }}):
-                  ${{ needs.check-compose.outputs.updated_pkgs }}
+            - Updated packages (${{ needs.check-compose.outputs.count }}):
+                - ${{ needs.check-compose.outputs.updated_pkgs }}
 
       - name: Enable pull request automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
