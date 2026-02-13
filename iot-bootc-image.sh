@@ -85,7 +85,7 @@ case "${ID}-${VERSION_ID}" in
         OCI_ARCHIVE="Fedora-IoT-bootc-${ARCH}-43.${COMPOSE_ID}.ociarchive"
         ;;
     "fedora-44")
-        OS_VARIANT="fedora-rawhide"
+        OS_VARIANT="fedora-unknown"
         OCI_ARCHIVE="Fedora-IoT-bootc-${ARCH}-44.${COMPOSE_ID}.ociarchive"
         ;;
     *)
