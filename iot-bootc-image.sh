@@ -88,6 +88,10 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="fedora-rawhide"
         OCI_ARCHIVE="Fedora-IoT-bootc-${ARCH}-44.${COMPOSE_ID}.ociarchive"
         ;;
+    "fedora-45")
+        OS_VARIANT="fedora-rawhide"
+        OCI_ARCHIVE="Fedora-IoT-bootc-${ARCH}-45.${COMPOSE_ID}.ociarchive"
+        ;;
     *)
         log_error "Unsupported distro: ${ID}-${VERSION_ID}"
         exit 1
