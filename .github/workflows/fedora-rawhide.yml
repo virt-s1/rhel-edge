@@ -6,6 +6,9 @@ on:
     types:
       - created
 
+env:
+  STABLE_COMPOSE: Fedora-43
+
 jobs:
   pr-info:
     if: ${{ github.event.issue.pull_request &&
@@ -57,7 +60,7 @@ jobs:
       - name: Run the tests
         uses: sclorg/testing-farm-as-github-action@v3.1.2
         with:
-          compose: Fedora-Rawhide-Nightly
+          compose: ${{ env.STABLE_COMPOSE }}
           api_key: ${{ secrets.TF_API_KEY }}
           git_url: ${{ needs.pr-info.outputs.repo_url }}
           git_ref: ${{ needs.pr-info.outputs.ref }}
@@ -107,7 +110,7 @@ jobs:
   #     - name: Run the tests
   #       uses: sclorg/testing-farm-as-github-action@v3.1.2
   #       with:
-  #         compose: Fedora-Rawhide-Nightly
+  #         compose: ${{ env.STABLE_COMPOSE }}
   #         api_key: ${{ secrets.TF_API_KEY }}
   #         git_url: ${{ needs.pr-info.outputs.repo_url }}
   #         git_ref: ${{ needs.pr-info.outputs.ref }}
