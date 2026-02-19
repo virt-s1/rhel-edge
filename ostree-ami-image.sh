@@ -24,6 +24,7 @@ ANSIBLE_OS_NAME="redhat"
 BUCKET_NAME="rhel-edge-${TEST_UUID}"
 BUCKET_URL="s3://${BUCKET_NAME}"
 OBJECT_URL="http://${BUCKET_NAME}.s3.${AWS_DEFAULT_REGION}.amazonaws.com"
+RAW_IMAGE_TEST="true"
 
 # Set up temporary files.
 TEMPDIR=$(mktemp -d)
@@ -570,6 +571,11 @@ groups = ["wheel"]
 
 [customizations.ignition.firstboot]
 url = "${OBJECT_URL}/config.ign"
+
+[[customizations.filesystem]]
+mountpoint = "/boot"
+minsize = 1073741824
+
 EOF
 
 greenprint "📄 aws ami blueprint"
@@ -841,6 +847,7 @@ podman run \
         -i /tmp/inventory \
         -e os_name="${ANSIBLE_OS_NAME}" \
         -e ignition="true" \
+        -e raw_image_test="${RAW_IMAGE_TEST}" \
         -e ostree_commit="${INSTALL_HASH}" \
         -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" \
         -e sysroot_ro="$SYSROOT_RO" \
@@ -1026,6 +1033,7 @@ podman run \
         -i /tmp/inventory \
         -e os_name="${ANSIBLE_OS_NAME}" \
         -e ignition="true" \
+        -e raw_image_test="${RAW_IMAGE_TEST}" \
         -e ostree_commit="${UPGRADE_HASH}" \
         -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" \
         -e sysroot_ro="$SYSROOT_RO" \
