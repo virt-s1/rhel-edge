@@ -570,6 +570,11 @@ groups = ["wheel"]
 
 [customizations.ignition.firstboot]
 url = "${OBJECT_URL}/config.ign"
+
+[[customizations.filesystem]]
+mountpoint = "/boot"
+minsize = 1073741824
+
 EOF
 
 greenprint "📄 aws ami blueprint"

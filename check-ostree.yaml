@@ -822,6 +822,17 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when: ansible_facts['distribution'] == 'RedHat' and ansible_facts ['distribution_version'] is version('9.0', '<')
 
+    # Determine greenboot version once, so greenboot checks can be gated for older releases.
+    - name: get installed greenboot version
+      command: rpm -q --qf '%{VERSION}' greenboot
+      register: greenboot_version_raw
+      changed_when: false
+      failed_when: false
+
+    - name: set greenboot version fact
+      set_fact:
+        greenboot_version: "{{ greenboot_version_raw.stdout | default('0.0.0') }}"
+
     # case: check installed greenboot packages
     - name: greenboot should be installed
       block:
@@ -862,6 +873,50 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
+      when: greenboot_version is version('0.16.0', '<')
+
+    # case: check greenboot* services
+    - name: greenboot healthcheck service should be enabled
+      block:
+        - name: greenboot healthcheck service should be enabled
+          command: systemctl is-enabled greenboot-healthcheck
+          register: result_greenboot_service
+
+        - assert:
+            that:
+              - result_greenboot_service.stdout == 'enabled'
+            fail_msg: "at least one greenboot service is not enabled"
+            success_msg: "greenboot services are enabled"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: greenboot_version is version('0.16.0', '>=')
+
+      # case: check greenboot* service status
+    - name: greenboot healthcheck service should be active
+      block:
+        - name: greenboot healthcheck service should be active
+          command: systemctl is-active greenboot-healthcheck.service
+          register: result_greenboot_active
+
+        - assert:
+            that:
+              - result_greenboot_active.stdout == "active"
+            fail_msg: "greenboot healthcheck service is not active"
+            success_msg: "greenboot healthcheck service is active"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: greenboot_version is version('0.16.0', '>=')
+
 
     # case: check greenboot* services log
     - name: all greenboot* service should run without error
@@ -898,6 +953,27 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
+      when: greenboot_version is version('0.16.0', '<')
+
+    # case: check boot-complete.target status
+    - name: boot-complete.target should be active
+      block:
+        - name: check boot-complete.target
+          command: systemctl --no-pager status boot-complete.target
+          become: yes
+          register: result
+          retries: 10
+          delay: 60
+          until: "'inactive' not in result.stdout"
+
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: greenboot_version is version('0.16.0', '>=')
 
     # case: check grubenv variables
     - name: grubenv variables should contain boot_success=1
@@ -935,6 +1011,10 @@
       become: yes
       when:
         - fdo_credential == "true"
+
+    - name: check /boot mount status
+      shell: findmnt -r -o OPTIONS -n /boot | awk -F "," '{print $1}'
+      register: result_boot_mount_before
 
     # case: check rollback function if boot error found
     - name: install sanely failing health check unit to test red boot status behavior
@@ -1025,7 +1105,9 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: result_rollback is succeeded
+      when:
+        - result_rollback is succeeded
+        - greenboot_version is version('0.16.0', '<')
 
     # case: check greenboot* services log again
     - name: fallback log should be found here
@@ -1064,7 +1146,54 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: result_rollback is succeeded
+      when:
+        - result_rollback is succeeded
+        - greenboot_version is version('0.16.0', '<')
+
+    # case: check fallback log
+    - name: fallback log should be found here
+      block:
+        - name: fallback log should be found here
+          command: journalctl -b -0 -u greenboot -u greenboot-healthcheck
+          become: yes
+          register: result_greenboot_log
+
+        - assert:
+            that:
+              - "'FALLBACK BOOT DETECTED!' in result_greenboot_log.stdout"
+            fail_msg: "Fallback log not found"
+            success_msg: "Found fallback log"
+
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when:
+        - result_rollback is succeeded
+        - greenboot_version is version('0.16.0', '>=')
+
+    # case: check boot-complete.target status
+    - name: boot-complete.target should be active
+      block:
+        - name: check boot-complete.target
+          command: systemctl --no-pager status boot-complete.target
+          become: yes
+          register: result
+          retries: 10
+          delay: 60
+          until: "'inactive' not in result.stdout"
+
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: greenboot_version is version('0.16.0', '>=')
 
     # case: check grubenv variables again
     - name: grubenv variables should contain boot_success=1
@@ -1086,7 +1215,29 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: result_rollback is succeeded
+      when:
+        - result_rollback is succeeded
+
+    - name: check /boot mount status
+      shell: findmnt -r -o OPTIONS -n /boot | awk -F "," '{print $1}'
+      register: result_boot_mount_after
+
+    - name: /boot status should be preserved
+      block:
+        - assert:
+            that:
+              - result_boot_mount_before.stdout == result_boot_mount_after.stdout
+            fail_msg: "/boot status is not preserved"
+            success_msg: "/boot status is preserved"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when:
+        - greenboot_version is version('0.16.0', '>=')
 
     # Check FDO status and task status
     - name: check fdo-client-linuxapp logs
