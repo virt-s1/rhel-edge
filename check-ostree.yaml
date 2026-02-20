@@ -28,6 +28,47 @@
       command: mokutil --sb-state
       ignore_errors: yes
 
+    # case: check SELinux status
+    - name: check SELinux status
+      command: getenforce
+      register: result_selinux
+
+    - name: SELinux should be in enforcing mode
+      block:
+        - assert:
+            that:
+              - result_selinux.stdout == "Enforcing"
+            fail_msg: "SELinux is not in enforcing mode"
+            success_msg: "SELinux is in enforcing mode"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
+    # case: check root password is locked
+    - name: check root password status
+      command: passwd -S root
+      register: result_root_passwd
+      become: yes
+
+    - name: root password should be locked
+      block:
+        - assert:
+            that:
+              - result_root_passwd.stdout.split()[1] == "LK"
+            fail_msg: "root password is not locked"
+            success_msg: "root password is locked"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+
     # check tpm device
     - name: check tpm device
       stat:
@@ -1318,6 +1359,26 @@
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
       when: test_custom_dirs_files == "true"
+
+    # case: check no failed systemd units
+    - name: check systemd failed units
+      shell: systemctl --failed --no-legend --no-pager --plain | awk '{printf sep $1; sep=", "}'
+      register: result_failed_units
+
+    - name: no systemd units should be in failed state
+      block:
+        - assert:
+            that:
+              - result_failed_units.stdout == ""
+            fail_msg: "found failed systemd units: {{ result_failed_units.stdout }}"
+            success_msg: "no failed systemd units"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
 
     - assert:
         that:
