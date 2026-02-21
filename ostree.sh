@@ -25,7 +25,7 @@ COMPOSE_START=${TEMPDIR}/compose-start-${IMAGE_KEY}.json
 COMPOSE_INFO=${TEMPDIR}/compose-info-${IMAGE_KEY}.json
 GRUB_CFG=${HTTPD_PATH}/httpboot/EFI/BOOT/grub.cfg
 EMBEDDED_CONTAINER="false"
-# Workaround BZ#2108646
+# Workaround https://bugzilla.redhat.com/show_bug.cgi?id=2108646
 BOOT_ARGS="uefi"
 FIREWALL_FEATURE="false"
 # Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
@@ -52,7 +52,7 @@ case "${ID}-${VERSION_ID}" in
         ADD_SSSD="true"
         EMBEDDED_CONTAINER="true"
         FIREWALL_FEATURE="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ;;
     "rhel-9.4")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -64,7 +64,7 @@ case "${ID}-${VERSION_ID}" in
         EMBEDDED_CONTAINER="true"
         FIREWALL_FEATURE="true"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ;;
     "rhel-9.5")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -76,7 +76,7 @@ case "${ID}-${VERSION_ID}" in
         EMBEDDED_CONTAINER="true"
         FIREWALL_FEATURE="true"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ;;
     "rhel-9.6")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -88,7 +88,7 @@ case "${ID}-${VERSION_ID}" in
         EMBEDDED_CONTAINER="true"
         FIREWALL_FEATURE="true"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
@@ -100,7 +100,7 @@ case "${ID}-${VERSION_ID}" in
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         FIREWALL_FEATURE="true"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ;;
     "fedora-41")
         IMAGE_TYPE=fedora-iot-commit
@@ -111,7 +111,7 @@ case "${ID}-${VERSION_ID}" in
         CUT_DIRS=8
         ADD_SSSD="false"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ;;
     "fedora-42")
         IMAGE_TYPE=fedora-iot-commit
@@ -122,7 +122,7 @@ case "${ID}-${VERSION_ID}" in
         CUT_DIRS=8
         ADD_SSSD="false"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ;;
     "fedora-43")
         IMAGE_TYPE=fedora-iot-commit
@@ -133,7 +133,7 @@ case "${ID}-${VERSION_ID}" in
         CUT_DIRS=8
         ADD_SSSD="false"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -262,7 +262,7 @@ build_image() {
     fi
 
     # Wait for the compose to finish.
-    greenprint "⏱ Waiting for compose to finish: ${COMPOSE_ID}"
+    greenprint "⏱️ Waiting for compose to finish: ${COMPOSE_ID}"
     while true; do
         sudo composer-cli --json compose info "${COMPOSE_ID}" | tee "$COMPOSE_INFO" > /dev/null
 
@@ -277,7 +277,7 @@ build_image() {
             break
         fi
 
-        # Wait 30 seconds and try again.
+        # Wait 5 seconds and try again.
         sleep 5
     done
 
@@ -327,7 +327,7 @@ check_result () {
     if [[ $RESULTS == 1 ]]; then
         greenprint "💚 Success"
     else
-        greenprint "❌ Failed"
+        greenprint "❌ Failure"
         clean_up
         exit 1
     fi
@@ -351,7 +351,7 @@ name = "python3"
 version = "*"
 EOF
 
-# For BZ#2088459, RHEL 8.6 and 9.0 will not have new release which fix this issue
+# For https://bugzilla.redhat.com/show_bug.cgi?id=2088459, RHEL 8.6 and 9.0 will not have new release which fix this issue
 # RHEL 8.6 and 9.0 will not include sssd package in blueprint
 if [[ "${ADD_SSSD}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
@@ -386,8 +386,8 @@ name = "${FEDORA_LOCAL_NAME}"
 EOF
 fi
 
-# Add directory and files customization, and services customization for testing
-if [[ "${DIRS_FILES_CUSTOMIZATION}" == "true" ]]; then
+# Add directories, files, and services customization for testing
+if [[ "${DIRS_FILES_SERVICES_CUSTOMIZATION}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.directories]]
 path = "/etc/custom_dir/dir1"
@@ -436,7 +436,7 @@ greenprint "👿 Running restorecon on image directory"
 sudo restorecon -Rv /var/lib/libvirt/images/
 
 # Create qcow2 file for virt install.
-greenprint "Create qcow2 file for virt install"
+greenprint "Create qcow2 file for virt-install"
 LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
 
@@ -568,7 +568,7 @@ home = "/home/${SSH_USER}/"
 groups = ["wheel"]
 EOF
 
-# For BZ#2088459, RHEL 8.6 and 9.0 will not have new release which fix this issue
+# For https://bugzilla.redhat.com/show_bug.cgi?id=2088459, RHEL 8.6 and 9.0 will not have new release which fix this issue
 # RHEL 8.6 and 9.0 will not include sssd package in blueprint
 if [[ "${ADD_SSSD}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
@@ -601,8 +601,8 @@ sources = ["192.168.100.52"]
 EOF
 fi
 
-# Add directory and files customization, and services customization for testing
-if [[ "${DIRS_FILES_CUSTOMIZATION}" == "true" ]]; then
+# Add directories, files, and services customization for testing
+if [[ "${DIRS_FILES_SERVICES_CUSTOMIZATION}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.directories]]
 path = "/etc/custom_dir/dir1"
@@ -653,7 +653,7 @@ greenprint "Introduce new ostree commit into repo"
 sudo ostree pull-local --repo "${HTTPD_PATH}/repo" "${UPGRADE_PATH}/repo" "$OSTREE_REF"
 sudo ostree summary --update --repo "${HTTPD_PATH}/repo"
 
-# Ensure SELinux is happy with all objects files.
+# Ensure SELinux is happy with all object files.
 greenprint "👿 Running restorecon on web server root folder"
 sudo restorecon -Rv "${HTTPD_PATH}/repo" > /dev/null
 
@@ -698,7 +698,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-podman run --network=host --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e fedora_image_digest="${FEDORA_IMAGE_DIGEST}" -e firewall_feature="${FIREWALL_FEATURE}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
+podman run --network=host --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e fedora_image_digest="${FEDORA_IMAGE_DIGEST}" -e firewall_feature="${FIREWALL_FEATURE}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_SERVICES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up

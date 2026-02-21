@@ -9,7 +9,7 @@
     failed_counter: "0"
     firewall_feature: "false"
     ignition: "false"
-    test_custom_dirs_files: "false"
+    test_custom_dirs_files_services: "false"
 
   tasks:
     # current target host's IP address
@@ -1317,7 +1317,7 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: test_custom_dirs_files == "true"
+      when: test_custom_dirs_files_services == "true"
 
     - assert:
         that:
