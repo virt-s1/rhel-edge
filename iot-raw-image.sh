@@ -91,6 +91,11 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="fedora-rawhide"
         RAW_IMAGE="Fedora-IoT-raw-44-${COMPOSE_ID}.${ARCH}.raw.xz"
         ;;
+    "fedora-45")
+        OSTREE_REF="fedora/devel/${ARCH}/iot"
+        OS_VARIANT="fedora-rawhide"
+        RAW_IMAGE="Fedora-IoT-raw-45-${COMPOSE_ID}.${ARCH}.raw.xz"
+        ;;
     *)
         log_error "Unsupported distro: ${ID}-${VERSION_ID}"
         exit 1
