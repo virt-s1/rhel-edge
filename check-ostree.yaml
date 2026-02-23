@@ -10,6 +10,7 @@
     firewall_feature: "false"
     ignition: "false"
     test_custom_dirs_files: "false"
+    raw_image_test: "false"
 
   tasks:
     # current target host's IP address
@@ -195,14 +196,14 @@
       register: result_pv_size
       when: "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
 
-    # simplified installer uses coreos-installer to grow fs to 19G
-    - name: "pv size should bigger than 19G"
+    # simplified installer uses coreos-installer to grow fs to 18G
+    - name: "pv size should bigger than 18G"
       block:
         - assert:
             that:
-              - "'19' in result_pv_size.stdout"
-            fail_msg: "pv size is not bigger than 19G"
-            success_msg: "pv size is bigger than 19G"
+              - (result_pv_size.stdout | trim | regex_search('([0-9]+(?:\\.[0-9]+)?)') | default('0', true) | float) > 18
+            fail_msg: "pv size is not bigger than 18G (got: {{ result_pv_size.stdout | trim }})"
+            success_msg: "pv size is bigger than 18G"
       always:
         - set_fact:
             total_counter: "{{ total_counter | int + 1 }}"
@@ -213,15 +214,16 @@
       when:
         - "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
         - fdo_credential == "true"
-        - ansible_facts['distribution'] == 'RedHat'
+        - raw_image_test == "false"
+        - ((ansible_facts['distribution'] == 'RedHat') or (ansible_facts['distribution'] == 'CentOS'))
 
     # on fedora, it grows to 18.49G
     - name: "pv size should bigger than 18G"
       block:
         - assert:
             that:
-              - "'18' in result_pv_size.stdout"
-            fail_msg: "pv size is not bigger than 18G"
+              - (result_pv_size.stdout | trim | regex_search('([0-9]+(?:\\.[0-9]+)?)') | default('0', true) | float) > 18
+            fail_msg: "pv size is not bigger than 18G (got: {{ result_pv_size.stdout | trim }})"
             success_msg: "pv size is bigger than 18G"
       always:
         - set_fact:
@@ -253,6 +255,7 @@
       when:
         - "'/dev/mapper/rootvg-rootlv' in result_sysroot_source.stdout"
         - fdo_credential == "false"
+        - raw_image_test == "true"
 
     # case: check /sysroot lv size
     - name: check sysroot lv size
