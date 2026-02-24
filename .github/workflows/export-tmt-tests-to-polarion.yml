@@ -42,7 +42,6 @@ jobs:
   export-to-polarion:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' }}
-    continue-on-error: true
     runs-on: ubuntu-latest
     permissions:
       contents: write
