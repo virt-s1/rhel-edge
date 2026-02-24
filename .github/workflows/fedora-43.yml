@@ -44,7 +44,6 @@ jobs:
   iot-f43-x86:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
-    continue-on-error: true
     runs-on: ubuntu-latest
 
     steps:
@@ -94,7 +93,6 @@ jobs:
   # iot-rawhide-arm:
   #   needs: pr-info
   #   if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
-  #   continue-on-error: true
   #   runs-on: ubuntu-latest
 
   #   steps:
