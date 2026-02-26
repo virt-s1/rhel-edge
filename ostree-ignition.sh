@@ -446,6 +446,11 @@ installation_device = "/dev/vdb"
 
 [customizations.ignition.embedded]
 config = "$IGNITION_B64"
+
+[[customizations.filesystem]]
+mountpoint = "/boot"
+minsize = 1073741824
+
 EOF
 
 greenprint "📄 installer blueprint"
@@ -715,6 +720,11 @@ installation_device = "/dev/vda"
 
 [customizations.ignition.firstboot]
 url = "${IGNITION_SERVER_URL}/config.ign"
+
+[[customizations.filesystem]]
+mountpoint = "/boot"
+minsize = 1073741824
+
 EOF
 
 greenprint "📄 installer blueprint"
@@ -846,6 +856,11 @@ groups = []
 
 [customizations.ignition.firstboot]
 url = "${IGNITION_SERVER_URL}/config.ign"
+
+[[customizations.filesystem]]
+mountpoint = "/boot"
+minsize = 1073741824
+
 EOF
 
 greenprint "📄 raw-image blueprint"
