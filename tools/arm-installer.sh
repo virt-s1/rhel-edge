@@ -157,7 +157,7 @@ PROD_REPO_URL_2="${PROD_REPO_URL}/"
 STAGE_REPO_ADDRESS=192.168.200.1
 STAGE_REPO_URL="http://${STAGE_REPO_ADDRESS}:8080/repo/"
 ANSIBLE_USER="installeruser"
-DIRS_FILES_CUSTOMIZATION="true"
+DIRS_FILES_SERVICES_CUSTOMIZATION="true"
 # Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
 # It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
 SYSROOT_RO="false"
@@ -391,7 +391,7 @@ EOF
 fi
 
 # Add directory and files customization, and services customization for testing
-if [[ "${DIRS_FILES_CUSTOMIZATION}" == "true" ]]; then
+if [[ "${DIRS_FILES_SERVICES_CUSTOMIZATION}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.directories]]
 path = "/etc/custom_dir/dir1"
@@ -587,7 +587,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo podman run --annotation run.oci.keep_original_groups=1 --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
+sudo podman run --annotation run.oci.keep_original_groups=1 --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${OSTREE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files_services="${DIRS_FILES_SERVICES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
 check_result
 
 ##################################################
@@ -623,7 +623,7 @@ name = "${FEDORA_LOCAL_NAME}"
 EOF
 fi
 
-if [[ "${DIRS_FILES_CUSTOMIZATION}" == "true" ]]; then
+if [[ "${DIRS_FILES_SERVICES_CUSTOMIZATION}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.directories]]
 path = "/etc/custom_dir/dir1"
@@ -733,7 +733,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-sudo podman run --annotation run.oci.keep_original_groups=1 --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
+sudo podman run --annotation run.oci.keep_original_groups=1 --network edge -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files_services="${DIRS_FILES_SERVICES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
