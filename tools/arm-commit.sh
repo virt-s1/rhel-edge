@@ -73,7 +73,7 @@ EMBEDDED_CONTAINER="true"
 # Prepare cloud-init data
 CLOUD_INIT_DIR=$(mktemp -d)
 cp tools/meta-data "$CLOUD_INIT_DIR"
-DIRS_FILES_CUSTOMIZATION="true"
+DIRS_FILES_SERVICES_CUSTOMIZATION="true"
 # Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
 # It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
 SYSROOT_RO="false"
@@ -320,7 +320,7 @@ EOF
 fi
 
 # Add directory and files customization, and services customization for testing
-if [[ "${DIRS_FILES_CUSTOMIZATION}" == "true" ]]; then
+if [[ "${DIRS_FILES_SERVICES_CUSTOMIZATION}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.directories]]
 path = "/etc/custom_dir/dir1"
@@ -547,7 +547,7 @@ sources = ["192.168.100.52"]
 EOF
 fi
 
-if [[ "${DIRS_FILES_CUSTOMIZATION}" == "true" ]]; then
+if [[ "${DIRS_FILES_SERVICES_CUSTOMIZATION}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.directories]]
 path = "/etc/custom_dir/dir1"
@@ -649,7 +649,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" -e firewall_feature="${FIREWALL_FEATURE}" check-ostree.yaml || RESULTS=0
+podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:aarch64 ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="$EMBEDDED_CONTAINER" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files_services="${DIRS_FILES_SERVICES_CUSTOMIZATION}" -e firewall_feature="${FIREWALL_FEATURE}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
