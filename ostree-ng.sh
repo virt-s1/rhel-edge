@@ -76,7 +76,7 @@ case "${ID}-${VERSION_ID}" in
         CONTAINER_PUSHING_FEAT="true"
         EMBEDDED_CONTAINER="true"
         HTTP_BOOT_FEAT="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ;;
     "rhel-9.4")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -86,7 +86,7 @@ case "${ID}-${VERSION_ID}" in
         EMBEDDED_CONTAINER="true"
         HTTP_BOOT_FEAT="true"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ;;
     "rhel-9.5")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -96,7 +96,7 @@ case "${ID}-${VERSION_ID}" in
         EMBEDDED_CONTAINER="true"
         HTTP_BOOT_FEAT="true"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ANSIBLE_OS_NAME="rhel-edge"
         ;;
     "rhel-9.6")
@@ -107,7 +107,7 @@ case "${ID}-${VERSION_ID}" in
         EMBEDDED_CONTAINER="true"
         HTTP_BOOT_FEAT="true"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ANSIBLE_OS_NAME="rhel-edge"
         ;;
     "centos-9")
@@ -118,7 +118,7 @@ case "${ID}-${VERSION_ID}" in
         EMBEDDED_CONTAINER="true"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ANSIBLE_OS_NAME="rhel-edge"
         ;;
     "fedora-41")
@@ -128,7 +128,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="fedora-unknown"
         ANSIBLE_OS_NAME="fedora-iot"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ;;
     "fedora-42")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
@@ -137,7 +137,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="fedora-unknown"
         ANSIBLE_OS_NAME="fedora-iot"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ;;
     "fedora-43")
         CONTAINER_IMAGE_TYPE=fedora-iot-container
@@ -146,7 +146,7 @@ case "${ID}-${VERSION_ID}" in
         OS_VARIANT="fedora-rawhide"
         ANSIBLE_OS_NAME="fedora-iot"
         SYSROOT_RO="true"
-        DIRS_FILES_CUSTOMIZATION="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -497,7 +497,7 @@ EOF
 EOF
     # Test IoT/Edge OS
     greenprint "📼 Run Edge tests on HTTPBOOT VM"
-    podman run --network=host --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="rhel" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="rhel:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e fedora_image_digest="${FEDORA_IMAGE_DIGEST}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
+    podman run --network=host --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="rhel" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="rhel:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e fedora_image_digest="${FEDORA_IMAGE_DIGEST}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files_services="${DIRS_FILES_SERVICES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
     check_result
 
     greenprint "🧹 Clean up HTTPBOOT VM"
@@ -559,7 +559,7 @@ EOF
 fi
 
 # Add directory and files customization, and services customization for testing
-if [[ "${DIRS_FILES_CUSTOMIZATION}" == "true" ]]; then
+if [[ "${DIRS_FILES_SERVICES_CUSTOMIZATION}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.directories]]
 path = "/etc/custom_dir/dir1"
@@ -800,7 +800,7 @@ EOF
 
 # Test IoT/Edge OS
 greenprint "📼 Run Edge tests on BIOS VM"
-podman run --network=host --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e fedora_image_digest="${FEDORA_IMAGE_DIGEST}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
+podman run --network=host --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e fedora_image_digest="${FEDORA_IMAGE_DIGEST}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files_services="${DIRS_FILES_SERVICES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Clean BIOS VM
@@ -901,7 +901,7 @@ EOF
 fi
 
 # Add directory and files customization, and services customization for testing
-if [[ "${DIRS_FILES_CUSTOMIZATION}" == "true" ]]; then
+if [[ "${DIRS_FILES_SERVICES_CUSTOMIZATION}" == "true" ]]; then
     tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.directories]]
 path = "/etc/custom_dir/dir1"
@@ -1019,7 +1019,7 @@ ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/
 EOF
 
 # Test IoT/Edge OS
-podman run --network=host --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e fedora_image_digest="${FEDORA_IMAGE_DIGEST}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
+podman run --network=host --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e fedora_image_digest="${FEDORA_IMAGE_DIGEST}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files_services="${DIRS_FILES_SERVICES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
 check_result
 
 # Final success clean up
