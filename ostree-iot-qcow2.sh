@@ -433,7 +433,7 @@ podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "$
     -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" \
     -e ostree_commit="${INSTALL_HASH}" \
     -e sysroot_ro="$SYSROOT_RO" \
-    -e test_custom_dirs_files="$CUSTOM_DIRS_FILES" \
+    -e test_custom_dirs_files_services="$CUSTOM_DIRS_FILES" \
     check-ostree.yaml || RESULTS=0 
 check_result
 
@@ -594,7 +594,7 @@ podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "$
     -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" \
     -e ostree_commit="${UPGRADE_HASH}" \
     -e sysroot_ro="$SYSROOT_RO" \
-    -e test_custom_dirs_files="$CUSTOM_DIRS_FILES" \
+    -e test_custom_dirs_files_services="$CUSTOM_DIRS_FILES" \
     check-ostree.yaml || RESULTS=0 
 check_result
 
