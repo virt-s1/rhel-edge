@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euox pipefail
 
+# --------------------------------------------------------------------------
+# NOTE: This script runs on a host VM (provisioned by Testing Farm)
+# and creates nested guest VMs where the image is installed and validated.
+# --------------------------------------------------------------------------
+
 # Provision the software under test.
 ./setup.sh
 
@@ -433,6 +438,7 @@ EOF
     LIBVIRT_HTTP_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-httpboot.qcow2
     sudo qemu-img create -f qcow2 "${LIBVIRT_HTTP_IMAGE_PATH}" 20G
 
+    # Install ostree image via HTTP boot on UEFI guest VM.
     greenprint "📋 Install edge vm via http boot"
     sudo virt-install --name="${IMAGE_KEY}-httpboot"\
                       --disk path="${LIBVIRT_HTTP_IMAGE_PATH}",format=qcow2 \
@@ -452,7 +458,7 @@ EOF
     greenprint "💻 Start HTTP BOOT VM"
     sudo virsh start "${IMAGE_KEY}-httpboot"
 
-    # Check for ssh ready to go.
+    # Verify install: UEFI guest VM is reachable via SSH after HTTP boot installation.
     greenprint "🛃 Checking for SSH is ready to go"
     for _ in $(seq 0 30); do
         RESULTS="$(wait_for_ssh_up $HTTP_GUEST_ADDRESS)"
@@ -467,6 +473,7 @@ EOF
     sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${HTTP_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
     # Sleep 10 seconds here to make sure vm restarted already
     sleep 10
+    # Verify reboot: UEFI guest VM is reachable via SSH after reboot (/sysroot RO activation).
     greenprint "🛃 Checking for SSH is ready to go"
     for _ in $(seq 0 30); do
         RESULTS="$(wait_for_ssh_up $HTTP_GUEST_ADDRESS)"
@@ -495,7 +502,8 @@ EOF
     ansible_private_key_file=${SSH_KEY}
     ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 EOF
-    # Test IoT/Edge OS
+    # Run check-ostree.yaml Ansible playbook from host against UEFI guest VM.
+    # Conditional checks: embedded_container, sysroot_ro, test_custom_dirs_files.
     greenprint "📼 Run Edge tests on HTTPBOOT VM"
     podman run --network=host --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="rhel" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="rhel:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e fedora_image_digest="${FEDORA_IMAGE_DIGEST}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
     check_result
@@ -527,7 +535,7 @@ sudo ostree --repo="$PROD_REPO" remote add --no-gpg-verify edge-stage-ocp4 "$STA
 ##
 ###########################################################
 
-# Write a blueprint for ostree image.
+# Write a blueprint for container image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "container"
 description = "A base rhel-edge container image"
@@ -733,7 +741,7 @@ LIBVIRT_UEFI_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-uefi.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_BIOS_IMAGE_PATH}" 20G
 sudo qemu-img create -f qcow2 "${LIBVIRT_UEFI_IMAGE_PATH}" 20G
 
-# Install ostree image via ISO on BIOS vm
+# Install ostree image via ISO on BIOS guest VM.
 greenprint "💿 Install ostree image via installer(ISO) on BIOS vm"
 sudo virt-install  --name="${IMAGE_KEY}-bios" \
                    --disk path="${LIBVIRT_BIOS_IMAGE_PATH}",format=qcow2 \
@@ -752,7 +760,7 @@ sudo virt-install  --name="${IMAGE_KEY}-bios" \
 greenprint "Start VM"
 sudo virsh start "${IMAGE_KEY}-bios"
 
-# Check for ssh ready to go.
+# Verify install: BIOS guest VM is reachable via SSH after installation.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $BIOS_GUEST_ADDRESS)"
@@ -767,7 +775,7 @@ done
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${BIOS_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
-# Check for ssh ready to go.
+# Verify reboot: BIOS guest VM is reachable via SSH after reboot (/sysroot RO activation).
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $BIOS_GUEST_ADDRESS)"
@@ -798,7 +806,8 @@ ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 EOF
 
-# Test IoT/Edge OS
+# Run check-ostree.yaml Ansible playbook from host against BIOS guest VM.
+# Conditional checks: embedded_container, sysroot_ro, test_custom_dirs_files.
 greenprint "📼 Run Edge tests on BIOS VM"
 podman run --network=host --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e fedora_image_digest="${FEDORA_IMAGE_DIGEST}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
 check_result
@@ -810,7 +819,7 @@ fi
 sudo virsh undefine "${IMAGE_KEY}-bios"
 sudo sudo virsh vol-delete --pool images "${IMAGE_KEY}-bios.qcow2"
 
-# Install ostree image via ISO on UEFI vm
+# Install ostree image via ISO on UEFI guest VM.
 greenprint "💿 Install ostree image via installer(ISO) on UEFI vm"
 sudo virt-install  --name="${IMAGE_KEY}-uefi" \
                    --disk path="${LIBVIRT_UEFI_IMAGE_PATH}",format=qcow2 \
@@ -830,7 +839,7 @@ sudo virt-install  --name="${IMAGE_KEY}-uefi" \
 greenprint "Start VM"
 sudo virsh start "${IMAGE_KEY}-uefi"
 
-# Check for ssh ready to go.
+# Verify install: UEFI guest VM is reachable via SSH after installation.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
@@ -845,7 +854,7 @@ done
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${UEFI_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
-# Check for ssh ready to go.
+# Verify reboot: UEFI guest VM is reachable via SSH after reboot (/sysroot RO activation).
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
@@ -865,7 +874,7 @@ check_result
 #
 #################################################
 
-# Write a blueprint for ostree image.
+# Write a blueprint for upgrade container image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "upgrade"
 description = "An upgrade ostree image"
@@ -938,7 +947,7 @@ greenprint "📋 Preparing blueprint"
 sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve upgrade
 
-# Build installer image.
+# Build upgrade container image.
 # Test --url arg following by URL without tailling slash for bz#1942029
 build_image upgrade "${CONTAINER_IMAGE_TYPE}" "$PROD_REPO_URL"
 
@@ -982,7 +991,7 @@ greenprint "Clean up osbuild-composer again"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete upgrade > /dev/null
 
-# Upgrade image/commit.
+# Run rpm-ostree upgrade on UEFI guest VM and reboot.
 # Test user admin added by edge-container bp
 greenprint "Upgrade ostree image/commit"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${UEFI_GUEST_ADDRESS}" 'sudo rpm-ostree upgrade'
@@ -991,7 +1000,7 @@ sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${UEFI_GUEST_ADDRESS}" 'nohu
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
 
-# Check for ssh ready to go.
+# Verify upgrade: UEFI guest VM is reachable via SSH after reboot.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
@@ -1004,6 +1013,12 @@ done
 
 # Check ostree upgrade result
 check_result
+
+##################################################
+##
+## ostree image/commit validation
+##
+##################################################
 
 # Add instance IP address into /etc/ansible/hosts
 # Test user installeruser added by edge-installer bp
@@ -1018,7 +1033,8 @@ ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 EOF
 
-# Test IoT/Edge OS
+# Run check-ostree.yaml Ansible playbook from host against UEFI guest VM.
+# Conditional checks: embedded_container, sysroot_ro, test_custom_dirs_files.
 podman run --network=host --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${ANSIBLE_OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${ANSIBLE_OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e fedora_image_digest="${FEDORA_IMAGE_DIGEST}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
 check_result
 

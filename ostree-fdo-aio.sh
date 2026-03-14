@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euox pipefail
 
+# --------------------------------------------------------------------------
+# NOTE: This script runs on a host VM (provisioned by Testing Farm)
+# and creates a nested guest VM where the image is installed and validated.
+# --------------------------------------------------------------------------
+
 # Provision the software under test.
 ./setup.sh
 
@@ -351,7 +356,7 @@ done;
 ##
 ##########################################################
 
-# Write a blueprint for ostree image.
+# Write a blueprint for container image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "container"
 description = "A base rhel-edge container image"
@@ -423,7 +428,7 @@ sudo composer-cli blueprints delete container > /dev/null
 ##
 ######################################################################
 
-# Write a blueprint for installer image.
+# Write a blueprint for simplified installer image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "installer"
 description = "A rhel-edge simplified-installer image"
@@ -516,6 +521,7 @@ if [[ "${VERSION_ID}" == "8" ]]; then
     sudo cp /tmp/OVMF_VARS.fd /usr/share/edk2/ovmf/
 fi
 
+# Install ostree image via HTTP boot on UEFI guest VM.
 greenprint "📋 Install edge vm via http boot"
 sudo virt-install --name="${IMAGE_KEY}-httpboot"\
                   --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
@@ -536,7 +542,7 @@ sudo virt-install --name="${IMAGE_KEY}-httpboot"\
 greenprint "💻 Start HTTP BOOT VM"
 sudo virsh start "${IMAGE_KEY}-httpboot"
 
-# Check for ssh ready to go.
+# Verify install: UEFI guest VM is reachable via SSH after HTTP boot installation.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $HTTP_GUEST_ADDRESS)"
@@ -551,6 +557,7 @@ done
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${HTTP_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
+# Verify reboot: UEFI guest VM is reachable via SSH after reboot (/sysroot RO activation).
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $HTTP_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
@@ -582,7 +589,8 @@ ansible_become_method=sudo
 ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
-# Test IoT/Edge OS
+# Run check-ostree.yaml Ansible playbook from host against UEFI guest VM.
+# Conditional checks: fdo_credential, sysroot_ro.
 podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 
 # Check test result
@@ -591,8 +599,8 @@ check_result
 # Check selinux avc log
 sudo ausearch -m avc -m user_avc -m selinux_err -i || true
 
-# Clean up BIOS VM
-greenprint "🧹 Clean up BIOS VM"
+# Clean up UEFI VM
+greenprint "🧹 Clean up UEFI VM"
 if [[ $(sudo virsh domstate "${IMAGE_KEY}-httpboot") == "running" ]]; then
     sudo virsh destroy "${IMAGE_KEY}-httpboot"
 fi
@@ -605,6 +613,7 @@ sudo virsh vol-delete --pool images "${IMAGE_KEY}-httpboot.qcow2"
 ##
 ####################################################################
 
+# Write a blueprint for simplified installer image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "fdosshkey"
 description = "A rhel-edge simplified-installer image"
@@ -626,7 +635,7 @@ greenprint "📋 Preparing fdosshkey blueprint"
 sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve fdosshkey
 
-# Build fdosshkey image.
+# Build fdosshkey simplified installer image.
 build_image fdosshkey "${INSTALLER_TYPE}" "${PROD_REPO_URL}"
 
 # Download the image
@@ -650,6 +659,7 @@ if [[ "${VERSION_ID}" == "8" ]]; then
     sudo cp /tmp/OVMF_VARS.fd /usr/share/edk2/ovmf/
 fi
 
+# Install ostree image via simplified installer (ISO) on UEFI guest VM.
 greenprint "💿 Install ostree image via installer(ISO) on UEFI VM"
 sudo virt-install  --name="${IMAGE_KEY}-fdosshkey"\
                    --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
@@ -670,7 +680,7 @@ sudo virt-install  --name="${IMAGE_KEY}-fdosshkey"\
 greenprint "💻 Start UEFI VM"
 sudo virsh start "${IMAGE_KEY}-fdosshkey"
 
-# Check for ssh ready to go.
+# Verify install: UEFI guest VM is reachable via SSH after installation.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $PUB_KEY_GUEST_ADDRESS)"
@@ -685,6 +695,7 @@ done
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${PUB_KEY_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
+# Verify reboot: UEFI guest VM is reachable via SSH after reboot (/sysroot RO activation).
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $PUB_KEY_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
@@ -730,7 +741,8 @@ if [[ "$ANSIBLE_USER" == "fdouser" ]]; then
     sed -i '/^ansible_become_pass/d' "${TEMPDIR}"/inventory
 fi
 
-# Test IoT/Edge OS
+# Run check-ostree.yaml Ansible playbook from host against UEFI guest VM.
+# Conditional checks: fdo_credential, sysroot_ro.
 podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 
 # Check test result
@@ -747,7 +759,7 @@ sudo rm -rf "/var/lib/libvirt/images/${ISO_FILENAME}"
 ## Build rebased ostree repo
 ##
 ##################################################################
-# Write a blueprint for ostree image.
+# Write a blueprint for rebase container image.
 # NB: no ssh key in this blueprint for the admin user
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "rebase"
@@ -783,9 +795,9 @@ greenprint "📋 Preparing rebase blueprint"
 sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve rebase
 
-# Build upgrade image.
 OSTREE_REF="test/redhat/x/${ARCH}/edge"
-build_image rebase  "${CONTAINER_TYPE}" "$PROD_REPO_URL" "$PARENT_REF"
+# Build rebase container image.
+build_image rebase "${CONTAINER_TYPE}" "$PROD_REPO_URL" "$PARENT_REF"
 
 # Download the image
 greenprint "📥 Downloading the rebase image"
@@ -829,7 +841,7 @@ greenprint "🧽 Clean up rebase blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete rebase > /dev/null
 
-# Rebase to new REF.
+# Run rpm-ostree rebase on UEFI guest VM and reboot.
 greenprint "🗳 Rebase to new ostree REF"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${PUB_KEY_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S rpm-ostree rebase ${REF_PREFIX}:${OSTREE_REF}"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${PUB_KEY_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
@@ -837,6 +849,7 @@ sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${PUB_KEY_GUEST_ADDRESS} "ech
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
 
+# Verify rebase: UEFI guest VM is reachable via SSH after reboot.
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $PUB_KEY_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
@@ -868,7 +881,8 @@ if [[ "$ANSIBLE_USER" == "fdouser" ]]; then
     sed -i '/^ansible_become_pass/d' "${TEMPDIR}"/inventory
 fi
 
-# Test IoT/Edge OS
+# Run check-ostree.yaml Ansible playbook from host against UEFI guest VM.
+# Conditional checks: fdo_credential, sysroot_ro.
 podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${REBASE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 
 # Check test result
@@ -900,6 +914,7 @@ fi
 ##
 ##################################################################
 
+# Write a blueprint for simplified installer image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "fdorootcert"
 description = "A rhel-edge simplified-installer image"
@@ -922,7 +937,7 @@ greenprint "📋 Preparing installer blueprint"
 sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve fdorootcert
 
-# Build fdorootcert image.
+# Build fdorootcert simplified installer image.
 build_image fdorootcert "${INSTALLER_TYPE}" "${PROD_REPO_URL}"
 
 # Download the image
@@ -946,6 +961,7 @@ if [[ "${VERSION_ID}" == "8" ]]; then
     sudo cp /tmp/OVMF_VARS.fd /usr/share/edk2/ovmf/
 fi
 
+# Install ostree image via simplified installer (ISO) on UEFI guest VM.
 greenprint "💿 Install ostree image via installer(ISO) on UEFI VM"
 sudo virt-install  --name="${IMAGE_KEY}-fdorootcert"\
                    --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
@@ -966,7 +982,7 @@ sudo virt-install  --name="${IMAGE_KEY}-fdorootcert"\
 greenprint "💻 Start UEFI VM"
 sudo virsh start "${IMAGE_KEY}-fdorootcert"
 
-# Check for ssh ready to go.
+# Verify install: UEFI guest VM is reachable via SSH after installation.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $ROOT_CERT_GUEST_ADDRESS)"
@@ -981,6 +997,7 @@ done
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${ROOT_CERT_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
+# Verify reboot: UEFI guest VM is reachable via SSH after reboot (/sysroot RO activation).
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $ROOT_CERT_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
@@ -1010,7 +1027,8 @@ ansible_become_method=sudo
 ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
-# Test IoT/Edge OS
+# Run check-ostree.yaml Ansible playbook from host against UEFI guest VM.
+# Conditional checks: fdo_credential, sysroot_ro.
 podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 
 # Check test result
@@ -1025,7 +1043,7 @@ sudo ausearch -m avc -m user_avc -m selinux_err -i || true
 ##
 ##################################################################
 
-# Write a blueprint for ostree image.
+# Write a blueprint for upgrade container image.
 # NB: no ssh key in this blueprint for the admin user
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "upgrade"
@@ -1061,8 +1079,8 @@ greenprint "📋 Preparing upgrade blueprint"
 sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve upgrade
 
-# Build upgrade image.
-build_image upgrade  "${CONTAINER_TYPE}" "$PROD_REPO_URL"
+# Build upgrade container image.
+build_image upgrade "${CONTAINER_TYPE}" "$PROD_REPO_URL"
 
 # Download the image
 greenprint "📥 Downloading the upgrade image"
@@ -1108,6 +1126,7 @@ greenprint "🧽 Clean up upgrade blueprint and compose"
 sudo composer-cli compose delete "${COMPOSE_ID}" > /dev/null
 sudo composer-cli blueprints delete upgrade > /dev/null
 
+# Run rpm-ostree upgrade on UEFI guest VM and reboot.
 greenprint "🗳 Upgrade ostree image/commit"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${ROOT_CERT_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${ROOT_CERT_GUEST_ADDRESS} "echo ${EDGE_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
@@ -1115,7 +1134,7 @@ sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" admin@${ROOT_CERT_GUEST_ADDRESS} "e
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
 
-# Check for ssh ready to go.
+# Verify upgrade: UEFI guest VM is reachable via SSH after reboot.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $ROOT_CERT_GUEST_ADDRESS)"
@@ -1144,7 +1163,14 @@ ansible_become_method=sudo
 ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
-# Test IoT/Edge OS
+##################################################
+##
+## ostree image/commit validation
+##
+##################################################
+
+# Run check-ostree.yaml Ansible playbook from host against UEFI guest VM.
+# Conditional checks: fdo_credential, sysroot_ro.
 podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 
 # Check test result
