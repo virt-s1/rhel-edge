@@ -15,41 +15,99 @@ provision:
       - size: ">= 60 GB"
 
 /iot-x86-installer:
-  summary: Test fedora-iot x86_64 installer ISO image
+  summary: Test Fedora IoT installer ISO deployed via kickstart (x86_64)
+  description: |
+    Image type: Fedora IoT installer ISO
+    Deployment method: ISO boot with kickstart
+    Use case: Fedora IoT installation from an installer ISO using a kickstart
+    for automated unattended installation.
+
+    Test intent: Verify Fedora IoT installer ISO boot with a kickstart
+    on UEFI VM, and post-deployment system health.
   environment+:
     TEST_CASE: iot-installer
 
 /iot-x86-simplified-installer:
-  summary: Test fedora-iot x86_64 simplified installer ISO image
+  summary: Test Fedora IoT simplified installer ISO with FDO and Ignition (x86_64)
+  description: |
+    Image type: Fedora IoT simplified installer ISO
+    Deployment method: ISO boot
+    Use case: Automated zero-touch provisioning with FDO and Ignition.
+
+    Test intent: Verify Fedora IoT simplified installer ISO boot on UEFI VM
+    with FDO and Ignition, and post-deployment system health.
   environment+:
     TEST_CASE: iot-simplified-installer
 
 /iot-x86-raw-image:
-  summary: Test fedora-iot x86_64 raw image
+  summary: Test Fedora IoT raw disk image deployed via VM import (x86_64)
+  description: |
+    Image type: Fedora IoT raw disk image (converted to qcow2)
+    Deployment method: VM disk image import
+    Use case: Quick VM-based deployment — boot directly from a pre-built disk image with Ignition.
+
+    Test intent: Verify Fedora IoT VM disk image import with Ignition
+    on UEFI VM, and post-deployment system health.
   environment+:
     TEST_CASE: iot-raw-image
 
 /iot-x86-bootc:
-  summary: Test fedora-iot x86_64 bootc image
+  summary: Test Fedora IoT bootc image built via bootc-image-builder (x86_64)
+  description: |
+    Image type: Fedora IoT bootc OCI image (converted to qcow2)
+    Deployment method: VM disk image import
+    Use case: Convert a bootc OCI image to a bootable disk image using bootc-image-builder.
+
+    Test intent: Verify Fedora IoT bootc OCI image conversion to qcow2 via
+    bootc-image-builder, UEFI VM boot, and post-deployment system health.
   environment+:
     TEST_CASE: iot-bootc
 
 /iot-aarch64-installer:
-  summary: Test fedora-iot aarch64 installer ISO image
+  summary: Test Fedora IoT installer ISO deployed via kickstart (aarch64)
+  description: |
+    Image type: Fedora IoT installer ISO
+    Deployment method: ISO boot with kickstart
+    Use case: Fedora IoT installation from an installer ISO using a kickstart
+    for automated unattended installation.
+
+    Test intent: Verify Fedora IoT installer ISO boot with a kickstart
+    on UEFI VM, and post-deployment system health.
   environment+:
     TEST_CASE: iot-installer
 
 /iot-aarch64-simplified-installer:
-  summary: Test fedora-iot aarch64 simplified installer ISO image
+  summary: Test Fedora IoT simplified installer ISO with FDO and Ignition (aarch64)
+  description: |
+    Image type: Fedora IoT simplified installer ISO
+    Deployment method: ISO boot
+    Use case: Automated zero-touch provisioning with FDO and Ignition.
+
+    Test intent: Verify Fedora IoT simplified installer ISO boot on UEFI VM
+    with FDO and Ignition, and post-deployment system health.
   environment+:
     TEST_CASE: iot-simplified-installer
 
 /iot-aarch64-raw-image:
-  summary: Test fedora-iot aarch64 raw image
+  summary: Test Fedora IoT raw disk image deployed via VM import (aarch64)
+  description: |
+    Image type: Fedora IoT raw disk image (converted to qcow2)
+    Deployment method: VM disk image import
+    Use case: Quick VM-based deployment — boot directly from a pre-built disk image with Ignition.
+
+    Test intent: Verify Fedora IoT VM disk image import with Ignition
+    on UEFI VM, and post-deployment system health.
   environment+:
     TEST_CASE: iot-raw-image
 
 /iot-aarch64-bootc:
-  summary: Test fedora-iot aarch64 bootc image
+  summary: Test Fedora IoT bootc image built via bootc-image-builder (aarch64)
+  description: |
+    Image type: Fedora IoT bootc OCI image (converted to qcow2)
+    Deployment method: VM disk image import
+    Use case: Convert a bootc OCI image to a bootable disk image using bootc-image-builder.
+
+    Test intent: Verify Fedora IoT bootc OCI image conversion to qcow2 via
+    bootc-image-builder, UEFI VM boot, and post-deployment system health.
   environment+:
     TEST_CASE: iot-bootc
