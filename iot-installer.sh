@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euox pipefail
 
+# --------------------------------------------------------------------------
+# NOTE: This script runs on a host VM (provisioned by Testing Farm)
+# and creates a nested guest VM where the image is installed and validated.
+# --------------------------------------------------------------------------
+
 # Color output definitions
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -87,6 +92,7 @@ case "${ID}-${VERSION_ID}" in
         ;;
 esac
 
+# Modify kickstart in ISO.
 modksiso() {
     local isomount kspath iso newiso ksfiles ksfile ksbase newksfile oldks
     isomount=$(mktemp -d)
@@ -186,13 +192,14 @@ wait_for_ssh() {
 
 # Main execution
 
-log_info "Starting fedora IoT simplified installer test"
+log_info "Starting fedora IoT installer test"
 log_info "Test UUID: ${TEST_UUID}"
 log_info "Temporary directory: ${TEMPDIR}"
 
 download_image
 modksiso "${IMAGE_FILENAME}" "/var/lib/libvirt/images/${IMAGE_FILENAME}"
 
+# Install IoT image via ISO on UEFI guest VM.
 virt-install --name="iot-${TEST_UUID}" \
     --disk path="/var/lib/libvirt/images/iot-${TEST_UUID}.qcow2",size=20,format=qcow2 \
     --ram 4096 \
@@ -209,7 +216,7 @@ virt-install --name="iot-${TEST_UUID}" \
 log_info "Starting VM..."
 sudo virsh start "iot-${TEST_UUID}"
 
-# Wait for SSH
+# Verify install: UEFI guest VM is reachable via SSH after installation.
 if ! wait_for_ssh "${GUEST_IP}"; then
     exit 1
 fi
@@ -230,7 +237,8 @@ ansible_become_method=sudo
 ansible_become_pass=foobar
 EOF
 
-# Run Ansible playbook
+# Run check-ostree-iot.yaml Ansible playbook from host against UEFI guest VM.
+# Conditional checks: fdo_credential.
 log_info "Running Ansible playbook..."
 if ! ansible-playbook -v -i "${TEMPDIR}/inventory" -e fdo_credential="false" -e ostree_ref="fedora-iot:${OSTREE_REF}" check-ostree-iot.yaml; then
     log_error "Ansible playbook check failed"

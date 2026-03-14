@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euox pipefail
 
+# --------------------------------------------------------------------------
+# NOTE: This script runs on a host VM (provisioned by Testing Farm)
+# and creates a nested guest VM where the image is installed and validated.
+# --------------------------------------------------------------------------
+
 # Color output definitions
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -89,7 +94,7 @@ case "${ID}-${VERSION_ID}" in
         ;;
 esac
 
-# Setup FDO server
+# Set up FDO server.
 setup_fdo_server() {
     log_info "Setting up FDO server..."
     
@@ -156,7 +161,7 @@ setup_fdo_server() {
     log_success "FDO server is running"
 }
 
-# Setup Ignition configuration
+# Set up Ignition configuration.
 setup_ignition() {
     log_info "Setting up Ignition configuration..."
     
@@ -257,6 +262,7 @@ setup_ignition
 log_info "Starting VM installation..."
 sudo cp "${IMAGE_FILENAME}" /var/lib/libvirt/images/"${IMAGE_FILENAME}"
 
+# Install IoT image via ISO with FDO and Ignition on UEFI guest VM.
 sudo virt-install \
     --name "iot-${TEST_UUID}" \
     --memory 4096 \
@@ -276,7 +282,7 @@ sudo virt-install \
 log_info "Starting VM..."
 sudo virsh start "iot-${TEST_UUID}"
 
-# Wait for SSH
+# Verify install: UEFI guest VM is reachable via SSH after installation.
 if ! wait_for_ssh "${GUEST_IP}"; then
     exit 1
 fi
@@ -297,7 +303,8 @@ ansible_become_method=sudo
 ansible_become_pass=foobar
 EOF
 
-# Run Ansible playbook
+# Run check-ostree-iot.yaml Ansible playbook from host against UEFI guest VM.
+# Conditional checks: fdo_credential.
 log_info "Running Ansible playbook..."
 if ! ansible-playbook -v -i "${TEMPDIR}/inventory" -e fdo_credential="true" -e ostree_ref="fedora-iot:${OSTREE_REF}" check-ostree-iot.yaml; then
     log_error "Ansible playbook check failed"

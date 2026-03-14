@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euox pipefail
 
+# --------------------------------------------------------------------------
+# NOTE: This script runs on a host VM (provisioned by Testing Farm)
+# and creates a nested guest VM where the image is installed and validated.
+# --------------------------------------------------------------------------
+
 # Color output definitions
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -176,6 +181,7 @@ EOF
 # Prepare output folder
 mkdir -pv output
 
+# Convert OCI image to qcow2 using bootc-image-builder.
 log_info "Generating disk image using bib..."
 sudo podman run \
      --rm \
@@ -200,6 +206,7 @@ sudo mv ./output/qcow2/disk.qcow2 /var/lib/libvirt/images/"${TEST_UUID}"-disk.qc
 LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${TEST_UUID}-disk.qcow2
 sudo restorecon -Rv /var/lib/libvirt/images/
 
+# Import disk image on UEFI guest VM.
 sudo virt-install  --name="iot-bootc-image-${TEST_UUID}"\
                    --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
                    --ram 4096 \
@@ -217,7 +224,7 @@ sudo virt-install  --name="iot-bootc-image-${TEST_UUID}"\
 log_info "Starting VM..."
 sudo virsh start "iot-bootc-image-${TEST_UUID}"
 
-# Wait for SSH
+# Verify install: UEFI guest VM is reachable via SSH after installation.
 if ! wait_for_ssh "${GUEST_IP}"; then
     exit 1
 fi
@@ -238,7 +245,8 @@ ansible_become_method=sudo
 ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
-# Run Ansible playbook
+# Run check-ostree-iot.yaml Ansible playbook from host against UEFI guest VM.
+# Conditional checks: bootc_system.
 log_info "Running Ansible playbook..."
 if ! sudo ansible-playbook -v -i "${TEMPDIR}/inventory" -e bootc_system="${BOOTC_SYSTEM}" check-ostree-iot.yaml; then
     log_error "Ansible playbook check failed"
