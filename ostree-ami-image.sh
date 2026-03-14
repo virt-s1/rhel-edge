@@ -1,6 +1,12 @@
 #!/bin/bash
 set -euox pipefail
 
+# --------------------------------------------------------------------------
+# NOTE: This script runs on a host VM (provisioned by Testing Farm)
+# and creates an EC2 instance on AWS where the image is deployed
+# and validated.
+# --------------------------------------------------------------------------
+
 # Provision the software under test.
 ./setup.sh
 
@@ -363,7 +369,7 @@ sudo podman network inspect edge >/dev/null 2>&1 || sudo podman network create -
 ##
 ##########################################################
 
-# Write a blueprint for ostree image.
+# Write a blueprint for container image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "container"
 description = "A base rhel-edge container image"
@@ -552,7 +558,7 @@ sudo rm -rf "${IGNITION_CONFIG_PATH}" "${IGNITION_CONFIG_SAMPLE_PATH}"
 ##
 ############################################################
 
-# Write a blueprint for raw ami.
+# Write a blueprint for ami.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "ami"
 description = "A rhel-edge ami"
@@ -797,7 +803,7 @@ PUBLIC_GUEST_ADDRESS=$(
 )
 rm -f "$MARKET_OPTIONS" "$INSTANCE_OUT_INFO"
 
-# Check for ssh ready to go.
+# Verify deployment: EC2 instance is reachable via SSH after deployment.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS=$(wait_for_ssh_up "${PUBLIC_GUEST_ADDRESS}")
@@ -829,7 +835,8 @@ ansible_become_method=sudo
 ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
-# Test IoT/Edge OS
+# Run check-ostree.yaml Ansible playbook from host against EC2 instance.
+# Conditional checks: ignition, sysroot_ro.
 podman run \
     --annotation run.oci.keep_original_groups=1 \
     -v "$(pwd)":/work:z \
@@ -853,7 +860,7 @@ check_result
 ##
 ##################################################################
 
-# Write a blueprint for ostree image.
+# Write a blueprint for upgrade container image.
 # NB: no ssh key in the upgrade commit because there is no home dir
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "upgrade"
@@ -898,8 +905,8 @@ greenprint "📋 Preparing upgrade blueprint"
 sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve upgrade
 
-# Build upgrade image.
-build_image upgrade  "${CONTAINER_TYPE}" "$PROD_REPO_URL"
+# Build upgrade container image.
+build_image upgrade "${CONTAINER_TYPE}" "$PROD_REPO_URL"
 
 # Download the image
 greenprint "📥 Downloading the upgrade image"
@@ -969,7 +976,7 @@ sudo ssh \
     admin@"${PUBLIC_GUEST_ADDRESS}" \
     "echo ${EDGE_USER_PASSWORD} | sudo -S ostree remote add --no-gpg-verify rhel-edge ${OBJECT_URL}/repo"
 
-# Upgrade image/commit.
+# Run rpm-ostree upgrade on EC2 instance and reboot.
 greenprint "🗳 Upgrade ostree image/commit"
 sudo ssh \
     "${SSH_OPTIONS[@]}" \
@@ -985,7 +992,7 @@ sudo ssh \
 # Sleep 10 seconds here to make sure EC2 instance restarted already
 sleep 10
 
-# Check for ssh ready to go.
+# Verify upgrade: EC2 instance is reachable via SSH after reboot.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS=$(wait_for_ssh_up "${PUBLIC_GUEST_ADDRESS}")
@@ -1014,7 +1021,8 @@ ansible_become_method=sudo
 ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
-# Test IoT/Edge OS
+# Run check-ostree.yaml Ansible playbook from host against EC2 instance.
+# Conditional checks: ignition, sysroot_ro.
 podman run \
     --annotation run.oci.keep_original_groups=1 \
     -v "$(pwd)":/work:z \

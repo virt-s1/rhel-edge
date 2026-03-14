@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euox pipefail
 
+# --------------------------------------------------------------------------
+# NOTE: This script runs on a host VM (provisioned by Testing Farm)
+# and creates nested guest VMs where the image is installed and validated.
+# --------------------------------------------------------------------------
+
 # Provision the software under test.
 ./setup.sh
 
@@ -245,7 +250,7 @@ sudo ostree --repo="$PROD_REPO" remote add --no-gpg-verify edge-stage "$STAGE_RE
 ##
 ###########################################################
 
-# Write a blueprint for ostree image.
+# Write a blueprint for container image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "container"
 description = "A base rhel-edge container image"
@@ -351,7 +356,7 @@ greenprint "💾 Create bios vm qcow2 files for virt install"
 LIBVIRT_BIOS_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-bios.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_BIOS_IMAGE_PATH}" 20G
 
-# Install ostree image via anaconda on BIOS vm
+# Install ostree image via anaconda on BIOS guest VM.
 greenprint "Install RHEL8/CS8 Edge via anaconda on BIOS VM"
 sudo virt-install  --initrd-inject="${KS_FILE}" \
                    --extra-args="inst.ks=file:/ks.cfg console=ttyS0,115200" \
@@ -372,7 +377,7 @@ sudo virt-install  --initrd-inject="${KS_FILE}" \
 greenprint "Start VM"
 sudo virsh start "${IMAGE_KEY}-bios"
 
-# Check for ssh ready to go.
+# Verify install: BIOS guest VM is reachable via SSH after installation.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $BIOS_GUEST_ADDRESS)"
@@ -391,7 +396,7 @@ greenprint "💾 Create uefi vm qcow2 files for virt install"
 LIBVIRT_UEFI_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-uefi.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_UEFI_IMAGE_PATH}" 20G
 
-# Install ostree image via anaconda on UEFI vm
+# Install ostree image via anaconda on UEFI guest VM.
 greenprint "💿 Install RHEL8/CS8 Edge via anaconda on UEFI vm"
 sudo virt-install  --initrd-inject="${KS_FILE}" \
                    --extra-args="inst.ks=file:/ks.cfg console=ttyS0,115200" \
@@ -413,7 +418,7 @@ sudo virt-install  --initrd-inject="${KS_FILE}" \
 greenprint "Start VM"
 sudo virsh start "${IMAGE_KEY}-uefi"
 
-# Check for ssh ready to go.
+# Verify install: UEFI guest VM is reachable via SSH after installation.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
@@ -433,7 +438,7 @@ check_result
 #
 #################################################
 
-# Write a blueprint for ostree image.
+# Write a blueprint for rebase container image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "upgrade"
 description = "A base rhel-edge container image"
@@ -468,7 +473,7 @@ greenprint "📋 Preparing blueprint"
 sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve upgrade
 
-# Build installer image.
+# Build rebase container image.
 build_image upgrade "${CONTAINER_IMAGE_TYPE}" "$OSTREE_REF" "$PROD_REPO_URL" "$PARENT_REF"
 
 # Download the image
@@ -512,7 +517,7 @@ sudo ostree --repo="$PROD_REPO" pull --mirror edge-stage "$OSTREE_REF"
 greenprint "🕹 Get ostree upgrade commit value"
 UPGRADE_HASH=$(curl "${PROD_REPO_URL}refs/heads/${OSTREE_REF}")
 
-# Upgrade image/commit.
+# Run rpm-ostree rebase on BIOS guest VM and reboot.
 greenprint "Rebase ostree commit on BIOS vm"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${BIOS_GUEST_ADDRESS}" "sudo rpm-ostree rebase rhel-edge:${OSTREE_REF}"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${BIOS_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
@@ -520,7 +525,7 @@ sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${BIOS_GUEST_ADDRESS}" 'nohu
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
 
-# Check for ssh ready to go.
+# Verify rebase: BIOS guest VM is reachable via SSH after reboot.
 greenprint "🛃 Checking for SSH is ready to go"
 # shellcheck disable=SC2034  # Unused variables left for readability
 for _ in $(seq 0 30); do
@@ -536,6 +541,7 @@ done
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${BIOS_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
+# Verify reboot: BIOS guest VM is reachable via SSH after reboot (/sysroot RO activation).
 # shellcheck disable=SC2034  # Unused variables left for readability
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $BIOS_GUEST_ADDRESS)"
@@ -560,10 +566,12 @@ ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 EOF
 
-# Test IoT/Edge OS
+# Run check-ostree.yaml Ansible playbook from host against BIOS guest VM.
+# Conditional checks: sysroot_ro.
 podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=rhel-edge -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel-edge:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 check_result
 
+# Run rpm-ostree rebase on UEFI guest VM and reboot.
 greenprint "Rebase ostree commit on UEFI vm"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${UEFI_GUEST_ADDRESS}" "sudo rpm-ostree rebase rhel-edge:${OSTREE_REF}"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${UEFI_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
@@ -571,7 +579,7 @@ sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${UEFI_GUEST_ADDRESS}" 'nohu
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
 
-# Check for ssh ready to go.
+# Verify rebase: UEFI guest VM is reachable via SSH after reboot.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
@@ -586,6 +594,7 @@ done
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${UEFI_GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
+# Verify reboot: UEFI guest VM is reachable via SSH after reboot (/sysroot RO activation).
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $UEFI_GUEST_ADDRESS)"
     if [[ $RESULTS == 1 ]]; then
@@ -609,7 +618,8 @@ ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 EOF
 
-# Test IoT/Edge OS
+# Run check-ostree.yaml Ansible playbook from host against UEFI guest VM.
+# Conditional checks: sysroot_ro.
 podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name=rhel-edge -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="rhel-edge:${OSTREE_REF}" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 check_result
 
