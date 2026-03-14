@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euox pipefail
 
+# --------------------------------------------------------------------------
+# NOTE: This script runs on a host VM (provisioned by Testing Farm)
+# and creates a nested guest VM where the image is installed and validated.
+# --------------------------------------------------------------------------
+
 # Provision the software under test.
 ./setup.sh
 
@@ -368,7 +373,7 @@ done;
 ## Build edge-container image and start it in podman
 ##
 ##########################################################
-# Write a blueprint for ostree image.
+# Write a blueprint for container image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "container"
 description = "A base rhel-edge container image"
@@ -428,6 +433,8 @@ sudo composer-cli blueprints delete container > /dev/null
 ## Build edge-simplified-installer with diun_pub_key_hash enabled
 ##
 ####################################################################
+
+# Write a blueprint for simplified installer image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "fdosshkey"
 description = "A rhel-edge simplified-installer image"
@@ -459,7 +466,7 @@ greenprint "📋 Preparing fdosshkey blueprint"
 sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve fdosshkey
 
-# Build fdosshkey image.
+# Build fdosshkey simplified installer image.
 build_image fdosshkey "${INSTALLER_TYPE}" "${PROD_REPO_URL}"
 
 # Download the image
@@ -478,6 +485,7 @@ greenprint "🖥 Create qcow2 file for virt install"
 LIBVIRT_IMAGE_PATH=/var/lib/libvirt/images/${IMAGE_KEY}-keyhash.qcow2
 sudo qemu-img create -f qcow2 "${LIBVIRT_IMAGE_PATH}" 20G
 
+# Install ostree image via simplified installer (ISO) on UEFI guest VM.
 greenprint "💿 Install ostree image via installer(ISO) on UEFI VM"
 sudo virt-install  --name="${IMAGE_KEY}-fdosshkey"\
                    --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
@@ -501,7 +509,7 @@ import_ov
 greenprint "💻 Start UEFI VM"
 sudo virsh start "${IMAGE_KEY}-fdosshkey"
 
-# Check for ssh ready to go.
+# Verify install: UEFI guest VM is reachable via SSH after installation.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $PUB_KEY_GUEST_ADDRESS)"
@@ -542,7 +550,8 @@ ansible_become=yes
 ansible_become_method=sudo
 EOF
 
-# Test IoT/Edge OS
+# Run check-ostree.yaml Ansible playbook from host against UEFI guest VM.
+# Conditional checks: fdo_credential, sysroot_ro.
 sudo podman run -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${INSTALL_HASH}" -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" -e fdo_credential="true" -e sysroot_ro="$SYSROOT_RO" check-ostree.yaml || RESULTS=0
 check_result
 
