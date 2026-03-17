@@ -7,7 +7,7 @@ on:
       - created
 
 jobs:
-  check-permissions:
+  pr-info:
     runs-on: ubuntu-latest
     if: ${{ github.event.issue.pull_request &&
             (endsWith(github.event.comment.body, '/test-f43-iot')) }}
@@ -35,23 +35,43 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Determine compose ID
+        id: determine_compose
+        run: |
+          # Try PR title
+          COMPOSE="${{ fromJson(steps.pr-api.outputs.data).title }}"
+
+          if [[ "${COMPOSE}" =~ ^Fedora-IoT-43- ]]; then
+            echo "is_compose_pr=true" >> $GITHUB_OUTPUT
+          else
+            # Fallback to latest from Koji
+            COMPOSE=$(curl -s https://kojipkgs.fedoraproject.org/compose/iot/ \
+              | grep -oP 'Fedora-IoT-43-\d+\.\d+' \
+              | sort -t- -k4 -V \
+              | tail -1)
+            echo "is_compose_pr=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "compose_id=${COMPOSE}" >> $GITHUB_OUTPUT
+
     outputs:
       allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
-      compose_id: ${{ fromJson(steps.pr-api.outputs.data).body }}
+      compose_id: ${{ steps.determine_compose.outputs.compose_id }}
+      is_compose_pr: ${{ steps.determine_compose.outputs.is_compose_pr }}
       sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
       ref: ${{ fromJson(steps.pr-api.outputs.data).head.ref }}
       repo_url: ${{ fromJson(steps.pr-api.outputs.data).head.repo.html_url }}
 
   iot-43-x86:
-    needs: check-permissions
-    if: ${{ needs.check-permissions.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
+    needs: pr-info
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
     runs-on: ubuntu-latest
 
     steps:
       - name: Clone repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.check-permissions.outputs.sha }}
+          ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
       - name: Run the tests
@@ -61,17 +81,17 @@ jobs:
           compose: Fedora-43
           arch: x86_64
           api_key: ${{ secrets.TF_API_KEY }}
-          git_url: ${{ needs.check-permissions.outputs.repo_url }}
-          git_ref: ${{ needs.check-permissions.outputs.ref }}
+          git_url: ${{ needs.pr-info.outputs.repo_url }}
+          git_ref: ${{ needs.pr-info.outputs.ref }}
           update_pull_request_status: true
           tmt_context: "arch=x86_64;distro=fedora-43"
           pull_request_status_name: "iot-f43-x86"
           tmt_plan_regex: iot-x86
           tf_scope: private
-          variables: "COMPOSE=${{ needs.check-permissions.outputs.compose_id }}"
+          variables: "COMPOSE=${{ needs.pr-info.outputs.compose_id }}"
 
       - name: Send test results to Slack via webhook
-        if: always()
+        if: ${{ always() && needs.pr-info.outputs.is_compose_pr == 'true' }}
         run: |
           if [ "${{ job.status }}" = "success" ]; then
             emoji=":white_check_mark:"
@@ -85,7 +105,7 @@ jobs:
             attempt=""
           fi
 
-          text="$emoji *Fedora-43 | x86_64${attempt} | Compose-id: ${{ needs.check-permissions.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}|Test Log>"
+          text="$emoji *Fedora-43 | x86_64${attempt} | Compose-id: ${{ needs.pr-info.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}|Test Log>"
 
           curl -X POST -H 'Content-type: application/json' --data '{
             "text": "Testing Farm Results for Fedora 43 IoT x86",
@@ -101,15 +121,15 @@ jobs:
           }' ${{ secrets.SLACK_WEBHOOK_URL_FEDORA_IOT_CI }}
 
   # iot-43-aarch64:
-  #   needs: check-permissions
-  #   if: ${{ needs.check-permissions.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
+  #   needs: pr-info
+  #   if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
   #   runs-on: ubuntu-latest
 
   #   steps:
   #     - name: Clone repository
   #       uses: actions/checkout@v4
   #       with:
-  #         ref: ${{ needs.check-permissions.outputs.sha }}
+  #         ref: ${{ needs.pr-info.outputs.sha }}
   #         fetch-depth: 0
 
   #     - name: Run the tests
@@ -119,14 +139,14 @@ jobs:
   #         compose: Fedora-43
   #         arch: aarch64
   #         api_key: ${{ secrets.TF_API_KEY }}
-  #         git_url: ${{ needs.check-permissions.outputs.repo_url }}
-  #         git_ref: ${{ needs.check-permissions.outputs.ref }}
+  #         git_url: ${{ needs.pr-info.outputs.repo_url }}
+  #         git_ref: ${{ needs.pr-info.outputs.ref }}
   #         update_pull_request_status: true
   #         tmt_context: "arch=aarch64;distro=fedora-43"
   #         pull_request_status_name: "iot-f43-aarch64"
   #         tmt_plan_regex: iot-aarch64
   #         tf_scope: private
-  #         variables: "COMPOSE=${{ needs.check-permissions.outputs.compose_id }}"
+  #         variables: "COMPOSE=${{ needs.pr-info.outputs.compose_id }}"
 
   #     - name: Send test results to Slack via webhook
   #       if: always()
@@ -144,7 +164,7 @@ jobs:
   #               "type": "section",
   #               "text": {
   #                 "type": "mrkdwn",
-  #                 "text": "'"$emoji"' *Fedora-43 | aarch64 | Compose-id: ${{ needs.check-permissions.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
+  #                 "text": "'"$emoji"' *Fedora-43 | aarch64 | Compose-id: ${{ needs.pr-info.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
   #               }
   #             }
   #           ]
