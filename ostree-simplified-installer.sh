@@ -517,6 +517,11 @@ password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHB
 key = "${SSH_KEY_PUB}"
 home = "/home/simple/"
 groups = ["wheel"]
+
+[[customizations.filesystem]]
+mountpoint = "/boot"
+minsize = 1073741824
+
 EOF
 
     greenprint "📄 No FDO, No ignition blueprint"
