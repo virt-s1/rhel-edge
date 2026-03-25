@@ -58,7 +58,7 @@ jobs:
         uses: sclorg/testing-farm-as-github-action@v3.1.2
         id: run-test
         with:
-          compose: Fedora-Rawhide
+          compose: Fedora-44
           arch: x86_64
           api_key: ${{ secrets.TF_API_KEY }}
           git_url: ${{ needs.check-permissions.outputs.repo_url }}
