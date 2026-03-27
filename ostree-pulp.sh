@@ -1,6 +1,11 @@
 #!/bin/bash
 set -euox pipefail
 
+# --------------------------------------------------------------------------
+# NOTE: This script runs on a host VM (provisioned by Testing Farm)
+# and creates a nested guest VM where the image is installed and validated.
+# --------------------------------------------------------------------------
+
 # Provision the software under test.
 ./setup.sh
 
@@ -285,7 +290,7 @@ greenprint "📋 Preparing blueprint"
 sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve ostree
 
-# Build commit image
+# Build ostree image.
 # The parameter value "test" has no effect for this command,
 # see https://github.com/osbuild/guides/pull/144/files#diff-29259e84e167d353f6de0e135615d0f11b083af6865ddfd34e4e7014b4d53600R28
 build_image ostree "$IMAGE_TYPE" test "$PULP_CONFIG_FILE"
@@ -377,7 +382,7 @@ curl -O "$BOOT_LOCATION"images/boot.iso
 sudo mv boot.iso /var/lib/libvirt/images
 LOCAL_BOOT_LOCATION="/var/lib/libvirt/images/boot.iso"
 
-# Install ostree image via anaconda.
+# Install ostree image via anaconda on BIOS guest VM.
 greenprint "Install ostree image via anaconda"
 sudo virt-install  --initrd-inject="${KS_FILE}" \
                    --extra-args="inst.ks=file:/ks.cfg console=ttyS0,115200" \
@@ -397,7 +402,7 @@ sudo virt-install  --initrd-inject="${KS_FILE}" \
 greenprint "Start VM"
 sudo virsh start "${IMAGE_KEY}"
 
-# Check for ssh ready to go.
+# Verify install: BIOS guest VM is reachable via SSH after installation.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $GUEST_ADDRESS)"
@@ -413,7 +418,7 @@ sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${GUEST_ADDRESS}" 'nohup sud
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
 
-# Check for ssh ready to go.
+# Verify reboot: BIOS guest VM is reachable via SSH after reboot (/sysroot RO activation).
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $GUEST_ADDRESS)"
@@ -444,7 +449,8 @@ ansible_become_method=sudo
 ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
-# Test IoT/Edge OS
+# Run check-ostree.yaml Ansible playbook from host against BIOS guest VM.
+# Conditional checks: sysroot_ro.
 sudo podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory \
     -e os_name="${OS_NAME}" \
     -e ostree_ref="${OS_NAME}:${OSTREE_REF}" \

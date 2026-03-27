@@ -495,7 +495,7 @@ if [[ "${USER_IN_COMMIT}" == "true" ]]; then
     sudo sed -i '/^user\|^sshkey/d' "${KS_FILE}"
 fi
 
-# Install ostree image on guest VM via anaconda.
+# Install ostree image via anaconda on UEFI guest VM.
 greenprint "Install ostree image via anaconda"
 sudo virt-install  --name="${IMAGE_KEY}"\
                    --disk path="${LIBVIRT_IMAGE_PATH}",format=qcow2 \
@@ -515,7 +515,7 @@ sudo virt-install  --name="${IMAGE_KEY}"\
 greenprint "Start VM"
 sudo virsh start "${IMAGE_KEY}"
 
-# Verify install: guest VM is reachable via SSH after installation.
+# Verify install: UEFI guest VM is reachable via SSH after installation.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $GUEST_ADDRESS)"
@@ -531,7 +531,7 @@ sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${GUEST_ADDRESS}" 'noh
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
 
-# Check for ssh ready to go.
+# Verify reboot: UEFI guest VM is reachable via SSH after reboot (/sysroot RO activation).
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $GUEST_ADDRESS)"
@@ -669,7 +669,7 @@ UPGRADE_HASH=$(jq -r '."ostree-commit"' < "${UPGRADE_PATH}"/compose.json)
 # Remove upgrade repo
 sudo rm -rf "$UPGRADE_PATH"
 
-# Run rpm-ostree upgrade on guest VM and reboot.
+# Run rpm-ostree upgrade on UEFI guest VM and reboot.
 greenprint "Upgrade ostree image/commit"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${GUEST_ADDRESS}" 'sudo rpm-ostree upgrade'
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${GUEST_ADDRESS}" 'nohup sudo systemctl reboot &>/dev/null & exit'
@@ -677,7 +677,7 @@ sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${SSH_USER}@${GUEST_ADDRESS}" 'noh
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
 
-# Verify upgrade: guest VM is reachable via SSH after reboot.
+# Verify upgrade: UEFI guest VM is reachable via SSH after reboot.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up $GUEST_ADDRESS)"
@@ -708,7 +708,7 @@ ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 EOF
 
-# Run check-ostree.yaml Ansible playbook from host against guest VM.
+# Run check-ostree.yaml Ansible playbook from host against UEFI guest VM.
 # Conditional checks: embedded_container, firewall_feature, sysroot_ro, test_custom_dirs_files.
 podman run --network=host --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory -e os_name="${OS_NAME}" -e ostree_commit="${UPGRADE_HASH}" -e ostree_ref="${OS_NAME}:${OSTREE_REF}" -e embedded_container="${EMBEDDED_CONTAINER}" -e fedora_image_digest="${FEDORA_IMAGE_DIGEST}" -e firewall_feature="${FIREWALL_FEATURE}" -e sysroot_ro="$SYSROOT_RO" -e test_custom_dirs_files="${DIRS_FILES_CUSTOMIZATION}" check-ostree.yaml || RESULTS=0
 check_result

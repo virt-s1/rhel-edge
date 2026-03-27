@@ -2,6 +2,12 @@
 
 set -euo pipefail
 
+# --------------------------------------------------------------------------
+# NOTE: This script runs on a host VM (provisioned by Testing Farm)
+# and creates a guest VM in a remote vSphere datacenter where the image
+# is deployed and validated.
+# --------------------------------------------------------------------------
+
 # Provision the software under test.
 ./setup.sh
 
@@ -254,7 +260,7 @@ sudo podman network inspect edge >/dev/null 2>&1 || sudo podman network create -
 ## Build edge-container image
 ##
 ##############################################################
-# Write a blueprint for ostree image.
+# Write a blueprint for container image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "container"
 description = "A base rhel-edge container image"
@@ -398,6 +404,7 @@ EOF
 ##
 ##################################################################
 greenprint "📋 Build edge-vsphere image"
+# Write a blueprint for vsphere image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "vmdk"
 description = "A rhel-edge vmdk image"
@@ -425,7 +432,7 @@ greenprint "📋 Preparing installer blueprint"
 sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve vmdk
 
-# Build simplified installer iso image.
+# Build vmdk vsphere image.
 build_image vmdk "${VSPHERE_IMAGE_TYPE}" "${PROD_REPO_URL}/"
 
 # Download the image
@@ -468,8 +475,7 @@ govc vm.power -on -dc="${DATACENTER_70}" "${DC70_VSPHERE_VM_NAME}"
 DC70_GUEST_ADDRESS=$(govc vm.ip -v4 -dc="${DATACENTER_70}" -wait=10m "${DC70_VSPHERE_VM_NAME}")
 greenprint "🛃 Edge VM IP address is: ${DC70_GUEST_ADDRESS}"
 
-# Run ansible check on edge vm
-# Check for ssh ready to go.
+# Verify deployment: vSphere guest VM is reachable via SSH after deployment.
 greenprint "🛃 Checking for SSH is ready to go"
 for _ in $(seq 0 30); do
     RESULTS="$(wait_for_ssh_up "${DC70_GUEST_ADDRESS}")"
@@ -500,7 +506,8 @@ ansible_become_method=sudo
 ansible_become_pass=${IGNITION_USER_PASSWORD}
 EOF
 
-# Test IoT/Edge OS
+# Run check-ostree.yaml Ansible playbook from host against vSphere guest VM.
+# Conditional checks: ignition, fdo_credential, sysroot_ro.
 podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z \
     --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory \
     -e ignition="true" \
@@ -578,6 +585,7 @@ check_result
 ## Build upgrade edge-vsphere image
 ##
 ##################################################################
+# Write a blueprint for upgrade container image.
 tee "$BLUEPRINT_FILE" > /dev/null << EOF
 name = "upgrade"
 description = "An upgrade rhel-edge container image"
@@ -606,8 +614,8 @@ greenprint "📋 Preparing upgrade blueprint"
 sudo composer-cli blueprints push "$BLUEPRINT_FILE"
 sudo composer-cli blueprints depsolve upgrade
 
-# Build upgrade image.
-build_image upgrade  "${CONTAINER_TYPE}" "$PROD_REPO_URL"
+# Build upgrade container image.
+build_image upgrade "${CONTAINER_TYPE}" "$PROD_REPO_URL"
 
 # Download the image
 greenprint "📥 Downloading the upgrade image"
@@ -658,6 +666,7 @@ sudo composer-cli blueprints delete upgrade > /dev/null
 ## Run upgrade test on datacenter7.0 amd
 ##
 ##################################################################
+# Run rpm-ostree upgrade on vSphere guest VM and reboot.
 greenprint "🗳 Upgrade ostree image/commit"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${DC70_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
 sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${DC70_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
@@ -665,7 +674,7 @@ sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${DC70_GUEST_ADDR
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
 
-# Check for ssh ready to go.
+# Verify upgrade: vSphere guest VM is reachable via SSH after reboot.
 greenprint "🛃 Checking for SSH is ready to go"
 # shellcheck disable=SC2034  # Unused variables left for readability
 for _ in $(seq 0 30); do
@@ -695,7 +704,8 @@ ansible_become_method=sudo
 ansible_become_pass=${IGNITION_USER_PASSWORD}
 EOF
 
-# Test IoT/Edge OS
+# Run check-ostree.yaml Ansible playbook from host against vSphere guest VM.
+# Conditional checks: ignition, fdo_credential, sysroot_ro.
 podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z \
     --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory \
     -e ignition="true" \
