@@ -69,7 +69,7 @@ ARCH=$(uname -m)
 TEST_UUID=$(uuidgen)
 TEMPDIR=$(mktemp -d)
 GUEST_IP=192.168.100.50
-SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5)
+SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10)
 SSH_KEY="key/ostree_key"
 SSH_KEY_PUB=$(cat "${SSH_KEY}.pub")
 COMPOSE_URL="https://kojipkgs.fedoraproject.org/compose/iot/${COMPOSE}/compose/IoT/${ARCH}/iso"
@@ -171,22 +171,25 @@ download_image() {
 # Wait for SSH to be available
 wait_for_ssh() {
     local ip_address=$1
-    local max_attempts=30
+    local max_attempts=60
     local attempt=0
-    
-    log_info "Waiting for SSH on ${ip_address}..."
-    
+
+    sleep 60
+
+    log_info "Polling SSH on ${ip_address} (up to $((max_attempts * 15)) s)..."
+
     while [[ ${attempt} -lt ${max_attempts} ]]; do
         if ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${ip_address}" 'echo -n "READY"' 2>/dev/null | grep -q "READY"; then
             log_success "SSH is ready"
             return 0
         fi
-        
+
         attempt=$((attempt + 1))
-        sleep 10
+        log_info "SSH not ready yet (attempt ${attempt}/${max_attempts}), retrying in 15 s..."
+        sleep 15
     done
-    
-    log_error "SSH connection timed out after $((max_attempts * 10)) seconds"
+
+    log_error "SSH connection timed out after $((max_attempts * 15)) s"
     return 1
 }
 

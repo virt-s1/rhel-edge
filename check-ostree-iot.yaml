@@ -293,16 +293,26 @@
           ignore_errors: yes
           ignore_unreachable: yes
 
-        - name: delay 60 seconds before reboot to make system stable
-          pause:
-            seconds: 60
+        - name: wait for SSH to go down and confirm reboot has started
+          wait_for:
+            host: "{{ ansible_facts['all_ipv4_addresses'][0] }}"
+            port: 22
+            state: stopped
+            delay: 30
+            timeout: 300
           delegate_to: 127.0.0.1
+          ignore_errors: yes
 
         - name: wait for connection to become reachable/usable
           wait_for_connection:
-            delay: 30
-            timeout: 300
+            delay: 60
+            timeout: 1200
             connect_timeout: 15
+            sleep: 15
+          register: reconnect_result
+
+        - debug:
+            msg: "Connection reachable after {{ reconnect_result.elapsed }} seconds."
 
         - name: waits until instance is reachable
           wait_for:
@@ -310,11 +320,11 @@
             port: 22
             search_regex: OpenSSH
             delay: 10
-            timeout: 300
+            timeout: 600
           register: result_rollback
           until: result_rollback is success
-          retries: 20
-          delay: 15
+          retries: 30
+          delay: 20
           ignore_errors: yes
 
         - name: verify system is reachable with ping
