@@ -1515,8 +1515,13 @@
       when: test_custom_dirs_files_services == "true"
 
     # case: check no failed systemd units
+    # systemd-remount-fs.service is excluded because in OSTree/IoT deployments
+    # the filesystem layout (bind-mounts) is managed by ostree-remount.service
     - name: check systemd failed units
-      shell: systemctl --failed --no-legend --no-pager --plain | awk '{printf sep $1; sep=", "}'
+      shell: >
+        systemctl --failed --no-legend --no-pager --plain
+        | grep -v 'systemd-remount-fs\.service'
+        | awk '{printf sep $1; sep=", "}'
       register: result_failed_units
 
     - name: no systemd units should be in failed state
