@@ -99,6 +99,14 @@ jobs:
             emoji=":x:"
           fi
 
+          if [[ "${{ github.run_attempt }}" -gt 1 ]]; then
+            attempt=" | Attempt #${{ github.run_attempt }}"
+          else
+            attempt=""
+          fi
+
+          text="$emoji *Fedora-44 | x86_64${attempt} | Compose-id: ${{ needs.pr-info.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}|Test Log>"
+
           curl -X POST -H 'Content-type: application/json' --data '{
             "text": "Testing Farm Results for Fedora 44 IoT x86",
             "blocks": [
@@ -106,7 +114,7 @@ jobs:
                 "type": "section",
                 "text": {
                   "type": "mrkdwn",
-                  "text": "'"$emoji"' *Fedora-44 | x86_64 | Compose-id: ${{ needs.pr-info.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
+                  "text": "'"$text"'"
                 }
               }
             ]
