@@ -17,19 +17,19 @@ Daily 13:00 UTC
 │ 1. DETECT NEW COMPOSE                                               │
 │    File: .github/workflows/trigger-iot.yml                          │
 │    - Fetch latest compose from kojipkgs.fedoraproject.org           │
-│    - Check if new (compare with compose/compose.f43-iot)            │
+│    - Check if new (compare with compose/compose.f44-iot)            │
 │    - If yes, create PR with compose ID as title                     │
-│    - Add comment: /test-f43-iot                                     │
+│    - Add comment: /test-f44-iot                                     │
 └─────────────────────────────────────────────────────────────────────┘
                      │
                      │ PR created with
-                     │   title: "Fedora-IoT-43-20260307.0",
-                     │   comment: "/test-f43-iot"
+                     │   title: "Fedora-IoT-44-20260307.0",
+                     │   comment: "/test-f44-iot"
                      ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │ 2. TRIGGER TESTS                                                    │
-│    File: .github/workflows/fedora-iot-43.yml                        │
-│    Trigger: /test-f43-iot comment on PR                             │
+│    File: .github/workflows/fedora-iot-44.yml                        │
+│    Trigger: /test-f44-iot comment on PR                             │
 │    - Call Testing Farm                                              │
 └─────────────────────────────────────────────────────────────────────┘
                      │
@@ -71,8 +71,8 @@ Daily 13:00 UTC
                      ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │ 6. REPORT RESULTS                                                   │
-│    File: .github/workflows/fedora-iot-43.yml                        │
-│    - Updates PR status: ✅/❌ iot-f43-x86                           │
+│    File: .github/workflows/fedora-iot-44.yml                        │
+│    - Updates PR status: ✅/❌ iot-f44-x86                           │
 │    - Sends test results to Slack                                    │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -84,18 +84,18 @@ Daily 13:00 UTC
 ```
 trigger-iot.yml
     │
-    ├─ Reads: compose/compose.f43-iot           [list of tested composes]
+    ├─ Reads: compose/compose.f44-iot           [list of tested composes]
     ├─ Fetches: kojipkgs.fedoraproject.org      [compose server]
     │
     └─ Creates PR
-         - Title: Fedora-IoT-43-20260307.0
-         - Comment: /test-f43-iot               [triggers next step]
+         - Title: Fedora-IoT-44-20260307.0
+         - Comment: /test-f44-iot               [triggers next step]
 ```
 
 ### 2. PR comment → Testing Farm
 
 ```
-fedora-iot-43.yml (triggered by /test-f43-iot)
+fedora-iot-44.yml (triggered by /test-f44-iot)
     │
     ├─ Job: check-permissions
     │    ├─ Checks: User permissions via GitHub API
@@ -104,14 +104,14 @@ fedora-iot-43.yml (triggered by /test-f43-iot)
     │         - ref (branch name)
     │         - compose_id (from PR body)
     │
-    └─ Job: iot-43-x86
+    └─ Job: iot-44-x86
          │
          └─ Calls: Testing Farm
               - Parameters
-                  - compose: Fedora-43
+                  - compose: Fedora-44
                   - arch: x86_64
                   - tmt_plan_regex: "iot-x86"                   [filters test plans]
-                  - tmt_context: "arch=x86_64;distro=fedora-43" [used in adjust rules]
+                  - tmt_context: "arch=x86_64;distro=fedora-44" [used in adjust rules]
 ```
 
 ### 3. Testing Farm → TMT → test selection
@@ -169,9 +169,9 @@ Example (`iot-installer.sh`): download ISO → install (kickstart) → validate 
 ### 6. Results reporting
 
 ```
-fedora-iot-43.yml (after Testing Farm completes)
+fedora-iot-44.yml (after Testing Farm completes)
     │
-    ├─ Updates PR status: ✅/❌ iot-f43-x86
+    ├─ Updates PR status: ✅/❌ iot-f44-x86
     │
     └─ Sends Slack notification to alerts-fedora-iot-compose-inspector (private):
          - Format: emoji distribution | architecture | compose ID | test log link
@@ -181,8 +181,8 @@ fedora-iot-43.yml (after Testing Farm completes)
 
 | File | Purpose | What it does |
 |------|---------|--------------|
-| `.github/workflows/trigger-iot.yml` | Detect compose | Checks for new compose, creates PR, adds `/test-f43-iot` comment |
-| `.github/workflows/fedora-iot-43.yml` | Trigger tests | Triggered by `/test-f43-iot` comment, calls Testing Farm |
+| `.github/workflows/trigger-iot.yml` | Detect compose | Checks for new compose, creates PR, adds `/test-f44-iot` comment |
+| `.github/workflows/fedora-iot-44.yml` | Trigger tests | Triggered by `/test-f44-iot` comment, calls Testing Farm |
 | `tmt/plans/iot-test.fmf` | Test selection | Defines which tests run |
 | `tmt/tests/iot-test.fmf` | Test metadata | Points to `test.sh`, sets duration |
 | `tmt/tests/test.sh` | Test dispatcher | Selects which test script to run |
