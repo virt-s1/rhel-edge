@@ -86,11 +86,6 @@ ADD_STORAGE="+10G"
 
 # Set OS-specific variables
 case "${ID}-${VERSION_ID}" in
-    "fedora-43")
-        OSTREE_REF="fedora/stable/${ARCH}/iot"
-        OS_VARIANT="fedora-unknown"
-        RAW_IMAGE="Fedora-IoT-raw-43-${COMPOSE_ID}.${ARCH}.raw.xz"
-        ;;
     "fedora-44")
         OSTREE_REF="fedora/devel/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"

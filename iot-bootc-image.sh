@@ -85,10 +85,6 @@ BOOTC_SYSTEM="true"
 
 # Set OS-specific variables
 case "${ID}-${VERSION_ID}" in
-    "fedora-43")
-        OS_VARIANT="fedora-unknown"
-        OCI_ARCHIVE="Fedora-IoT-bootc-${ARCH}-43.${COMPOSE_ID}.ociarchive"
-        ;;
     "fedora-44")
         OS_VARIANT="fedora-rawhide"
         OCI_ARCHIVE="Fedora-IoT-bootc-${ARCH}-44.${COMPOSE_ID}.ociarchive"
