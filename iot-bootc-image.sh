@@ -86,8 +86,12 @@ BOOTC_SYSTEM="true"
 # Set OS-specific variables
 case "${ID}-${VERSION_ID}" in
     "fedora-44")
-        OS_VARIANT="fedora-rawhide"
+        OS_VARIANT="fedora-unknown"
         OCI_ARCHIVE="Fedora-IoT-bootc-${ARCH}-44.${COMPOSE_ID}.ociarchive"
+        ;;
+    "fedora-45")
+        OS_VARIANT="fedora-rawhide"
+        OCI_ARCHIVE="Fedora-IoT-bootc-${ARCH}-45.${COMPOSE_ID}.ociarchive"
         ;;
     *)
         log_error "Unsupported distro: ${ID}-${VERSION_ID}"

@@ -1,5 +1,5 @@
 ---
-name: Run Fedora 44 IoT test
+name: Run Fedora 45 IoT test
 
 on:
   issue_comment:
@@ -10,7 +10,7 @@ jobs:
   pr-info:
     runs-on: ubuntu-latest
     if: ${{ github.event.issue.pull_request &&
-            (endsWith(github.event.comment.body, '/test-f44-iot')) }}
+            (endsWith(github.event.comment.body, '/test-f45-iot')) }}
     steps:
       - name: Query author repository permissions
         uses: octokit/request-action@v2.x
@@ -41,12 +41,12 @@ jobs:
           # Try PR title
           COMPOSE="${{ fromJson(steps.pr-api.outputs.data).title }}"
 
-          if [[ "${COMPOSE}" =~ ^Fedora-IoT-44- ]]; then
+          if [[ "${COMPOSE}" =~ ^Fedora-IoT-45- ]]; then
             echo "is_compose_pr=true" >> $GITHUB_OUTPUT
           else
             # Fallback to latest from Koji
             COMPOSE=$(curl -s https://kojipkgs.fedoraproject.org/compose/iot/ \
-              | grep -oP 'Fedora-IoT-44-\d+\.\d+' \
+              | grep -oP 'Fedora-IoT-45-\d+\.\d+' \
               | sort -t- -k4 -V \
               | tail -1)
             echo "is_compose_pr=false" >> $GITHUB_OUTPUT
@@ -62,7 +62,7 @@ jobs:
       ref: ${{ fromJson(steps.pr-api.outputs.data).head.ref }}
       repo_url: ${{ fromJson(steps.pr-api.outputs.data).head.repo.html_url }}
 
-  iot-44-x86:
+  iot-45-x86:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
     runs-on: ubuntu-latest
@@ -78,14 +78,14 @@ jobs:
         uses: sclorg/testing-farm-as-github-action@v3.1.2
         id: run-test
         with:
-          compose: Fedora-44
+          compose: Fedora-Rawhide
           arch: x86_64
           api_key: ${{ secrets.TF_API_KEY }}
           git_url: ${{ needs.pr-info.outputs.repo_url }}
           git_ref: ${{ needs.pr-info.outputs.ref }}
           update_pull_request_status: true
-          tmt_context: "arch=x86_64;distro=fedora-44"
-          pull_request_status_name: "iot-f44-x86"
+          tmt_context: "arch=x86_64;distro=fedora-45"
+          pull_request_status_name: "iot-f45-x86"
           tmt_plan_regex: iot-x86
           tf_scope: private
           variables: "COMPOSE=${{ needs.pr-info.outputs.compose_id }}"
@@ -105,10 +105,10 @@ jobs:
             attempt=""
           fi
 
-          text="$emoji *Fedora-44 | x86_64${attempt} | Compose-id: ${{ needs.pr-info.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}|Test Log>"
+          text="$emoji *Fedora-45 | x86_64${attempt} | Compose-id: ${{ needs.pr-info.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}|Test Log>"
 
           curl -X POST -H 'Content-type: application/json' --data '{
-            "text": "Testing Farm Results for Fedora 44 IoT x86",
+            "text": "Testing Farm Results for Fedora 45 IoT x86",
             "blocks": [
               {
                 "type": "section",
@@ -120,7 +120,7 @@ jobs:
             ]
           }' ${{ secrets.SLACK_WEBHOOK_URL_FEDORA_IOT_CI }}
 
-  # iot-44-aarch64:
+  # iot-45-aarch64:
   #   needs: pr-info
   #   if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
   #   runs-on: ubuntu-latest
@@ -136,14 +136,14 @@ jobs:
   #       uses: sclorg/testing-farm-as-github-action@v3.1.2
   #       id: run-test
   #       with:
-  #         compose: Fedora-44
+  #         compose: Fedora-Rawhide
   #         arch: aarch64
   #         api_key: ${{ secrets.TF_API_KEY }}
   #         git_url: ${{ needs.pr-info.outputs.repo_url }}
   #         git_ref: ${{ needs.pr-info.outputs.ref }}
   #         update_pull_request_status: true
-  #         tmt_context: "arch=aarch64;distro=fedora-44"
-  #         pull_request_status_name: "iot-f44-aarch64"
+  #         tmt_context: "arch=aarch64;distro=fedora-45"
+  #         pull_request_status_name: "iot-f45-aarch64"
   #         tmt_plan_regex: iot-aarch64
   #         tf_scope: private
   #         variables: "COMPOSE=${{ needs.pr-info.outputs.compose_id }}"
@@ -158,13 +158,13 @@ jobs:
   #         fi
 
   #         curl -X POST -H 'Content-type: application/json' --data '{
-  #           "text": "Testing Farm Results for Fedora 44 IoT aarch64",
+  #           "text": "Testing Farm Results for Fedora 45 IoT aarch64",
   #           "blocks": [
   #             {
   #               "type": "section",
   #               "text": {
   #                 "type": "mrkdwn",
-  #                 "text": "'"$emoji"' *Fedora-44 | aarch64 | Compose-id: ${{ needs.pr-info.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
+  #                 "text": "'"$emoji"' *Fedora-45 | aarch64 | Compose-id: ${{ needs.pr-info.outputs.compose_id }} |* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|Test Log>"
   #               }
   #             }
   #           ]
