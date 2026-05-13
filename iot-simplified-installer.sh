@@ -79,9 +79,14 @@ COMPOSE_ID=$(echo "${COMPOSE}" | cut -d- -f4)
 # Set OS-specific variables
 case "${ID}-${VERSION_ID}" in
     "fedora-44")
+        OSTREE_REF="fedora/stable/${ARCH}/iot"
+        OS_VARIANT="fedora-unknown"
+        IMAGE_FILENAME="Fedora-IoT-provisioner-44-${COMPOSE_ID}.${ARCH}.iso"
+        ;;
+    "fedora-45")
         OSTREE_REF="fedora/devel/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"
-        IMAGE_FILENAME="Fedora-IoT-provisioner-44-${COMPOSE_ID}.${ARCH}.iso"
+        IMAGE_FILENAME="Fedora-IoT-provisioner-45-${COMPOSE_ID}.${ARCH}.iso"
         ;;
     *)
         log_error "Unsupported distro: ${ID}-${VERSION_ID}"

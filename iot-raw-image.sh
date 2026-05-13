@@ -87,9 +87,14 @@ ADD_STORAGE="+10G"
 # Set OS-specific variables
 case "${ID}-${VERSION_ID}" in
     "fedora-44")
+        OSTREE_REF="fedora/stable/${ARCH}/iot"
+        OS_VARIANT="fedora-unknown"
+        RAW_IMAGE="Fedora-IoT-raw-44-${COMPOSE_ID}.${ARCH}.raw.xz"
+        ;;
+    "fedora-45")
         OSTREE_REF="fedora/devel/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"
-        RAW_IMAGE="Fedora-IoT-raw-44-${COMPOSE_ID}.${ARCH}.raw.xz"
+        RAW_IMAGE="Fedora-IoT-raw-45-${COMPOSE_ID}.${ARCH}.raw.xz"
         ;;
     *)
         log_error "Unsupported distro: ${ID}-${VERSION_ID}"
