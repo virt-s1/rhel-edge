@@ -35,6 +35,15 @@ Send a pull request and add comment according to the following table:
 
 Any pull request will trigger **Lint** job automatically. Edge tests will not be run by default. To run Edge test, add comment with content according to above table.
 
+Lint checks (defined in `.github/workflows/lint.yml`):
+
+| Check | Local equivalent |
+|-------|------------------|
+| Commit messages | CI only (`commitlint`) |
+| Spelling | `codespell --check-filenames --ignore-words-list bu` |
+| Shell scripts | `find . -name '*.sh' -print0 \| xargs -0 shellcheck -e SC1091 -e SC2002 -e SC2317 -e SC2329` |
+| YAML | `yamllint .` |
+
 ## FDO container CI
 
 FDO container test will be run weekly. The `latest` tag containers will be pulled.
