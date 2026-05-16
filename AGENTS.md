@@ -1,23 +1,39 @@
 # AGENTS.md
 
 This is an integration test repository for RHEL for Edge and Fedora IoT, not a product codebase.
-It builds and validates OSTree-based and bootc-based Edge images (RHEL, CentOS Stream, Fedora) and IoT images (Fedora IoT), all on x86_64 and aarch64 architectures.
+It validates OSTree-based Edge images (RHEL, CentOS Stream, Fedora) and IoT images (Fedora IoT, including `bootc`), all on x86_64 and aarch64 architectures.
+Edge tests build images via `composer-cli`; IoT tests download pre-built compose images.
 Tests run on VMs provisioned by Testing Farm, triggered by GitHub Actions.
+
+For test scope, test scenarios, environment, configuration, and running tests see [`README.md`](README.md).
+For CI trigger patterns, manual testing, and linting details see [`CI.md`](CI.md).
+
+## Agent workflow guidelines
+
+- For non-trivial changes, propose a short plan and ask for review before implementing.
+- Never assume or guess intent. If instructions, code, or documentation are ambiguous, ask for clarification.
+- If you find a potential bug or security issue, inform the developer before proceeding.
+- Run `shellcheck` and `codespell` on changed files before proposing a commit.
+- Follow existing patterns in the codebase — scripts are self-contained, not modularized into shared libraries.
+- Test scripts run on disposable VMs — do not add defensive guards for local development environments.
+- All changes must be reviewed and approved by a human before they can be committed.
+  All commits should be signed off by a human contributor.
+- AI-assisted contributions must include an `Assisted-by` trailer:
+  `Assisted-by: AGENT_NAME (MODEL_VERSION)`.
 
 ## Project structure
 
 ```
 *.sh                      Test scripts. Each script is an integration test for one image type.
-setup.sh                  Environment provisioning for Edge tests — installs the osbuild-composer
-                          package, sets up osbuild-composer repository sources from files/,
-                          starts services (httpd, osbuild-composer, firewalld, libvirtd).
-                          Designed for disposable VMs, not development machines.
-iot-setup.sh              Environment provisioning for IoT tests (used instead of setup.sh).
-                          Designed for disposable VMs, not development machines.
+setup.sh                  Environment provisioning — called internally by each Edge test script
+                          (not a standalone tool). Designed for disposable VMs.
+iot-setup.sh              Environment provisioning — called internally by each IoT test script
+                          (not a standalone tool). Designed for disposable VMs.
 tmt/
   plans/edge-test.fmf     Edge test plan definitions (FMF format). Each plan sets a TEST_CASE env var.
   plans/iot-test.fmf      IoT test plan definitions (FMF format). Each plan sets a TEST_CASE env var.
-  tests/test.sh           Dispatcher — maps TEST_CASE value to the corresponding root-level test script.
+  tests/test.sh           Dispatcher — TMT calls it with TEST_CASE env var, it routes to the
+                          corresponding root-level test script (see mapping table below).
   tests/*.fmf             Test metadata (duration, test script reference).
 .github/workflows/        GitHub Actions workflows:
   lint.yml                PR linting (commitlint, codespell, shellcheck, yamllint). Runs on every PR.
@@ -27,6 +43,7 @@ tmt/
   cleanup-*.yaml          Periodic cleanup of AWS and vSphere resources.
   clear-compose-file.yml  Periodic cleanup of compose tracking files.
 files/                    osbuild-composer repository JSON configs, one per distro version.
+                          Consumed by setup.sh during provisioning.
   fdo/                    FDO server configuration files (used by FDO test scripts).
 compose/                  Compose ID tracking files. Managed by trigger-*.yml workflows,
                           do not edit manually.
@@ -60,81 +77,36 @@ The dispatcher `tmt/tests/test.sh` routes `TEST_CASE` values to scripts:
 | `iot-raw-image`              | `iot-raw-image.sh`                |
 | `iot-bootc`                  | `iot-bootc-image.sh`              |
 
-## Test instructions
+Keep this table in sync with `tmt/tests/test.sh`.
 
-### Linting (defined in `lint.yml`, runs on every PR)
+## CI workflow
 
-Local equivalents (`commitlint` runs only in CI):
-
-```
-codespell --check-filenames --ignore-words-list bu
-shellcheck -e SC1091 -e SC2002 -e SC2317 -e SC2329 *.sh
-yamllint .
-```
-
-### Running tests locally
-
-Tests require 16+ GB RAM, 60+ GB disk, 4+ CPUs for Edge / 2+ CPUs for IoT
-(see `tmt/plans/*.fmf`). x86_64 tests require KVM; ARM tests require a bare metal ARM server.
-Each Edge test script runs `./setup.sh` and each IoT test script runs `./iot-setup.sh`
-internally, which installs packages and starts services.
-
-```
-DOWNLOAD_NODE="<compose-server>" ./ostree.sh
-```
-
-Some tests require additional environment variables set locally:
-`QUAY_USERNAME`, `QUAY_PASSWORD`, `DOCKERHUB_USERNAME`,
-`DOCKERHUB_PASSWORD`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`,
-`GOVC_URL`, `GOVC_USERNAME`, `GOVC_PASSWORD`, `FDO_REGISTRY`
-(see [`README.md`](README.md), section "Test Configuration").
-
-Edge tests take up to 5 hours, IoT tests up to 90 minutes.
-
-### Triggering CI tests
-
-Add a PR comment to trigger tests on Testing Farm. Each trigger runs the
-same set of test cases (filtered by FMF `adjust` rules per distro):
-
-| Pattern               | Example          |
-|-----------------------|------------------|
-| `/test-rhel-<X>-<Y>`  | `/test-rhel-9-6` |
-| `/test-cs<X>`          | `/test-cs9`      |
-| `/test-f<XX>`          | `/test-f43`      |
-| `/test-f<XX>-iot`      | `/test-f43-iot`  |
-
-FDO container tests have separate triggers: `/test-fdo-container-community`,
-`/test-fdo-container-official`.
-
-Full trigger-to-script mapping is in [`CI.md`](CI.md), section "How to run compose test manually".
-
-### CI workflow
-
-Compose detection (trigger workflows, daily) → auto-created PR with compose ID →
-`/test-*` comment → GitHub Actions calls Testing Farm → Testing Farm provisions VM,
-runs TMT plan → TMT sets `TEST_CASE` and executes test script → results posted to
-Slack and PR status.
+1. Compose detection (daily `trigger-*.yml`) → auto-created PR with compose ID as title.
+2. `/test-*` comment → GitHub Actions calls Testing Farm.
+3. Testing Farm provisions VM, runs TMT plan.
+4. TMT sets `TEST_CASE` and executes test script.
+5. Results posted to Slack and PR status.
 
 ## Coding conventions
 
-- Most shell scripts start with `set -exuo pipefail` (or `set -euox pipefail`).
-  A few (`iot-setup.sh`, `ostree-vsphere.sh`) use `set -euo pipefail` without trace output.
-- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/)
-  (enforced by `commitlint` in CI). Examples: `fix: correct fallback log message`,
-  `feat(ci): add retry to Slack notification`.
-- All shell scripts must pass `shellcheck` with exclusions: `SC1091`, `SC2002`, `SC2317`, `SC2329`.
-- YAML files follow `.yamllint.yml` rules.
-- Test scripts follow a consistent internal pattern:
-  setup → configure variables per distro → obtain image (Edge: build with `composer-cli`,
-  IoT: download pre-built compose image) → deploy (`virt-install` / AWS / vSphere) →
-  SSH into guest and run validation checks → cleanup.
-- Edge scripts use the `greenprint` function for colored log output, IoT scripts
-  use `log_info`/`log_error`. Both are defined locally in individual scripts,
-  not imported from a shared location.
-- SSH key permissions for `key/ostree_key` must be 600.
+See [`CONTRIBUTING.md`](CONTRIBUTING.md#coding-conventions) for full conventions.
+Linting details in [`CI.md`](CI.md#rhel-edge-repository-ci).
+
+Key points for agents:
+- `set -exuo pipefail`
+- `shellcheck` exclusions `SC1091 SC2002 SC2317 SC2329`
+- commit messages follow [Conventional Commits](https://www.conventionalcommits.org/)
 
 ## Permissions
 
 - **Always allowed**: read any file, run linting commands, search GitHub issues and PRs, analyze logs.
-- **Ask first**: modify any file or configuration.
-- **Never**: push directly to main, modify the `key/` directory, commit credentials or secrets.
+- **Safe to change**: log messages, comments, variable names, documentation, test assertions,
+  `codespell`/`yamllint` config.
+- **Ask first**: anything that affects image building, test selection, or provisioning.
+  This includes: blueprint definitions, `composer-cli` commands, `virt-install` parameters,
+  kickstart templates, workflow files, FMF plans, test dispatcher,
+  repository configs (`files/*.json`), provisioning scripts (`setup.sh`, `iot-setup.sh`),
+  Ansible playbooks (`check-ostree*.yaml`).
+- **Never**: push directly to `main`, modify `compose/` files (managed by CI), modify the `key/`
+  directory, log, print, commit, or hardcode security-sensitive information
+  (credentials, secrets).
