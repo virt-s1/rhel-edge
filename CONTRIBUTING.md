@@ -48,7 +48,7 @@ git commit --amend -s
 
 ## Coding conventions
 
-- Shell scripts start with `set -exuo pipefail` (or `set -euox pipefail`).
+- Shell scripts start with `set -euox pipefail`.
 - All shell scripts must pass `shellcheck` with exclusions: `SC1091`, `SC2002`, `SC2317`, `SC2329`.
 - Test scripts follow a consistent internal pattern:
   setup → configure variables per distro → obtain image (Edge: build with `composer-cli`,
