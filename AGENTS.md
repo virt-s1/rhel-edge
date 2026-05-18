@@ -7,6 +7,8 @@ Tests run on VMs provisioned by Testing Farm, triggered by GitHub Actions.
 
 For test scope, test scenarios, environment, configuration, and running tests see [`README.md`](README.md).
 For CI trigger patterns, manual testing, and linting details see [`CI.md`](CI.md).
+For RHEL for Edge testing workflow overview see [`testing-workflow-overview.md`](testing-workflow-overview.md).
+For Fedora IoT testing workflow overview see [`iot-testing-workflow-overview.md`](iot-testing-workflow-overview.md).
 
 ## Agent workflow guidelines
 
@@ -38,8 +40,8 @@ tmt/
 .github/workflows/        GitHub Actions workflows:
   lint.yml                PR linting (commitlint, codespell, shellcheck, yamllint). Runs on every PR.
   trigger-*.yml           Compose detection — each runs daily, creates PRs for new composes.
-  rhel-*.yml, centos-*.yml, fedora-*.yml, fdo-container.yml
-                          Test execution — triggered by /test-* PR comments, calls Testing Farm.
+  rhel-*.yml, centos-*.yml, fedora-{rawhide,NN}.yml, fedora-iot-*.yml,
+  fdo-container.yml       Test execution — triggered by /test-* PR comments, calls Testing Farm.
   cleanup-*.yaml          Periodic cleanup of AWS and vSphere resources.
   clear-compose-file.yml  Periodic cleanup of compose tracking files.
 files/                    osbuild-composer repository JSON configs, one per distro version.
@@ -93,7 +95,7 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md#coding-conventions) for full conventions
 Linting details in [`CI.md`](CI.md#rhel-edge-repository-ci).
 
 Key points for agents:
-- `set -exuo pipefail`
+- `set -euox pipefail`
 - `shellcheck` exclusions `SC1091 SC2002 SC2317 SC2329`
 - commit messages follow [Conventional Commits](https://www.conventionalcommits.org/)
 
