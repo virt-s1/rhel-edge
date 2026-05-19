@@ -1,160 +1,209 @@
-# RHEL-Edge
+# RHEL for Edge
 
-RHEL-Edge help [documentation](HELP.md)
+This repository contains integration tests for two components:
 
-## RHEL-Edge Test Scope
+- **RHEL for Edge** — RHEL, CentOS Stream, and Fedora Edge images built via `osbuild-composer`
+- **Fedora IoT** — Fedora IoT images from pre-built compose artifacts
 
-RHEL for Edge test from QE is more like an integration test. The test flow aligns with the customer scenario. The whole test includes three parts:
+Tests run on x86_64 and aarch64 architectures, triggered by GitHub Actions and executed via Testing Farm.
 
-1. RHEL for Edge image building with [osbuild-composer](https://github.com/osbuild/osbuild-composer.git)
+## Table of contents
 
-    - Build RHEL 8 and RHEL 9 x86_64 images at OpenStack VM
-    - Build CentOS Stream 8, CentOS Stream 9 and Fedora x86_64 images at Google Cloud VM
-    - Build ARM images on bare metal ARM server or ARM VM at beaker
+- [Test scope](#test-scope)
+- [CI overview](#ci-overview)
+- [Running tests](#running-tests)
+  - [Test scenario](#test-scenario)
+  - [Test environment](#test-environment)
+  - [Test configuration](#test-configuration)
+  - [Test run](#test-run)
+- [Contact us](#contact-us)
 
-2. RHEL for Edge image installation
+## Test scope
 
-    - `edge-commit/iot-commit`: Setup HTTP server to serve as ostree repo, and HTTP boot to install with kickstart
-    - `edge-container/iot-container`: Setup prod ostree repo, `edge-container/iot-container` as stage repo, and install with kickstart from prod ostree repo
-    - `edge-installer/iot-installer`: Install from `edge-installer/iot-installer` ISO
-    - `edge-raw-image/iot-raw-image`: Boot from raw image with KVM
-    - `edge-simplified-installer`: Install from `edge-simplified-installer` ISO
-    - `minimal-raw`: Boot from RPM based raw image with KVM
-    - `edge-ami`: Image for AWS ec2 instance
+The test flow covers the full lifecycle from image build to post-deployment validation. It includes four parts:
 
-3. RHEL for Edge system upgrade
+1. Image provisioning
+
+    Edge tests - build images via [`osbuild-composer`](https://github.com/osbuild/osbuild-composer.git):
+
+    - `edge-commit`: OSTree repository tarball
+    - `edge-container`: OCI container with OSTree repository
+    - `edge-installer`: Bootable ISO with embedded OSTree commit
+    - `edge-raw-image`: Raw disk image, converted to `qcow2`
+    - `edge-simplified-installer`: Bootable ISO with embedded OSTree commit
+    - `edge-ami`: Raw disk image for AWS
+    - `edge-vsphere`: VMDK image
+
+    > Build RHEL, CentOS Stream, and Fedora x86_64 images on Testing Farm VMs.
+    > Build ARM images on bare metal ARM server or ARM VM at beaker.
+
+    Fedora IoT tests - download pre-built compose artifacts from [Koji](https://kojipkgs.fedoraproject.org/compose/iot/):
+
+    - Installer ISO
+    - Simplified installer ISO
+    - Raw disk image, converted to `qcow2`
+    - Bootc OCI image, converted to `qcow2`
+
+2. Image installation and deployment
+
+    - Edge: ISO boot, network boot (PXE), HTTP boot, VM disk image import, AWS EC2, vSphere
+    - IoT: ISO boot, VM disk image import
+
+3. System upgrade (Edge only)
 
     - Upgrade with the same OSTree ref
     - Rebase to a new OSTree ref
-    - Upgrade from RHEL 8 to RHEL 9 or from CentOS Stream 8 to CentOS Stream 9
+    - Upgrade from RHEL 8 to RHEL 9
 
-3. Checkings after installation/upgrade.
+4. Post-deployment validation
 
-    - Check installed ostree commit
-    - Check mount point
-    - Check [`greenboot`](https://github.com/fedora-iot/greenboot.git) services
+    Edge checks ([`check-ostree.yaml`](check-ostree.yaml)):
+
+    - Check BIOS/UEFI and secure boot status
+    - Check `SELinux` status and enforcing mode
+    - Check root password status (locked)
+    - Check installed `ostree` commit and ref
+    - Check `ostree-remount` service status
+    - Check mount points (`/sysroot`, `/var`, `/usr`, `/boot`)
+    - Check LVM PV and LV, and check `growfs` (`raw-image` and `simplified-installer` only)
+    - Check [`greenboot`](https://github.com/fedora-iot/greenboot-rs.git) services
+    - Check auto rollback with [`greenboot`](https://github.com/fedora-iot/greenboot-rs.git) when failure is detected
     - Run container with `podman` (root and non-root)
+    - Check embedded container images
     - Check persistent journal log
-    - Check FDO onboarding and status (simplified-installer only)
-    - Check LVM PV and LV, and check growfs (raw-image and simplified-installer only)
-    - Check auto rollback with [`greenboot`](https://github.com/fedora-iot/greenboot.git) when failure is detected
-    - Check ignition configurations (raw-image and simplified-installer only)
+    - Check `dmesg` error and fail log
+    - Check `Ignition` configurations (`raw-image` and `simplified-installer` only)
+    - Check FDO onboarding, status, and re-encryption (`simplified-installer` only)
+    - Check firewall customizations
+    - Check installed packages (`wget`, `sos`)
+    - Check custom files, directories, and services
+    - Check `systemd` failed units
 
-## RHEL-Edge CI
+    IoT checks ([`check-ostree-iot.yaml`](check-ostree-iot.yaml)):
+
+    - Check BIOS/UEFI status
+    - Check `SELinux` status and enforcing mode
+    - Check secure boot and TPM device
+    - Check partition layout and disk table
+    - Check `rpm-ostree` status
+    - Check `ostree` ref and deployment
+    - Check `ostree-remount` service status
+    - Check mount points (`/sysroot` `ro`, `/var` `rw`)
+    - Check FDO onboarding (`simplified-installer` only)
+    - Check [`greenboot`](https://github.com/fedora-iot/greenboot-rs.git) and rollback
+    - Check `boot-complete.target` status
+    - Check `grubenv` variables (`boot_success`)
+    - Run container with `podman` (root and non-root)
+    - Check `systemd` failed units
+
+## CI overview
 
 ### Upstream CI
 
-For RHEL-Edge project, 90% of features come from [osbuild](https://github.com/osbuild/osbuild.git) and [osbuild-composer](https://github.com/osbuild/osbuild-composer.git). In this case, [osbuild](https://github.com/osbuild/osbuild.git) and [osbuild-composer](https://github.com/osbuild/osbuild-composer.git) CI will be used ad RHEL-Edge project upstream CI.
+For RHEL for Edge project, 90% of features come from [`osbuild`](https://github.com/osbuild/osbuild.git) and [`osbuild-composer`](https://github.com/osbuild/osbuild-composer.git). In this case, [`osbuild`](https://github.com/osbuild/osbuild.git) and [`osbuild-composer`](https://github.com/osbuild/osbuild-composer.git) CI will be used as RHEL for Edge project upstream CI.
 
-The Upstream CI is triggered by each PR and it focuses on code change.
+The upstream CI is triggered by each PR and it focuses on code change.
 
-Considering Upstream CI environment and test duration, the Upstream CI only covers virtualization tests, bare metal is out of Upstream CI scope.
+Considering upstream CI environment and test duration, the upstream CI only covers virtualization tests, bare metal is out of upstream CI scope.
 
-### Downstream CI
+### Repository CI
 
-[RHEL 8/9, CentOS Stream 8/9 report dashboard](https://github.com/virt-s1/rhel-edge/projects/1)
+Lint checks run automatically on every pull request and must pass before merging into `main`:
 
-[Fedora report dashboard](https://github.com/virt-s1/rhel-edge/projects/2)
+1. [`commitlint`](https://www.conventionalcommits.org/en/v1.0.0/)
+2. [`codespell`](https://github.com/codespell-project/codespell)
+3. [`shellcheck`](https://www.shellcheck.net/)
+4. [`yamllint`](https://yamllint.readthedocs.io/en/stable/)
 
-[Package greenboot, fido-device-onboard, rust-coreos-installer, rpm-ostree, ostree report](https://github.com/virt-s1/rhel-edge/projects/3)
+Edge and IoT tests are triggered manually via `/test-*` PR comments and should pass before merging into `main` (see [CI doc](CI.md)).
 
-[Customer case test report](https://github.com/virt-s1/rhel-edge/projects/4)
+## Running tests
 
-### CI for this repository
+### Test scenario
 
-CI for this repository is to test `test code`. It's triggered by PR in this repository. Any changes for `test code` has to be pass all tests of CI before they are merged into master.
+Edge tests:
 
-Test of this CI includes:
+| Script | Image type | Description |
+|--------|-----------|-------------|
+| [`ostree.sh`](ostree.sh) | `edge-commit` (tar) | OSTree commit deployed via kickstart |
+| [`ostree-ng.sh`](ostree-ng.sh) | `edge-installer` (ISO) | OSTree commit deployed via ISO installer |
+| [`ostree-raw-image.sh`](ostree-raw-image.sh) | `edge-raw-image` (raw) | Raw disk image deployed via VM import |
+| [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh) | `edge-simplified-installer` (ISO) | OSTree commit deployed via simplified ISO installer |
+| [`ostree-fdo-aio.sh`](ostree-fdo-aio.sh) | `edge-simplified-installer` (ISO) | FDO onboarding with all-in-one server |
+| [`ostree-fdo-db.sh`](ostree-fdo-db.sh) | `edge-simplified-installer` (ISO) | FDO onboarding with database-backed servers |
+| [`ostree-fdo-container.sh`](ostree-fdo-container.sh) | `edge-simplified-installer` (ISO) | FDO onboarding with containerized servers |
+| [`ostree-ignition.sh`](ostree-ignition.sh) | `edge-simplified-installer` + `edge-raw-image` | Ignition provisioning on simplified installer ISO and raw disk image |
+| [`ostree-pulp.sh`](ostree-pulp.sh) | `edge-commit` (tar) | OSTree commit distributed via Pulp server |
+| [`ostree-vsphere.sh`](ostree-vsphere.sh) | `edge-vsphere` (VMDK) | VMDK image deployed to vSphere |
+| [`ostree-ami-image.sh`](ostree-ami-image.sh) | `edge-ami` (raw) | AMI deployed to AWS EC2 |
+| [`ostree-8-to-9.sh`](ostree-8-to-9.sh) | `edge-container` (OCI) | Upgrade from RHEL 8 / CS8 to RHEL 9 / CS9 |
+| [`ostree-9-to-9.sh`](ostree-9-to-9.sh) | `edge-container` (OCI) | Upgrade within RHEL 9 |
 
-1. [commit lint](https://www.conventionalcommits.org/en/v1.0.0/)
-2. [spell check](https://github.com/codespell-project/codespell)
-3. [Shellcheck](https://www.shellcheck.net/): running on Github
-4. [Yaml lint](https://yamllint.readthedocs.io/en/stable/): running on Github
-5. [Edge tests](https://github.com/virt-s1/rhel-edge/blob/main/CI.md#rhel-for-edge-ci): running on Github
+Fedora IoT tests:
 
-RHEL-Edge CI details can be found from [CI doc](CI.md)
-
-## RHEL-Edge Test
-
-### Test Scenario
-
-Test suites in scenario:
-
-1. [`ostree.sh`](ostree.sh) and [`arm-commit.sh`](arm-commit.sh): edge-commit/iot-commit(tar) image type test on RHEL 8.x, RHEL 9.x, CentOS Stream 8,  CentOS Stream 9, and Fedora
-2. [`ostree-ng.sh`](ostree-ng.sh) and [`arm-installer.sh`](arm-installer.sh): edge-container/iot-container and edge-installer/iot-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, CentOS Stream 9 and Fedora
-3. [`ostree-raw-image.sh`](ostree-raw-image.sh) and [`arm-raw.sh`](arm-raw.sh): edge-raw-image/iot-raw-image(raw) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, CentOS Stream 9, and Fedora
-4. [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh) and [`arm-simplified.sh`](arm-simplified.sh): edge-simplified-installer(ISO) image types test on RHEL 8.x, RHEL 9.x, CentOS Stream 8, and CentOS Stream 9
-5. [`arm-rebase.sh`](arm-rebase.sh): Different ostree ref rebase test on RHEL 8.x and CentOS Stream 8
-6. [`ostree-8-to-9.sh`](ostree-8-to-9.sh): RHEL 8/CentOS Stream 8 Edge system upgrade to RHEL 9/CentOS Stream 9 Edge system test
-6. [`ostree-9-to-9.sh`](ostree-9-to-9.sh): RHEL 9/CentOS Stream 9 Edge system upgrade and rebase to RHEL 9/CentOS Stream 9 Edge system test
-7. [`minimal-raw.sh`](minimal-raw.sh) and [`arm-minimal.sh`](arm-minimal.sh): RPM based system test (Not ostree)
-8. [`ostree-ignition.sh`](ostree-ignition.sh) and [`arm-ignition.sh`](arm-ignition.sh): Ignition test for simplified installer and raw image
-8. [`ostree-ami-image.sh`](ostree-ami-image.sh): AWS ec2 instance image test
+| Script | Image type | Description |
+|--------|-----------|-------------|
+| [`iot-installer.sh`](iot-installer.sh) | IoT installer ISO | Fedora IoT installer ISO deployed via kickstart |
+| [`iot-raw-image.sh`](iot-raw-image.sh) | IoT raw disk image | Fedora IoT raw disk image deployed via VM import |
+| [`iot-simplified-installer.sh`](iot-simplified-installer.sh) | IoT simplified installer ISO | Fedora IoT simplified installer ISO with FDO and Ignition |
+| [`iot-bootc-image.sh`](iot-bootc-image.sh) | IoT `bootc` OCI image | Fedora IoT `bootc` image built via `bootc-image-builder` |
 
 ### Test environment
 
 #### For x86_64
 
-You can run RHEL for Edge test on any x86_64 machine, like server, laptop, or VM, but KVM has to be enabled. Otherwise QEMU will be used and the test will take a really long time.
+Tests can run on any x86_64 machine (server, laptop, or VM), but KVM must be enabled. Without KVM, QEMU will be used and tests will take a really long time.
 
-    $ls -l /dev/kvm
+Verify that KVM is available:
 
-#### for ARM
+    $ ls -l /dev/kvm
 
-To run RHEL for Edge test on ARM server, a bare metal ARM server is required.
+#### For aarch64
+
+To run tests on ARM, a bare metal ARM server is required.
 
 #### Supported OS
 
-    RHEL 8.6/8.8/8.9
-    RHEL 9.0/9.2/9.3
-    CentOS Stream 8
-    CentOS Stream 9
-    Fedora 37 (Simplified-installer not supported)
-    Fedora 38 (Simplified-installer not supported)
-    Fedora rawhide (Simplified-installer not supported)
+- RHEL 8.10
+- RHEL 9.4/9.5/9.6
+- CentOS Stream 9
+- Fedora IoT 44
+- Fedora IoT 45 (currently Rawhide)
 
-### Test Run
+### Test configuration
+
+Environment variables used by test scripts and CI workflows. Most test scripts require no environment variables.
+
+| Environment variable | Used by | Purpose |
+|-------------|---------|---------|
+| `DOWNLOAD_NODE` | `ostree.sh`, `ostree-pulp.sh`, `ostree-8-to-9.sh`, `ostree-9-to-9.sh`, `setup.sh`, `tools/arm-*.sh` | RHEL nightly compose download URL |
+| `QUAY_USERNAME` | `ostree-ng.sh`, `tools/arm-installer.sh` | quay.io username for pushing OCI images |
+| `QUAY_PASSWORD` | `ostree-ng.sh`, `tools/arm-installer.sh` | quay.io password for pushing OCI images |
+| `DOCKERHUB_USERNAME` | `tools/arm-raw.sh`, `tools/edge-raw.sh`, CI workflows | Docker Hub username for pushing OCI images |
+| `DOCKERHUB_PASSWORD` | `tools/arm-raw.sh`, `tools/edge-raw.sh`, CI workflows | Docker Hub password for pushing OCI images |
+| `AWS_ACCESS_KEY_ID` | AMI tests (via `aws` CLI) | AWS credentials for AMI upload and EC2 |
+| `AWS_SECRET_ACCESS_KEY` | AMI tests (via `aws` CLI) | AWS credentials for AMI upload and EC2 |
+| `AWS_DEFAULT_REGION` | AMI tests (via `aws` CLI) | AWS region (default: `us-east-1`) |
+| `GOVC_URL` | vSphere CI workflows | vSphere server URL |
+| `GOVC_USERNAME` | vSphere CI workflows | vSphere username |
+| `GOVC_PASSWORD` | vSphere CI workflows | vSphere password |
+
+### Test run
 
 #### For x86_64
 
     $ DOWNLOAD_NODE="hello-world.com" ./ostree.sh
-    $ DOWNLOAD_NODE="hello-world.com" OCP4_TOKEN=abcdefg QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./ostree-ng.sh
-    $ DOWNLOAD_NODE="hello-world.com" DOCKERHUB_USERNAME=rhel-edge DOCKERHUB_PASSWORD=123456 ./ostree-raw-image.sh
-    $ DOWNLOAD_NODE="hello-world.com" ./ostree-simplified-installer.sh
-    $ DOWNLOAD_NODE="hello-world.com" ./ostree-8-to-9.sh
-    $ DOWNLOAD_NODE="hello-world.com" ./ostree-9-to-9.sh
-    $ ./minimal-raw.sh (Fedora 37 and above)
-    $ DOWNLOAD_NODE="hello-world.com" ./ostree-ignition.sh
-    $ DOWNLOAD_NODE="hello-world.com" ./ostree-ami-image.sh
+    $ QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./ostree-ng.sh
+    $ ./iot-installer.sh
 
-#### For ARM64
+#### For aarch64
+> **Note:** The aarch64 commands listed below have not been recently tested and may not work as expected. There is currently no capacity to verify them.
 
-    $ tools/deploy_bare.sh
-    $ DOWNLOAD_NODE="hello-world.com" ./arm-commit.sh <test os>
-    $ DOWNLOAD_NODE="hello-world.com" QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./arm-installer.sh <test os>
-    $ DOWNLOAD_NODE="hello-world.com" DOCKERHUB_USERNAME=rhel-edge DOCKERHUB_PASSWORD=123456 ./arm-raw.sh <test os>
-    $ DOWNLOAD_NODE="hello-world.com" ./arm-simplified.sh <test os>
-    $ DOWNLOAD_NODE="hello-world.com" ./arm-ignition.sh <centos-stream-9 or rhel-9-2>
-    $ DOWNLOAD_NODE="hello-world.com" ./arm-minimal.sh <fedora-37 or fedora-38>
+    $ DOWNLOAD_NODE="hello-world.com" QUAY_USERNAME=rhel-edge QUAY_PASSWORD=123456 ./tools/arm-installer.sh <test os>
+    $ DOWNLOAD_NODE="hello-world.com" DOCKERHUB_USERNAME=rhel-edge DOCKERHUB_PASSWORD=123456 ./tools/arm-raw.sh <test os>
 
-    <test os> can be one of "rhel-9-3", "centos-stream-9", "fedora-38"
-
-### Test Configuration
-
-You can set these environment variables to run test
-
-    QUAY_USERNAME      quay.io username
-                           Used to test pushing Edge OCI-archive image to quay.io
-    QUAY_PASSWORD      quay.io password
-                           Used to test pushing Edge OCI-archive image to quay.io
-    DOCKERHUB_USERNAME      Docker hub account username
-                           Used to test pushing Edge OCI-archive image to Docker hub
-    DOCKERHUB_PASSWORD      Docker hub account password
-                           Used to test pushing Edge OCI-archive image to Docker hub
-    OCP4_TOKEN         Edit-able SA token on PSI Openshift 4
-                           Deploy edge-container on PSI OCP4
-    DOWNLOAD_NODE      RHEL nightly compose download URL
+    <test os> can be, for example, "rhel-9-6" or "centos-stream-9"
 
 ## Contact us
 
-- RHEL for Edge discussion channel: [`Google Chat room`](https://mail.google.com/chat/u/0/#chat/space/AAAAlhJ-myk)
+Please open a [GitHub issue](https://github.com/virt-s1/rhel-edge/issues) or start a [GitHub discussion](https://github.com/virt-s1/rhel-edge/discussions).
