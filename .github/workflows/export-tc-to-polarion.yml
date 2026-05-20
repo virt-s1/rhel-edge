@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Query author repository permissions
-        uses: octokit/request-action@v2.x
+        uses: octokit/request-action@dad4362715b7fb2ddedf9772c8670824af564f0d # v2.4.0
         id: user_permission
         with:
           route: GET /repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}/permission
@@ -31,7 +31,7 @@ jobs:
 
       - name: Get information for pull request
         if: ${{ github.event_name == 'pull_request' }}
-        uses: octokit/request-action@v2.x
+        uses: octokit/request-action@dad4362715b7fb2ddedf9772c8670824af564f0d # v2.4.0
         id: pr-api
         with:
           route: GET /repos/${{ github.repository }}/pulls/${{ github.event.issue.number }}
@@ -59,10 +59,10 @@ jobs:
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Export the test case to Polarion
-        uses: sclorg/testing-farm-as-github-action@v3.1.2
+        uses: sclorg/testing-farm-as-github-action@270f0d1d89dad513588fb5cc2cdd512c3459f3fe # v3.1.2
         with:
           compose: Fedora-42
           arch: x86_64

@@ -15,7 +15,7 @@ jobs:
     if: github.repository == 'virt-s1/rhel-edge'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Check if fedora 43 compose is new
         id: check_compose_id_43
@@ -72,7 +72,7 @@ jobs:
 #     if: ${{ needs.check-compose.outputs.need_pr_rawhide == 'true' }}
 #     runs-on: ubuntu-latest
 #     steps:
-#       - uses: actions/checkout@v3
+#       - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
 #       - name: Add new compose id in compose.rawhide
 #         run: |
@@ -82,7 +82,7 @@ jobs:
 
 #       - name: Create Pull Request for fedora rawhide
 #         id: create-pr
-#         uses: peter-evans/create-pull-request@v4
+#         uses: peter-evans/create-pull-request@38e0b6e68b4c852a5500a94740f0e535e0d7ba54 # v4
 #         with:
 #           title: "${{ needs.check-compose.outputs.compose_id_rawhide }}"
 #           branch: cpr
@@ -96,7 +96,7 @@ jobs:
 #           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 #       - name: Add a comment to trigger test workflow
-#         uses: peter-evans/create-or-update-comment@v2
+#         uses: peter-evans/create-or-update-comment@67dcc547d311b736a8e6c5c236542148a47adc3d # v2
 #         with:
 #           token: ${{ secrets.PAT }}
 #           issue-number: ${{ steps.create-pr.outputs.pull-request-number }}
@@ -107,7 +107,7 @@ jobs:
     if: ${{ needs.check-compose.outputs.need_pr_43 == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Add new compose id in compose.f43
         run: |
@@ -117,7 +117,7 @@ jobs:
 
       - name: Create Pull Request for fedora 43
         id: create-pr
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@38e0b6e68b4c852a5500a94740f0e535e0d7ba54 # v4
         with:
           title: "${{ needs.check-compose.outputs.compose_id_43 }}"
           branch: cpr
@@ -131,7 +131,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v2
+        uses: peter-evans/create-or-update-comment@67dcc547d311b736a8e6c5c236542148a47adc3d # v2
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.create-pr.outputs.pull-request-number }}

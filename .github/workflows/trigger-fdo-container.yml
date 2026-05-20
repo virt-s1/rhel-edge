@@ -16,7 +16,7 @@ jobs:
     if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule == '5 8 * * 0'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Make change for PR creating
         run: |
@@ -28,7 +28,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v7.0.5
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "FDO community container test - ${{ steps.date.outputs.date }}"
@@ -44,7 +44,7 @@ jobs:
             - Date: ${{ steps.date.outputs.date }}
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
@@ -54,7 +54,7 @@ jobs:
     if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule == '5 8 * * 4'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Make change for PR creating
         run: |
@@ -66,7 +66,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v7.0.5
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "FDO official container test - ${{ steps.date.outputs.date }}"
@@ -82,7 +82,7 @@ jobs:
             - Date: ${{ steps.date.outputs.date }}
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v4
+        uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043 # v4
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
