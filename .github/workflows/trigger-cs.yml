@@ -15,7 +15,7 @@ jobs:
     if: github.repository == 'virt-s1/rhel-edge'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Check CentOS Stream 9 compose
         id: check_compose_id_cs9
@@ -140,7 +140,7 @@ jobs:
     if: ${{ needs.check-compose.outputs.cs9_compose != 'false' && needs.check-compose.outputs.pr_running_cs9 == 'false' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Add new compose id in compose.cs9
         run: |
@@ -154,7 +154,7 @@ jobs:
 
       - name: Create pull request
         id: cpr
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@38e0b6e68b4c852a5500a94740f0e535e0d7ba54 # v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "${{ needs.check-compose.outputs.cs9_compose }} - ${{ steps.date.outputs.date }}"
@@ -177,14 +177,14 @@ jobs:
 
       - name: Enable pull request automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
-        uses: peter-evans/enable-pull-request-automerge@v2
+        uses: peter-evans/enable-pull-request-automerge@684fed02ccc9b5eefcf7d40b65b3cd44255bd5bc # v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
           merge-method: rebase
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v2
+        uses: peter-evans/create-or-update-comment@67dcc547d311b736a8e6c5c236542148a47adc3d # v2
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}

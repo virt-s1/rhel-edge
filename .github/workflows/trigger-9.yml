@@ -19,7 +19,7 @@ jobs:
     steps:
       - run: sudo dnf install -y git gh
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Check RHEL 9.4 compose
         id: check_compose_id_94
@@ -368,7 +368,7 @@ jobs:
     if: ${{ needs.check-compose.outputs.rhel94_compose != 'false' && needs.check-compose.outputs.pr_running_94 == 'false' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Add new compose id in compose.94
         run: |
@@ -381,7 +381,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@38e0b6e68b4c852a5500a94740f0e535e0d7ba54 # v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "${{ needs.check-compose.outputs.rhel94_compose }} - ${{ steps.date.outputs.date }}"
@@ -404,14 +404,14 @@ jobs:
 
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
-        uses: peter-evans/enable-pull-request-automerge@v2
+        uses: peter-evans/enable-pull-request-automerge@684fed02ccc9b5eefcf7d40b65b3cd44255bd5bc # v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
           merge-method: rebase
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@a35cf36e5301d70b76f316e867e7788a55a31dae # v1
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
@@ -422,7 +422,7 @@ jobs:
     if: ${{ needs.check-compose.outputs.rhel95_compose != 'false' && needs.check-compose.outputs.pr_running_95 == 'false' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Add new compose id in compose.95
         run: |
@@ -436,7 +436,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@38e0b6e68b4c852a5500a94740f0e535e0d7ba54 # v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "${{ needs.check-compose.outputs.rhel95_compose }} - ${{ steps.date.outputs.date }}"
@@ -459,14 +459,14 @@ jobs:
 
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
-        uses: peter-evans/enable-pull-request-automerge@v2
+        uses: peter-evans/enable-pull-request-automerge@684fed02ccc9b5eefcf7d40b65b3cd44255bd5bc # v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
           merge-method: rebase
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@a35cf36e5301d70b76f316e867e7788a55a31dae # v1
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
@@ -477,7 +477,7 @@ jobs:
     if: ${{ needs.check-compose.outputs.rhel96_compose != 'false' && needs.check-compose.outputs.pr_running_96 == 'false' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Add new compose id in compose.96
         run: |
@@ -491,7 +491,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@38e0b6e68b4c852a5500a94740f0e535e0d7ba54 # v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "${{ needs.check-compose.outputs.rhel96_compose }} - ${{ steps.date.outputs.date }}"
@@ -515,14 +515,14 @@ jobs:
 
       - name: Enable Pull Request Automerge
         if: steps.cpr.outputs.pull-request-operation == 'created'
-        uses: peter-evans/enable-pull-request-automerge@v2
+        uses: peter-evans/enable-pull-request-automerge@684fed02ccc9b5eefcf7d40b65b3cd44255bd5bc # v2
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
           merge-method: rebase
 
       - name: Add a comment to trigger test workflow
-        uses: peter-evans/create-or-update-comment@v1
+        uses: peter-evans/create-or-update-comment@a35cf36e5301d70b76f316e867e7788a55a31dae # v1
         with:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
