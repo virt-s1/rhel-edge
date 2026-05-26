@@ -65,7 +65,7 @@ jobs:
           fetch-depth: 0
 
       - name: run ostree-fdo-container.sh
-        uses: sclorg/testing-farm-as-github-action@c10d1c7da616ee1ae3cb63f896447e7d8a5d272b # v3.1.0
+        uses: sclorg/testing-farm-as-github-action@b23f0de29ac969d12411215a983da264b4ced149 # v4.2.0
         with:
           compose: CentOS-Stream-9
           arch: x86_64
@@ -98,7 +98,7 @@ jobs:
           fetch-depth: 0
 
       - name: run ostree-fdo-container.sh
-        uses: sclorg/testing-farm-as-github-action@c10d1c7da616ee1ae3cb63f896447e7d8a5d272b # v3.1.0
+        uses: sclorg/testing-farm-as-github-action@b23f0de29ac969d12411215a983da264b4ced149 # v4.2.0
         with:
           compose: RHEL-9.5.0-Nightly
           arch: x86_64
