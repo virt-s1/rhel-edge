@@ -23,7 +23,7 @@ jobs:
     steps:
       - run: sudo dnf install -y git gh
 
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Check RHEL 9.4 compose
         id: check_compose_id_94
@@ -375,7 +375,7 @@ jobs:
     if: ${{ needs.check-compose.outputs.rhel94_compose != 'false' && needs.check-compose.outputs.pr_running_94 == 'false' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Add new compose id in compose.94
         run: |
@@ -432,7 +432,7 @@ jobs:
     if: ${{ needs.check-compose.outputs.rhel95_compose != 'false' && needs.check-compose.outputs.pr_running_95 == 'false' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Add new compose id in compose.95
         run: |
@@ -490,7 +490,7 @@ jobs:
     if: ${{ needs.check-compose.outputs.rhel96_compose != 'false' && needs.check-compose.outputs.pr_running_96 == 'false' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Add new compose id in compose.96
         run: |
