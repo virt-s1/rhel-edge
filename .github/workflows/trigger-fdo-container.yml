@@ -11,8 +11,13 @@ on:
     # run every day
     - cron: '0 3 * * *'
 
+permissions: {}
+
 jobs:
   fdo-container-community:
+    permissions:
+      contents: write
+      pull-requests: write
     if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule == '5 8 * * 0'
     runs-on: ubuntu-latest
     steps:
@@ -51,6 +56,9 @@ jobs:
           body: /test-fdo-container-community
 
   fdo-container-official:
+    permissions:
+      contents: write
+      pull-requests: write
     if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule == '5 8 * * 4'
     runs-on: ubuntu-latest
     steps:

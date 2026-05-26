@@ -7,8 +7,12 @@ on:
     # Run every four hours
     - cron: '0 */4 * * *'
 
+permissions: {}
+
 jobs:
   cleanup-ami:
+    permissions:
+      contents: read
     # Do not run this job on any fork repos
     if: github.repository == 'virt-s1/rhel-edge'
     runs-on: ubuntu-latest

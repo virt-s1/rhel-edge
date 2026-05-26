@@ -6,8 +6,12 @@ on:
     branches:
       - "*"
 
+permissions: {}
+
 jobs:
   commitlint:
+    permissions:
+      contents: read
     name: "📇 commitlint"
     runs-on: ubuntu-latest
     steps:
@@ -15,6 +19,8 @@ jobs:
       - uses: wagoid/commitlint-github-action@9763196e10f27aef304c9b8b660d31d97fce0f99 # v5
 
   spellcheck:
+    permissions:
+      contents: read
     name: "📋 spellcheck"
     runs-on: ubuntu-latest
     steps:
@@ -25,6 +31,8 @@ jobs:
           ignore_words_list: bu
 
   shellcheck:
+    permissions:
+      contents: read
     name: "🔭 Shellcheck"
     runs-on: ubuntu-latest
     steps:
@@ -34,6 +42,8 @@ jobs:
           SHELLCHECK_OPTS: -e SC1091 -e SC2002 -e SC2317 -e SC2329
 
   yamllint:
+    permissions:
+      contents: read
     name: "🔬 yamlint"
     runs-on: ubuntu-latest
     steps:

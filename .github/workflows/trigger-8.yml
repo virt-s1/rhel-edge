@@ -6,11 +6,15 @@ on:
   schedule:
     - cron: '0 1 * * *'
 
+permissions: {}
+
 env:
   COMPOSE_URL_810: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-8/nightly/updates/RHEL-8"
 
 jobs:
   check-compose:
+    permissions:
+      contents: read
     # Do not run this job on any fork repos
     if: github.repository == 'virt-s1/rhel-edge'
     runs-on: container-runner
@@ -137,6 +141,9 @@ jobs:
       count_810: ${{ steps.check_compose_id_810.outputs.count }}
 
   rhel-8-10:
+    permissions:
+      contents: write
+      pull-requests: write
     needs: check-compose
     if: ${{ needs.check-compose.outputs.rhel810_compose != 'false' && needs.check-compose.outputs.pr_running_810 == 'false' }}
     runs-on: ubuntu-latest

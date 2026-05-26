@@ -6,8 +6,12 @@ on:
     types:
       - created
 
+permissions: {}
+
 jobs:
   pr-info:
+    permissions:
+      pull-requests: read
     if: ${{ github.event.issue.pull_request &&
             (endsWith(github.event.comment.body, '/test-rawhide')) }}
     runs-on: ubuntu-latest
@@ -42,6 +46,9 @@ jobs:
       compose_id: ${{ fromJson(steps.pr-api.outputs.data).title }}
 
   iot-rawhide-x86:
+    permissions:
+      contents: read
+      statuses: write
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
     runs-on: ubuntu-latest

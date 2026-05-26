@@ -6,8 +6,12 @@ on:
     types:
       - created
 
+permissions: {}
+
 jobs:
   pr-info:
+    permissions:
+      pull-requests: read
     if: ${{ github.event.issue.pull_request &&
             (endsWith(github.event.comment.body, '/test-fdo-container-community') ||
             endsWith(github.event.comment.body, '/test-fdo-container-official')) }}
@@ -44,6 +48,9 @@ jobs:
       repo_url: ${{ fromJson(steps.pr-api.outputs.data).head.repo.html_url }}
 
   fdo-container-community:
+    permissions:
+      contents: read
+      statuses: write
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request && endsWith(github.event.comment.body, '/test-fdo-container-community') }}
     runs-on: ubuntu-latest
@@ -74,6 +81,9 @@ jobs:
           variables: "ARCH=x86_64;AWS_DEFAULT_REGION=us-east-1;GOVC_INSECURE=1;FDO_REGISTRY=quay.io/fido-fdo; OWNER_ONBOARDING_SERVER_NAME=owner-onboarding-server; MANUFACTURING_SERVER_NAME=manufacturing-server; RENDEZVOUS_SERVER_NAME=rendezvous-server; SERVICEINFO_API_SERVER_NAME=serviceinfo-api-server"
 
   fdo-container-official:
+    permissions:
+      contents: read
+      statuses: write
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request && endsWith(github.event.comment.body, '/test-fdo-container-official') }}
     runs-on: ubuntu-latest

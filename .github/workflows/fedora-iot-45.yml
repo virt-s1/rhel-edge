@@ -6,8 +6,12 @@ on:
     types:
       - created
 
+permissions: {}
+
 jobs:
   pr-info:
+    permissions:
+      pull-requests: read
     runs-on: ubuntu-latest
     if: ${{ github.event.issue.pull_request &&
             (endsWith(github.event.comment.body, '/test-f45-iot')) }}
@@ -63,6 +67,9 @@ jobs:
       repo_url: ${{ fromJson(steps.pr-api.outputs.data).head.repo.html_url }}
 
   iot-45-x86:
+    permissions:
+      contents: read
+      statuses: write
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
     runs-on: ubuntu-latest

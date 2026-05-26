@@ -6,12 +6,16 @@ on:
   schedule:
     - cron: '0 8 * * *'
 
+permissions: {}
+
 env:
   COMPOSE_URL_F43: https://dl.fedoraproject.org/pub/fedora/linux/development/43
   COMPOSE_URL_RAWHIDE: https://dl.fedoraproject.org/pub/fedora/linux/development/rawhide
 
 jobs:
   check-compose:
+    permissions:
+      contents: read
     if: github.repository == 'virt-s1/rhel-edge'
     runs-on: ubuntu-latest
     steps:
@@ -103,6 +107,9 @@ jobs:
 #           body: /test-rawhide
 
   fedora-43:
+    permissions:
+      contents: write
+      pull-requests: write
     needs: check-compose
     if: ${{ needs.check-compose.outputs.need_pr_43 == 'true' }}
     runs-on: ubuntu-latest

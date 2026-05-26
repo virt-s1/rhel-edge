@@ -6,8 +6,12 @@ on:
     types:
       - created
 
+permissions: {}
+
 jobs:
   pr-info:
+    permissions:
+      pull-requests: read
     if: ${{ github.event.issue.pull_request &&
             (endsWith(github.event.comment.body, '/test-cs9')) }}
     runs-on: ubuntu-latest
@@ -46,6 +50,9 @@ jobs:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
 
     steps:
       - name: Clone repository
@@ -97,6 +104,9 @@ jobs:
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      statuses: write
 
     steps:
       - name: Clone repository

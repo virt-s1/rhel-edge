@@ -8,8 +8,12 @@ on:
         default: false
         description: Export preview only
 
+permissions: {}
+
 jobs:
   pr-info:
+    permissions:
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
       - name: Query author repository permissions

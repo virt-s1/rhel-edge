@@ -6,11 +6,15 @@ on:
   schedule:
     - cron: '0 6 * * *'
 
+permissions: {}
+
 env:
   COMPOSE_URL_CS9: https://odcs.stream.centos.org/production/
 
 jobs:
   check-compose:
+    permissions:
+      contents: read
     # Do not run this job on any fork repos
     if: github.repository == 'virt-s1/rhel-edge'
     runs-on: ubuntu-latest
@@ -136,6 +140,9 @@ jobs:
       count: ${{ steps.check_compose_id_cs9.outputs.count }}
 
   centos-stream-9:
+    permissions:
+      contents: write
+      pull-requests: write
     needs: check-compose
     if: ${{ needs.check-compose.outputs.cs9_compose != 'false' && needs.check-compose.outputs.pr_running_cs9 == 'false' }}
     runs-on: ubuntu-latest
