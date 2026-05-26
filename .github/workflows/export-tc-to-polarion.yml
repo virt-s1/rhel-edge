@@ -10,8 +10,12 @@ on:
         required: true
         default: x86_64
 
+permissions: {}
+
 jobs:
   pr-info:
+    permissions:
+      pull-requests: read
     runs-on: ubuntu-latest
     steps:
       - name: Query author repository permissions
@@ -55,6 +59,9 @@ jobs:
       compose_id: ${{ github.event_name == 'pull_request' && github.event.pull_request.title || steps['manual-defaults'].outputs.compose_id }}
 
   export-test-case:
+    permissions:
+      contents: read
+      statuses: write
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest

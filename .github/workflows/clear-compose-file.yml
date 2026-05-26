@@ -7,8 +7,13 @@ on:
     # every two weeks
     - cron: '0 0 */15 * *'
 
+permissions: {}
+
 jobs:
   clear-compose-file:
+    permissions:
+      contents: write
+      pull-requests: write
     if: github.repository == 'virt-s1/rhel-edge'
     runs-on: ubuntu-latest
     steps:

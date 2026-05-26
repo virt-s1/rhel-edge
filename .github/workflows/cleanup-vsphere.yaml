@@ -7,8 +7,12 @@ on:
     # run at 2:00 everyday
     - cron: '0 2 * * *'
 
+permissions: {}
+
 jobs:
   cleanup-vsphere:
+    permissions:
+      contents: read
     # Do not run this job on any fork repos
     if: github.repository == 'virt-s1/rhel-edge'
     runs-on: [kite, x86_64, rhos-01, rhel-9-3, medium]
