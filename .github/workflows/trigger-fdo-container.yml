@@ -14,10 +14,24 @@ on:
 permissions: {}
 
 jobs:
+  verify-pat:
+    if: github.repository == 'virt-s1/rhel-edge'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify PAT is configured
+        run: |
+          if [ -z "$PAT_TOKEN" ]; then
+            echo "::error::secrets.PAT is not configured."
+            exit 1
+          fi
+        env:
+          PAT_TOKEN: ${{ secrets.PAT }}
+
   fdo-container-community:
     permissions:
       contents: write
       pull-requests: write
+    needs: [verify-pat]
     if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule == '5 8 * * 0'
     runs-on: ubuntu-latest
     steps:
@@ -35,7 +49,7 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT }}
           commit-message: "FDO community container test - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
@@ -59,6 +73,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    needs: [verify-pat]
     if: github.repository == 'virt-s1/rhel-edge' && github.event.schedule == '5 8 * * 4'
     runs-on: ubuntu-latest
     steps:
@@ -76,7 +91,7 @@ jobs:
         id: cpr
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT }}
           commit-message: "FDO official container test - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
