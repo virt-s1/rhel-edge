@@ -20,6 +20,15 @@ jobs:
     if: github.repository == 'virt-s1/rhel-edge'
     runs-on: ubuntu-latest
     steps:
+      - name: Verify PAT is configured
+        run: |
+          if [ -z "$PAT_TOKEN" ]; then
+            echo "::error::secrets.PAT is not configured."
+            exit 1
+          fi
+        env:
+          PAT_TOKEN: ${{ secrets.PAT }}
+
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
@@ -104,8 +113,9 @@ jobs:
 
       - name: Create Pull Request for IoT 44
         id: create-pr
-        uses: peter-evans/create-pull-request@38e0b6e68b4c852a5500a94740f0e535e0d7ba54 # v4
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
+          token: ${{ secrets.PAT }}
           title: "${{ needs.check-compose.outputs.compose-id-f44 }}"
           branch: cpr
           branch-suffix: random
@@ -114,8 +124,6 @@ jobs:
           commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose-id-f44 }} to compose file"
           labels: |
             automated-pr
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Add test comment to PR
         if: steps.create-pr.outputs.pull-request-number
@@ -142,8 +150,9 @@ jobs:
 
       - name: Create Pull Request for IoT 45
         id: create-pr
-        uses: peter-evans/create-pull-request@38e0b6e68b4c852a5500a94740f0e535e0d7ba54 # v4
+        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
+          token: ${{ secrets.PAT }}
           title: "${{ needs.check-compose.outputs.compose-id-f45 }}"
           branch: cpr
           branch-suffix: random
@@ -152,8 +161,6 @@ jobs:
           commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose-id-f45 }} to compose file"
           labels: |
             automated-pr
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Add test comment to PR
         if: steps.create-pr.outputs.pull-request-number
