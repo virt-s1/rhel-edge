@@ -66,7 +66,7 @@ jobs:
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Export the test case to Polarion
         uses: sclorg/testing-farm-as-github-action@270f0d1d89dad513588fb5cc2cdd512c3459f3fe # v3.1.2
