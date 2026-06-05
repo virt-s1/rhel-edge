@@ -33,7 +33,7 @@ jobs:
       - name: Check if fedora 43 compose is new
         id: check_compose_id_43
         run: |
-          curl -s "${COMPOSE_URL_F43}/COMPOSE_ID" --output COMPOSE_ID
+          curl -sf "${COMPOSE_URL_F43}/COMPOSE_ID" --output COMPOSE_ID
           COMPOSE_ID=$(cat COMPOSE_ID)
           TESTED_COMPOSE=( $( cat compose/compose.f43 ) )
           if [[ " ${TESTED_COMPOSE[*]} " =~ "$COMPOSE_ID" ]]; then
@@ -55,7 +55,7 @@ jobs:
       - name: Check if fedora rawhide compose is new
         id: check_compose_id_rawhide
         run: |
-          curl -s "${COMPOSE_URL_RAWHIDE}/COMPOSE_ID" --output COMPOSE_ID
+          curl -sf "${COMPOSE_URL_RAWHIDE}/COMPOSE_ID" --output COMPOSE_ID
           COMPOSE_ID=$(cat COMPOSE_ID)
           TESTED_COMPOSE=( $( cat compose/compose.rawhide ) )
           if [[ " ${TESTED_COMPOSE[*]} " =~ "$COMPOSE_ID" ]]; then

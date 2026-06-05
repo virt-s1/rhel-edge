@@ -37,10 +37,10 @@ jobs:
       - name: Check RHEL 9.4 compose
         id: check_compose_id_94
         run: |
-          curl -s ${COMPOSE_URL_94}/latest-RHEL-9.4.0/STATUS --output STATUS_94
+          curl -sf ${COMPOSE_URL_94}/latest-RHEL-9.4.0/STATUS --output STATUS_94
           STATUS_94=$(cat STATUS_94)
           if [[ "$STATUS_94" == "FINISHED" ]]; then
-              curl -s ${COMPOSE_URL_94}/latest-RHEL-9.4.0/COMPOSE_ID --output COMPOSE_ID_94
+              curl -sf ${COMPOSE_URL_94}/latest-RHEL-9.4.0/COMPOSE_ID --output COMPOSE_ID_94
               COMPOSE_ID_94=$(cat COMPOSE_ID_94)
               TESTED_COMPOSE_94=( $( cat compose/compose.94 ) )
               if [[ " ${TESTED_COMPOSE_94[*]} " =~ "$COMPOSE_ID_94" ]]; then
@@ -64,7 +64,7 @@ jobs:
               echo "osbuild_composer_version_94=$OSBUILD_COMPOSER_VERSION_94" >> $GITHUB_OUTPUT
               echo "composer_cli_version_94=$COMPOSER_CLI_VERSION_94" >> $GITHUB_OUTPUT
 
-              curl -s ${COMPOSE_URL_94}/ --output COMPOSES
+              curl -sf ${COMPOSE_URL_94}/ --output COMPOSES
               COMPOSES=$(cat -n COMPOSES)
               line=$(echo "${COMPOSES}" | grep ${COMPOSE_ID_94} | cut -b 1-7)
               old_line=$((line - 1))
@@ -142,10 +142,10 @@ jobs:
       - name: Check RHEL 9.5 compose
         id: check_compose_id_95
         run: |
-          curl -s ${COMPOSE_URL_95}/latest-RHEL-9.5.0/STATUS --output STATUS_95
+          curl -sf ${COMPOSE_URL_95}/latest-RHEL-9.5.0/STATUS --output STATUS_95
           STATUS_95=$(cat STATUS_95)
           if [[ "$STATUS_95" == "FINISHED" ]]; then
-              curl -s ${COMPOSE_URL_95}/latest-RHEL-9.5.0/COMPOSE_ID --output COMPOSE_ID_95
+              curl -sf ${COMPOSE_URL_95}/latest-RHEL-9.5.0/COMPOSE_ID --output COMPOSE_ID_95
               COMPOSE_ID_95=$(cat COMPOSE_ID_95)
               TESTED_COMPOSE_95=( $( cat compose/compose.95 ) )
               if [[ " ${TESTED_COMPOSE_95[*]} " =~ "$COMPOSE_ID_95" ]]; then
@@ -171,7 +171,7 @@ jobs:
               echo "osbuild_composer_version_95=$OSBUILD_COMPOSER_VERSION_95" >> $GITHUB_OUTPUT
               echo "composer_cli_version_95=$COMPOSER_CLI_VERSION_95" >> $GITHUB_OUTPUT
 
-              curl -s ${COMPOSE_URL_95}/ --output COMPOSES
+              curl -sf ${COMPOSE_URL_95}/ --output COMPOSES
               COMPOSES=$(cat -n COMPOSES)
               line=$(echo "${COMPOSES}" | grep ${COMPOSE_ID_95} | cut -b 1-7)
               old_line=$((line - 1))
@@ -249,10 +249,10 @@ jobs:
       - name: Check RHEL 9.6 compose
         id: check_compose_id_96
         run: |
-          curl -s ${COMPOSE_URL_96}/latest-RHEL-9.6.0/STATUS --output STATUS_96
+          curl -sf ${COMPOSE_URL_96}/latest-RHEL-9.6.0/STATUS --output STATUS_96
           STATUS_96=$(cat STATUS_96)
           if [[ "$STATUS_96" == "FINISHED" ]]; then
-              curl -s ${COMPOSE_URL_96}/latest-RHEL-9.6.0/COMPOSE_ID --output COMPOSE_ID_96
+              curl -sf ${COMPOSE_URL_96}/latest-RHEL-9.6.0/COMPOSE_ID --output COMPOSE_ID_96
               COMPOSE_ID_96=$(cat COMPOSE_ID_96)
               TESTED_COMPOSE_96=( $( cat compose/compose.96 ) )
               if [[ " ${TESTED_COMPOSE_96[*]} " =~ "$COMPOSE_ID_96" ]]; then
@@ -278,7 +278,7 @@ jobs:
               echo "osbuild_composer_version_96=$OSBUILD_COMPOSER_VERSION_96" >> $GITHUB_OUTPUT
               echo "composer_cli_version_96=$COMPOSER_CLI_VERSION_96" >> $GITHUB_OUTPUT
 
-              curl -s ${COMPOSE_URL_96}/ --output COMPOSES
+              curl -sf ${COMPOSE_URL_96}/ --output COMPOSES
               COMPOSES=$(cat -n COMPOSES)
               line=$(echo "${COMPOSES}" | grep ${COMPOSE_ID_96} | cut -b 1-7)
               old_line=$((line - 1))
