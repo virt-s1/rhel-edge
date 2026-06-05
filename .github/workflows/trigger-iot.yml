@@ -35,14 +35,14 @@ jobs:
       - name: Get compose ID for Fedora 44 IoT
         id: get-compose-f44
         run: |
-          status=$(curl -s ${COMPOSE_URL_44}/STATUS)
+          status=$(curl -sf ${COMPOSE_URL_44}/STATUS)
           if [ "$status" != "FINISHED" ]; then
             echo "Compose status: $status - no PR needed"
             echo "need-pr-f44=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          compose_id_f44=$(curl -s ${COMPOSE_URL_44}/COMPOSE_ID)
+          compose_id_f44=$(curl -sf ${COMPOSE_URL_44}/COMPOSE_ID)
           echo "compose-id-f44=$compose_id_f44" >> $GITHUB_OUTPUT
 
           if grep -q "$compose_id_f44" compose/compose.f44-iot; then
@@ -64,14 +64,14 @@ jobs:
       - name: Get compose ID for Fedora 45 IoT
         id: get-compose-f45
         run: |
-          status=$(curl -s ${COMPOSE_URL_45}/STATUS)
+          status=$(curl -sf ${COMPOSE_URL_45}/STATUS)
           if [ "$status" != "FINISHED" ]; then
             echo "Compose status: $status - no PR needed"
             echo "need-pr-f45=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          compose_id_f45=$(curl -s ${COMPOSE_URL_45}/COMPOSE_ID)
+          compose_id_f45=$(curl -sf ${COMPOSE_URL_45}/COMPOSE_ID)
           echo "compose-id-f45=$compose_id_f45" >> $GITHUB_OUTPUT
 
           if grep -q "$compose_id_f45" compose/compose.f45-iot; then

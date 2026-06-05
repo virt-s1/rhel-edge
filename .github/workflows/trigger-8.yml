@@ -35,10 +35,10 @@ jobs:
       - name: Check RHEL 8.10 compose
         id: check_compose_id_810
         run: |
-          curl -s ${COMPOSE_URL_810}/latest-RHEL-8.10.0/STATUS --output STATUS_810
+          curl -sf ${COMPOSE_URL_810}/latest-RHEL-8.10.0/STATUS --output STATUS_810
           STATUS_810=$(cat STATUS_810)
           if [[ "$STATUS_810" == "FINISHED" ]]; then
-              curl -s ${COMPOSE_URL_810}/latest-RHEL-8.10.0/COMPOSE_ID --output COMPOSE_ID_810
+              curl -sf ${COMPOSE_URL_810}/latest-RHEL-8.10.0/COMPOSE_ID --output COMPOSE_ID_810
               COMPOSE_ID_810=$(cat COMPOSE_ID_810)
               TESTED_COMPOSE_810=( $( cat compose/compose.810 ) )
               if [[ " ${TESTED_COMPOSE_810[*]} " =~ "$COMPOSE_ID_810" ]]; then
@@ -64,7 +64,7 @@ jobs:
               echo "osbuild_composer_version_810=$OSBUILD_COMPOSER_VERSION_810" >> $GITHUB_OUTPUT
               echo "composer_cli_version_810=$COMPOSER_CLI_VERSION_810" >> $GITHUB_OUTPUT
 
-              curl -s ${COMPOSE_URL_810}/ --output COMPOSES
+              curl -sf ${COMPOSE_URL_810}/ --output COMPOSES
               COMPOSES=$(cat -n COMPOSES)
               line=$(echo "${COMPOSES}" | grep ${COMPOSE_ID_810} | cut -b 1-7)
               old_line=$((line - 1))

@@ -33,8 +33,8 @@ jobs:
       - name: Check CentOS Stream 9 compose
         id: check_compose_id_cs9
         run: |
-          CURRENT_COMPOSE_CS9=$(curl -s "${COMPOSE_URL_CS9}/" | grep -ioE ">CentOS-Stream-9-.*/<" | tr -d '>/<' | tail -1)
-          curl -s ${COMPOSE_URL_CS9}/${CURRENT_COMPOSE_CS9}/STATUS --output STATUS_CS9
+          CURRENT_COMPOSE_CS9=$(curl -sf "${COMPOSE_URL_CS9}/" | grep -ioE ">CentOS-Stream-9-.*/<" | tr -d '>/<' | tail -1)
+          curl -sf ${COMPOSE_URL_CS9}/${CURRENT_COMPOSE_CS9}/STATUS --output STATUS_CS9
           STATUS_CS9=$(cat STATUS_CS9)
           if [[ "$STATUS_CS9" == "FINISHED" ]]; then
               COMPOSE_ID_CS9=$CURRENT_COMPOSE_CS9
@@ -62,7 +62,7 @@ jobs:
               echo "osbuild_composer_version_cs9=$OSBUILD_COMPOSER_VERSION_CS9" >> $GITHUB_OUTPUT
               echo "composer_cli_version_cs9=$COMPOSER_CLI_VERSION_CS9" >> $GITHUB_OUTPUT
 
-              curl -s ${COMPOSE_URL_CS9}/ --output COMPOSES
+              curl -sf ${COMPOSE_URL_CS9}/ --output COMPOSES
               COMPOSES=$(cat -n COMPOSES)
               line=$(echo "${COMPOSES}" | grep ${COMPOSE_ID_CS9} | cut -b 1-7)
               old_line=$((line - 1))
