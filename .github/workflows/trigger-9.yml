@@ -400,7 +400,7 @@ jobs:
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
           token: ${{ secrets.PAT }}
-          commit-message: "${{ needs.check-compose.outputs.rhel94_compose }} - ${{ steps.date.outputs.date }}"
+          commit-message: "chore: ${{ needs.check-compose.outputs.rhel94_compose }} - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: cpr
@@ -458,7 +458,7 @@ jobs:
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
           token: ${{ secrets.PAT }}
-          commit-message: "${{ needs.check-compose.outputs.rhel95_compose }} - ${{ steps.date.outputs.date }}"
+          commit-message: "chore: ${{ needs.check-compose.outputs.rhel95_compose }} - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: cpr
@@ -516,7 +516,7 @@ jobs:
         uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
         with:
           token: ${{ secrets.PAT }}
-          commit-message: "${{ needs.check-compose.outputs.rhel96_compose }} - ${{ steps.date.outputs.date }}"
+          commit-message: "chore: ${{ needs.check-compose.outputs.rhel96_compose }} - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: cpr
