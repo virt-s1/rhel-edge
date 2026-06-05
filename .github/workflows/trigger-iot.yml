@@ -121,7 +121,7 @@ jobs:
           branch-suffix: random
           base: main
           body: "${{ needs.check-compose.outputs.compose-id-f44 }}"
-          commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose-id-f44 }} to compose file"
+          commit-message: "chore: add compose ID ${{ needs.check-compose.outputs.compose-id-f44 }} to compose file"
           labels: |
             automated-pr
 
@@ -158,7 +158,7 @@ jobs:
           branch-suffix: random
           base: main
           body: "${{ needs.check-compose.outputs.compose-id-f45 }}"
-          commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose-id-f45 }} to compose file"
+          commit-message: "chore: add compose ID ${{ needs.check-compose.outputs.compose-id-f45 }} to compose file"
           labels: |
             automated-pr
 

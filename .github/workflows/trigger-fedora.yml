@@ -102,7 +102,7 @@ jobs:
 #           branch-suffix: random
 #           base: main
 #           body: "${{ needs.check-compose.outputs.compose_id_rawhide }}"
-#           commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose_id_rawhide }} to compose file"
+#           commit-message: "chore: add compose ID ${{ needs.check-compose.outputs.compose_id_rawhide }} to compose file"
 #           labels: |
 #             automated-pr
 #         env:
@@ -141,7 +141,7 @@ jobs:
           branch-suffix: random
           base: main
           body: "${{ needs.check-compose.outputs.compose_id_43 }}"
-          commit-message: "Add compose ID ${{ needs.check-compose.outputs.compose_id_43 }} to compose file"
+          commit-message: "chore: add compose ID ${{ needs.check-compose.outputs.compose_id_43 }} to compose file"
           labels: |
             automated-pr
 
