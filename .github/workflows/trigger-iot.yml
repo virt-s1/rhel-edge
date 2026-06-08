@@ -113,7 +113,7 @@ jobs:
 
       - name: Create Pull Request for IoT 44
         id: create-pr
-        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           token: ${{ secrets.PAT }}
           title: "${{ needs.check-compose.outputs.compose-id-f44 }}"
@@ -150,7 +150,7 @@ jobs:
 
       - name: Create Pull Request for IoT 45
         id: create-pr
-        uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f # v7.0.5
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           token: ${{ secrets.PAT }}
           title: "${{ needs.check-compose.outputs.compose-id-f45 }}"
