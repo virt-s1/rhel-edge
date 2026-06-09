@@ -1,11 +1,13 @@
 module.exports = {
   extends: ['@commitlint/config-conventional'],
   rules: {
-    // Dependabot commit bodies contain long URLs (release notes, commit
-    // comparison links) that routinely exceed the 100-character default.
-    // These cannot be controlled via dependabot.yml, so the rules are
-    // disabled here while all other conventional-commit rules stay active.
+    // Auto-generated content from trigger workflows (compose IDs such as
+    // RHEL-9.4.0-updates-..., CentOS-Stream-9-..., FDO) and Dependabot
+    // (long URLs in bodies/footers) cannot be controlled to comply with
+    // these rules, so they are disabled. All remaining conventional-commit
+    // rules stay active.
     'body-max-line-length': [0],
     'footer-max-line-length': [0],
+    'subject-case': [0],
   },
 };
