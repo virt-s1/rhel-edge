@@ -79,7 +79,7 @@ jobs:
           timeout: 180
 
       - name: Send test results to Slack via webhook
-        if: always()
+        if: ${{ always() && startsWith(needs.pr-info.outputs.compose_id, 'CentOS-Stream-9-') }}
         run: |
           if [ "${{ job.status }}" = "success" ]; then
             emoji=":white_check_mark:"
@@ -133,7 +133,7 @@ jobs:
           timeout: 180
 
       - name: Send test results to Slack via webhook
-        if: always()
+        if: ${{ always() && startsWith(needs.pr-info.outputs.compose_id, 'CentOS-Stream-9-') }}
         run: |
           if [ "${{ job.status }}" = "success" ]; then
             emoji=":white_check_mark:"

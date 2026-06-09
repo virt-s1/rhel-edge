@@ -77,7 +77,7 @@ jobs:
           variables: "ARCH=x86_64;AWS_DEFAULT_REGION=us-east-1;GOVC_INSECURE=1"
 
       - name: Send test results to Slack via webhook
-        if: always()
+        if: ${{ always() && startsWith(needs.pr-info.outputs.compose_id, 'RHEL-9.4.0-') }}
         run: |
           if [ "${{ job.status }}" = "success" ]; then
             emoji=":white_check_mark:"
@@ -130,7 +130,7 @@ jobs:
           variables: "ARCH=aarch64;AWS_DEFAULT_REGION=us-east-1;GOVC_INSECURE=1"
 
       - name: Send test results to Slack via webhook
-        if: always()
+        if: ${{ always() && startsWith(needs.pr-info.outputs.compose_id, 'RHEL-9.4.0-') }}
         run: |
           if [ "${{ job.status }}" = "success" ]; then
             emoji=":white_check_mark:"
