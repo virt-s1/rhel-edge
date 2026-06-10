@@ -1,5 +1,5 @@
 #!/bin/bash
-set -exuo pipefail
+set -euox pipefail
 
 # Get TEST_OS from $1
 TEST_OS=$1
