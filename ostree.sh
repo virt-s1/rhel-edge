@@ -1,5 +1,5 @@
 #!/bin/bash
-set -exuo pipefail
+set -euox pipefail
 
 # --------------------------------------------------------------------------
 # NOTE: This script runs on a host VM (provisioned by Testing Farm)
