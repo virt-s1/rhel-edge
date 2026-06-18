@@ -306,10 +306,9 @@
         - name: wait for greenboot rollback to complete
           command: journalctl -b -0 -u greenboot-healthcheck.service --grep 'FALLBACK BOOT DETECTED' --quiet
           register: result_rollback
-          until: result_rollback.rc == 0
+          until: result_rollback.rc is defined and result_rollback.rc == 0
           retries: 30
           delay: 20
-          ignore_unreachable: yes
           ignore_errors: yes
 
         - assert:
