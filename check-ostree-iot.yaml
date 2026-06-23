@@ -303,6 +303,38 @@
           delegate_to: 127.0.0.1
           ignore_errors: yes
 
+        - name: wait for system to come back online after first reboot
+          wait_for_connection:
+            delay: 30
+            timeout: 5400
+          register: result_wait_connection
+          ignore_errors: yes
+
+        - name: log elapsed time after first reboot
+          debug:
+            msg: "System came back online after first reboot in {{ result_wait_connection.elapsed }} seconds"
+
+        - name: wait for SSH to go down during greenboot rollback reboot
+          wait_for:
+            host: "{{ ansible_facts['all_ipv4_addresses'][0] }}"
+            port: 22
+            state: stopped
+            delay: 30
+            timeout: 600
+          delegate_to: 127.0.0.1
+          ignore_errors: yes
+
+        - name: wait for system to come back online after greenboot rollback reboot
+          wait_for_connection:
+            delay: 30
+            timeout: 5400
+          register: result_wait_rollback_connection
+          ignore_errors: yes
+
+        - name: log elapsed time after rollback reboot
+          debug:
+            msg: "System came back online after rollback reboot in {{ result_wait_rollback_connection.elapsed }} seconds"
+
         - name: wait for greenboot rollback to complete
           command: journalctl -b -0 -u greenboot-healthcheck.service --grep 'FALLBACK BOOT DETECTED' --quiet
           register: result_rollback
