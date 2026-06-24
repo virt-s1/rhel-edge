@@ -18,10 +18,10 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       - uses: wagoid/commitlint-github-action@9763196e10f27aef304c9b8b660d31d97fce0f99 # v5
 
-  spellcheck:
+  codespell:
     permissions:
       contents: read
-    name: "📋 spellcheck"
+    name: "📋 codespell"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
@@ -33,7 +33,7 @@ jobs:
   shellcheck:
     permissions:
       contents: read
-    name: "🔭 Shellcheck"
+    name: "🔭 shellcheck"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
