@@ -303,37 +303,29 @@
           delegate_to: 127.0.0.1
           ignore_errors: yes
 
-        - name: wait for connection to become reachable/usable
-          wait_for_connection:
-            delay: 60
-            timeout: 1200
-            connect_timeout: 15
-            sleep: 15
-          register: reconnect_result
-
-        - debug:
-            msg: "Connection reachable after {{ reconnect_result.elapsed }} seconds."
-
-        - name: waits until instance is reachable
-          wait_for:
-            host: "{{ ansible_facts['all_ipv4_addresses'][0] }}"
-            port: 22
-            search_regex: OpenSSH
-            delay: 10
-            timeout: 600
+        - name: wait for greenboot rollback to complete
+          shell: |
+            start=$(date +%s)
+            for i in $(seq 1 60); do
+              ssh -o ConnectTimeout=10 \
+                  -o StrictHostKeyChecking=no \
+                  -o UserKnownHostsFile=/dev/null \
+                  -i {{ ansible_private_key_file }} \
+                  -p {{ ansible_port | default(22) }} \
+                  {{ ansible_user | default('root') }}@{{ ansible_facts['all_ipv4_addresses'][0] }} \
+                  'journalctl -b -0 -u greenboot-healthcheck.service --grep "FALLBACK BOOT DETECTED" --quiet' \
+                  && { echo "FALLBACK BOOT DETECTED after $(($(date +%s) - start)) seconds"; exit 0; }
+              sleep 10
+            done
+            echo "Timed out after $(($(date +%s) - start)) seconds"
+            exit 1
+          delegate_to: 127.0.0.1
           register: result_rollback
-          until: result_rollback is success
-          retries: 30
-          delay: 20
           ignore_errors: yes
 
-        - name: verify system is reachable with ping
-          ping:
-          register: ping_result
-          until: ping_result is success
-          retries: 5
-          delay: 5
-          ignore_errors: yes
+        - name: log rollback wait result
+          debug:
+            msg: "{{ result_rollback.stdout }}"
 
         - assert:
             that:
