@@ -304,12 +304,28 @@
           ignore_errors: yes
 
         - name: wait for greenboot rollback to complete
-          command: journalctl -b -0 -u greenboot-healthcheck.service --grep 'FALLBACK BOOT DETECTED' --quiet
+          shell: |
+            start=$(date +%s)
+            for i in $(seq 1 60); do
+              ssh -o ConnectTimeout=10 \
+                  -o StrictHostKeyChecking=no \
+                  -o UserKnownHostsFile=/dev/null \
+                  -i {{ ansible_private_key_file }} \
+                  -p {{ ansible_port | default(22) }} \
+                  {{ ansible_user | default('root') }}@{{ ansible_facts['all_ipv4_addresses'][0] }} \
+                  'journalctl -b -0 -u greenboot-healthcheck.service --grep "FALLBACK BOOT DETECTED" --quiet' \
+                  && { echo "FALLBACK BOOT DETECTED after $(($(date +%s) - start)) seconds"; exit 0; }
+              sleep 10
+            done
+            echo "Timed out after $(($(date +%s) - start)) seconds"
+            exit 1
+          delegate_to: 127.0.0.1
           register: result_rollback
-          until: result_rollback.rc is defined and result_rollback.rc == 0
-          retries: 30
-          delay: 20
           ignore_errors: yes
+
+        - name: log rollback wait result
+          debug:
+            msg: "{{ result_rollback.stdout }}"
 
         - assert:
             that:
