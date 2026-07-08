@@ -211,6 +211,7 @@ virt-install --name="iot-${TEST_UUID}" \
     --os-variant "${OS_VARIANT}" \
     --cdrom "/var/lib/libvirt/images/${IMAGE_FILENAME}" \
     --boot uefi \
+    --tpm none \
     --nographics \
     --noautoconsole \
     --wait=-1 \

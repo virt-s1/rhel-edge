@@ -72,10 +72,14 @@ install_packages() {
         createrepo_c
         lsof
         ansible-core
+        swtpm
+        swtpm-tools
+        swtpm-selinux
     )
     
     log_info "Installing required packages"
     sudo dnf install -y --nogpgcheck "${packages[@]}"
+    sudo restorecon -Rv /usr/bin/swtpm* || true
     sudo ansible-galaxy collection install community.general
     
     # Set locale to en_US.UTF-8
