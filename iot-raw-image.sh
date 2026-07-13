@@ -51,7 +51,7 @@ cleanup() {
     sudo rm -f "/var/lib/libvirt/images/iot-${TEST_UUID}.qcow2"
     sudo rm -f "iot-${TEST_UUID}.qcow2"
     sudo rm -f "${RAW_IMAGE}.qcow2"
-    sudo rm -f "Fedora-IoT-raw-${VERSION_ID}-${COMPOSE_ID}.${ARCH}.raw"    
+    sudo rm -f "Fedora-IoT-raw-${IOT_VERSION}-${COMPOSE_ID}.${ARCH}.raw"
 
     exit "${exit_code}"
 }
@@ -68,9 +68,6 @@ fi
 # Provision the software under test
 ./iot-setup.sh
 
-# Get OS data
-source /etc/os-release
-
 ARCH=$(uname -m)
 TEST_UUID=$(uuidgen)
 TEMPDIR=$(mktemp -d)
@@ -82,25 +79,25 @@ EDGE_USER="admin"
 EDGE_USER_PASSWORD="foobar"
 COMPOSE_URL="https://kojipkgs.fedoraproject.org/compose/iot/${COMPOSE}/compose/IoT/${ARCH}/images"
 COMPOSE_ID=$(echo "${COMPOSE}" | cut -d- -f4)
+IOT_VERSION=$(echo "${COMPOSE}" | cut -d- -f3)
 ADD_STORAGE="+10G"
 
 # Set OS-specific variables
-case "${ID}-${VERSION_ID}" in
-    "fedora-44")
+case "${IOT_VERSION}" in
+    "44")
         OSTREE_REF="fedora/stable/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
-        RAW_IMAGE="Fedora-IoT-raw-44-${COMPOSE_ID}.${ARCH}.raw.xz"
         ;;
-    "fedora-45")
+    "45")
         OSTREE_REF="fedora/rawhide/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"
-        RAW_IMAGE="Fedora-IoT-raw-45-${COMPOSE_ID}.${ARCH}.raw.xz"
         ;;
     *)
-        log_error "Unsupported distro: ${ID}-${VERSION_ID}"
+        log_error "Unsupported IoT version: ${IOT_VERSION}"
         exit 1
         ;;
 esac
+RAW_IMAGE="Fedora-IoT-raw-${IOT_VERSION}-${COMPOSE_ID}.${ARCH}.raw.xz"
 
 # Set up Ignition configuration.
 setup_ignition() {
@@ -200,15 +197,17 @@ sudo restorecon -Rv /var/www/html/ignition
 
 # Prepare raw image.
 sudo xz -d "${RAW_IMAGE}"
-sudo qemu-img resize "Fedora-IoT-raw-${VERSION_ID}-${COMPOSE_ID}.${ARCH}.raw" "$ADD_STORAGE"
-echo ", +" | sudo sfdisk -N 3 "Fedora-IoT-raw-${VERSION_ID}-${COMPOSE_ID}.${ARCH}.raw"
+RAW_IMAGE_DECOMPRESSED="${RAW_IMAGE%.xz}"
+sudo qemu-img resize "${RAW_IMAGE_DECOMPRESSED}" "$ADD_STORAGE"
+echo ", +" | sudo sfdisk -N 3 "${RAW_IMAGE_DECOMPRESSED}"
 
 log_info "Create device-mapper entries for each partition"
-sudo kpartx -av "Fedora-IoT-raw-${VERSION_ID}-${COMPOSE_ID}.${ARCH}.raw"
+LOOP_DEV=$(sudo kpartx -av "${RAW_IMAGE_DECOMPRESSED}" \
+    | awk 'NR==1{sub(/p[0-9]+$/, "", $3); print $3}')
 
 # Mount boot partition
 [ -d /tmp/boot ] || sudo mkdir /tmp/boot
-sudo mount /dev/mapper/loop0p2 /tmp/boot
+sudo mount "/dev/mapper/${LOOP_DEV}p2" /tmp/boot
 
 log_info "Embedding ignition configuration file into raw image..."
 sudo sed -i "s|systemd.condition-first-boot=true|systemd.condition-first-boot=true ignition.firstboot=1 ignition.config.url=http://192.168.100.1/ignition/fiot.ign|g" /tmp/boot/ignition.firstboot
@@ -217,9 +216,9 @@ sudo sed -i "s|systemd.condition-first-boot=true|systemd.condition-first-boot=tr
 sudo umount /tmp/boot
 
 # Deleting mappings
-sudo kpartx -dv "Fedora-IoT-raw-${VERSION_ID}-${COMPOSE_ID}.${ARCH}.raw"
+sudo kpartx -dv "${RAW_IMAGE_DECOMPRESSED}"
 
-sudo qemu-img convert -f raw "Fedora-IoT-raw-${VERSION_ID}-${COMPOSE_ID}.${ARCH}.raw" -O qcow2 "iot-${TEST_UUID}.qcow2"
+sudo qemu-img convert -f raw "${RAW_IMAGE_DECOMPRESSED}" -O qcow2 "iot-${TEST_UUID}.qcow2"
 sudo cp "iot-${TEST_UUID}.qcow2" "/var/lib/libvirt/images/iot-${TEST_UUID}.qcow2"
 sudo restorecon -Rv /var/lib/libvirt/images/
 
