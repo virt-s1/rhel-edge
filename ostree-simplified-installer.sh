@@ -124,6 +124,18 @@ case "${ID}-${VERSION_ID}" in
         NO_FDO="true"
         sudo mkdir -p /var/lib/fdo
         ;;
+    "rhel-9.2")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        IMAGE_NAME="image.raw.xz"
+        SYSROOT_RO="true"
+        ANSIBLE_USER=fdouser
+        FDO_USER_ONBOARDING="true"
+        USER_IN_BLUEPRINT="true"
+        BLUEPRINT_USER="simple"
+        NO_FDO="true"
+        ;;
     "rhel-9.4")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/9/${ARCH}/edge"
@@ -150,6 +162,19 @@ case "${ID}-${VERSION_ID}" in
         OS_NAME="rhel-edge"
         ;;
     "rhel-9.6")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        IMAGE_NAME="image.raw.xz"
+        SYSROOT_RO="true"
+        ANSIBLE_USER=fdouser
+        FDO_USER_ONBOARDING="true"
+        USER_IN_BLUEPRINT="true"
+        BLUEPRINT_USER="simple"
+        NO_FDO="true"
+        OS_NAME="rhel-edge"
+        ;;
+    "rhel-9.8")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
