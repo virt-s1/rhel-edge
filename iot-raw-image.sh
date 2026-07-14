@@ -119,7 +119,6 @@ setup_ignition() {
         "groups": [
           "wheel"
         ],
-        "homeDir": "/home/admin",
         "name": "admin",
         "passwordHash": "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl.",
         "shell": "/bin/bash",
