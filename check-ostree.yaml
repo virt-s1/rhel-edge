@@ -23,6 +23,7 @@
     - name: check bios or uefi
       stat:
         path: /sys/firmware/efi
+      register: result_uefi
 
     # check secure boot status if it's enabled
     - name: check secure boot status
@@ -1513,6 +1514,80 @@
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
       when: test_custom_dirs_files_services == "true"
+
+    # case: bootupd should not be installed on RHEL < 9.8
+    - name: bootupd should not be installed on RHEL < 9.8
+      block:
+        - name: check bootupd package is not installed
+          command: rpm -q bootupd
+          register: result_bootupd_rpm_old
+          changed_when: false
+          failed_when: false
+
+        - assert:
+            that:
+              - result_bootupd_rpm_old.rc != 0
+            fail_msg: "bootupd unexpectedly installed on RHEL {{ ansible_facts['distribution_version'] }}"
+            success_msg: "bootupd correctly absent on RHEL {{ ansible_facts['distribution_version'] }}"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: ansible_facts['distribution'] == 'RedHat' and ansible_facts['distribution_version'] is version('9.8', '<')
+
+    # case: bootupd should be installed on RHEL >= 9.8
+    - name: bootupd should be installed
+      block:
+        - name: check bootupd package is installed
+          command: rpm -q bootupd
+          register: result_bootupd_rpm
+          changed_when: false
+
+        - assert:
+            that:
+              - result_bootupd_rpm.rc == 0
+            fail_msg: "bootupd not installed on RHEL {{ ansible_facts['distribution_version'] }}"
+            success_msg: "bootupd is installed"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: ansible_facts['distribution'] == 'RedHat' and ansible_facts['distribution_version'] is version('9.8', '>=')
+
+    # case: bootupctl status should show healthy boot component metadata
+    - name: set expected boot component name
+      set_fact:
+        expected_boot_component: "{{ 'Component EFI' if result_uefi.stat.exists else 'Component BIOS' }}"
+
+    - name: bootupctl status should show healthy boot component metadata
+      block:
+        - name: run bootupctl status
+          command: bootupctl status
+          register: result_bootupctl_status
+          become: yes
+          changed_when: false
+
+        - assert:
+            that:
+              - "expected_boot_component in result_bootupctl_status.stdout"
+              - "'Installed:' in result_bootupctl_status.stdout"
+              - "'No update metadata' not in result_bootupctl_status.stdout"
+            fail_msg: "bootupctl status missing {{ expected_boot_component }} or update metadata: {{ result_bootupctl_status.stdout }}"
+            success_msg: "bootupctl status shows healthy {{ expected_boot_component }} with update metadata: {{ result_bootupctl_status.stdout }}"
+      always:
+        - set_fact:
+            total_counter: "{{ total_counter | int + 1 }}"
+      rescue:
+        - name: failed count + 1
+          set_fact:
+            failed_counter: "{{ failed_counter | int + 1 }}"
+      when: ansible_facts['distribution'] == 'RedHat' and ansible_facts['distribution_version'] is version('9.8', '>=')
 
     # case: check no failed systemd units
     - name: check systemd failed units
