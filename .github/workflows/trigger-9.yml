@@ -9,9 +9,11 @@ on:
 permissions: {}
 
 env:
+  COMPOSE_URL_92: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
   COMPOSE_URL_94: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
   COMPOSE_URL_95: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
   COMPOSE_URL_96: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
+  COMPOSE_URL_98: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
 
 jobs:
   check-compose:
@@ -34,6 +36,112 @@ jobs:
 
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
+      - name: Check RHEL 9.2 compose
+        id: check_compose_id_92
+        run: |
+          curl -sf ${COMPOSE_URL_92}/latest-RHEL-9.2.0/STATUS --output STATUS_92
+          STATUS_92=$(cat STATUS_92)
+          if [[ "$STATUS_92" == "FINISHED" ]]; then
+              curl -sf ${COMPOSE_URL_92}/latest-RHEL-9.2.0/COMPOSE_ID --output COMPOSE_ID_92
+              COMPOSE_ID_92=$(cat COMPOSE_ID_92)
+              TESTED_COMPOSE_92=( $( cat compose/compose.92 ) )
+              if [[ " ${TESTED_COMPOSE_92[*]} " =~ "$COMPOSE_ID_92" ]]; then
+                  COMPOSE_ID_92="false"
+              fi
+          else
+              COMPOSE_ID_92="false"
+          fi
+
+          if [[ "$COMPOSE_ID_92" != "false" ]]; then
+              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST_92
+              PR_LIST_92=$(cat PR_LIST_92)
+              if [[ $PR_LIST_92 == *"$COMPOSE_ID_92"* ]]; then
+                  echo "pr_running_92=true" >> $GITHUB_OUTPUT
+              else
+                  echo "pr_running_92=false" >> $GITHUB_OUTPUT
+              fi
+
+              OSBUILD_VERSION_92=$(curl -s "${COMPOSE_URL_92}/${COMPOSE_ID_92}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION_92=$(curl -s "${COMPOSE_URL_92}/${COMPOSE_ID_92}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION_92=$(curl -s "${COMPOSE_URL_92}/${COMPOSE_ID_92}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "osbuild_version_92=$OSBUILD_VERSION_92" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_92=$OSBUILD_COMPOSER_VERSION_92" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_92=$COMPOSER_CLI_VERSION_92" >> $GITHUB_OUTPUT
+
+              curl -sf ${COMPOSE_URL_92}/ --output COMPOSES
+              COMPOSES=$(cat -n COMPOSES)
+              line=$(echo "${COMPOSES}" | grep ${COMPOSE_ID_92} | cut -b 1-7)
+              old_line=$((line - 1))
+              OLD_COMPOSE_ID_92=$(awk "NR==${old_line}" <<< "${COMPOSES}" | tr -d "><" | grep -oP 'RHEL-.+?-updates-\d+\.\d+' | tail -1)
+              echo "Found previous compose: ${OLD_COMPOSE_ID_92}"
+
+              packages=("osbuild" "osbuild-composer" "weldr-client" "aardvark-dns" "acl" "alternatives" "audit-libs" "bootc" "bootupd" "bubblewrap" "bzip2-libs" "composefs" "conmon" "container-selinux" "containers-common" "coreutils" "cpio" "cracklib" "criu" "crun" "crypto-policies" "cryptsetup-libs" "cyrus-sasl-lib" "dbus" "device-mapper" "diffutils" "dracut" "expat" "file" "filesystem" "findutils" "fuse" "fuse3" "gawk" "gdbm-libs" "gettext" "glib2" "glibc" "gmp" "gnupg2" "gnutls" "gpgme" "grub2-common" "gzip" "iptables-libs" "jansson" "json-c" "json-glib" "kernel-modules" "keyutils-libs" "kmod" "kpartx" "krb5-libs" "libacl" "libarchive" "libassuan" "libattr" "libblkid" "libbrotli" "libcap" "libcom_err" "libcurl" "libdb" "libeconf" "libevent" "libfdisk" "libffi" "libgcc" "libgcrypt" "libgomp" "libgpg-error" "libidn2" "libkcapi" "libksba" "libmnl" "libmodulemd" "libmount" "libnet" "libnetfilter_conntrack" "libnfnetlink" "libnftnl" "libnghttp2" "libnl3" "libpsl" "libpwquality" "librepo" "librhsm" "libseccomp" "libselinux" "libsemanage" "libsepol" "libsigsegv" "libslirp" "libsmartcols" "libsolv" "libssh" "libtasn1" "libtool-ltdl" "libunistring" "libutempter" "libuuid" "libverto" "libxcrypt" "libxcrypt-compat" "libxml2" "libyaml" "libzstd" "lua-libs" "lz4-libs" "mpfr" "ncurses-libs" "netavark" "nettle" "nftables" "npth" "openldap" "openssl" "os-prober" "ostree" "p11-kit" "pam" "passt" "pcre" "pcre2" "pigz" "podman" "policycoreutils" "polkit-libs" "popt" "procps-ng" "protobuf-c" "python3" "readline" "redhat-release" "redhat-release-eula" "rpm" "rpm-libs" "rpm-ostree" "rpm-plugin-selinux" "selinux-policy" "shadow-utils" "skopeo" "slirp4netns" "sqlite-libs" "systemd" "systemd-libs" "systemd-pam" "systemd-udev" "tpm2-tss" "util-linux" "which" "xz" "xz-libs" "yajl" "zlib")
+              APPS_URL="${COMPOSE_URL_92}/${COMPOSE_ID_92}/compose/AppStream/x86_64/os/Packages/"
+              OLD_APPS_URL="${COMPOSE_URL_92}/${OLD_COMPOSE_ID_92}/compose/AppStream/x86_64/os/Packages/"
+              BASEOS_URL="${COMPOSE_URL_92}/${COMPOSE_ID_92}/compose/BaseOS/x86_64/os/Packages/"
+              OLD_BASEOS_URL="${COMPOSE_URL_92}/${OLD_COMPOSE_ID_92}/compose/BaseOS/x86_64/os/Packages/"
+              special_pkgs=("selinux-policy" "grub2-common" "osbuild" "container-selinux" "crypto-policies" "basesystem" "ca-certificates" "libssh-config" "passt-selinux" "publicsuffix-list-dafsa" "setup" "systemd-rpm-macros" "tzdata")
+              updated_pkgs=""
+              count=0
+              for pkg in "${packages[@]}"; do
+                  if [[ " ${special_pkgs[*]} " == *" ${pkg} "* ]]; then
+                      if curl -s "${APPS_URL}" | grep -ioE ">${pkg}-[0-9].*<"; then
+                          new=$(curl -s "${APPS_URL}" | grep -ioE ">${pkg}-[0-9].*<" | tr -d "><")
+                          old=$(curl -s "${OLD_APPS_URL}" | grep -ioE ">${pkg}-[0-9].*<" | tr -d "><")
+                          if [[ "$new" == "$old" ]]; then
+                              echo "======= Package ${pkg} NOT updated ========="
+                          else
+                              echo "======= Package ${pkg} updated ========="
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
+                          fi
+                      elif curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*<"; then
+                          new=$(curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*<" | tr -d "><")
+                          old=$(curl -s "${OLD_BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*<" | tr -d "><")
+                          if [[ "$new" == "$old" ]]; then
+                              echo "======= Package ${pkg} NOT updated ========="
+                          else
+                              echo "======= Package ${pkg} updated ========="
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
+                          fi
+                      else
+                          echo "NOT FOUND: $pkg" >&2
+                      fi
+                  else
+                      if curl -s "${APPS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<"; then
+                          new=$(curl -s "${APPS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<" | tr -d "><")
+                          old=$(curl -s "${OLD_APPS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<" | tr -d "><")
+                          if [[ "$new" == "$old" ]]; then
+                              echo "======= Package ${pkg} NOT updated ========="
+                          else
+                              echo "======= Package ${pkg} updated ========="
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
+                          fi
+                      elif curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<"; then
+                          new=$(curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<" | tr -d "><")
+                          old=$(curl -s "${OLD_BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<" | tr -d "><")
+                          if [[ "$new" == "$old" ]]; then
+                              echo "======= Package ${pkg} NOT updated ========="
+                          else
+                              echo "======= Package ${pkg} updated ========="
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
+                          fi
+                      else
+                          echo "NOT FOUND: $pkg" >&2
+                      fi
+                  fi
+              done
+              echo "updated_pkgs<<EOF" >> $GITHUB_OUTPUT
+              echo "${updated_pkgs}" >> $GITHUB_OUTPUT
+              echo "EOF" >> $GITHUB_OUTPUT
+              echo "count=$count" >> $GITHUB_OUTPUT
+          fi
+          echo "rhel92_compose=$COMPOSE_ID_92" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Check RHEL 9.4 compose
         id: check_compose_id_94
         run: |
@@ -353,7 +461,121 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check RHEL 9.8 compose
+        id: check_compose_id_98
+        run: |
+          curl -sf ${COMPOSE_URL_98}/latest-RHEL-9.8.0/STATUS --output STATUS_98
+          STATUS_98=$(cat STATUS_98)
+          if [[ "$STATUS_98" == "FINISHED" ]]; then
+              curl -sf ${COMPOSE_URL_98}/latest-RHEL-9.8.0/COMPOSE_ID --output COMPOSE_ID_98
+              COMPOSE_ID_98=$(cat COMPOSE_ID_98)
+              TESTED_COMPOSE_98=( $( cat compose/compose.98 ) )
+              if [[ " ${TESTED_COMPOSE_98[*]} " =~ "$COMPOSE_ID_98" ]]; then
+                  COMPOSE_ID_98="false"
+              fi
+          else
+              COMPOSE_ID_98="false"
+          fi
+
+          if [[ "$COMPOSE_ID_98" != "false" ]]; then
+              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST_98
+              PR_LIST_98=$(cat PR_LIST_98)
+              if [[ $PR_LIST_98 == *"$COMPOSE_ID_98"* ]]; then
+                  echo "pr_running_98=true" >> $GITHUB_OUTPUT
+              else
+                  echo "pr_running_98=false" >> $GITHUB_OUTPUT
+              fi
+
+              OSBUILD_VERSION_98=$(curl -s "${COMPOSE_URL_98}/${COMPOSE_ID_98}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-[0-9].*<" | tr -d "><")
+              OSBUILD_COMPOSER_VERSION_98=$(curl -s "${COMPOSE_URL_98}/${COMPOSE_ID_98}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">osbuild-composer-[0-9].*<" | tr -d "><")
+              COMPOSER_CLI_VERSION_98=$(curl -s "${COMPOSE_URL_98}/${COMPOSE_ID_98}/compose/AppStream/x86_64/os/Packages/" | grep -ioE ">weldr-client-[0-9].*<" | tr -d "><")
+              echo "osbuild_version_98=$OSBUILD_VERSION_98" >> $GITHUB_OUTPUT
+              echo "osbuild_composer_version_98=$OSBUILD_COMPOSER_VERSION_98" >> $GITHUB_OUTPUT
+              echo "composer_cli_version_98=$COMPOSER_CLI_VERSION_98" >> $GITHUB_OUTPUT
+
+              curl -sf ${COMPOSE_URL_98}/ --output COMPOSES
+              COMPOSES=$(cat -n COMPOSES)
+              line=$(echo "${COMPOSES}" | grep ${COMPOSE_ID_98} | cut -b 1-7)
+              old_line=$((line - 1))
+              OLD_COMPOSE_ID_98=$(awk "NR==${old_line}" <<< "${COMPOSES}" | tr -d "><" | grep -oP 'RHEL-.+?-updates-\d+\.\d+' | tail -1)
+              echo "Found previous compose: ${OLD_COMPOSE_ID_98}"
+
+              packages=("osbuild" "osbuild-composer" "weldr-client" "aardvark-dns" "acl" "alternatives" "audit-libs" "bootc" "bootupd" "bubblewrap" "bzip2-libs" "composefs" "conmon" "container-selinux" "containers-common" "coreutils" "cpio" "cracklib" "criu" "crun" "crypto-policies" "cryptsetup-libs" "cyrus-sasl-lib" "dbus" "device-mapper" "diffutils" "dracut" "expat" "file" "filesystem" "findutils" "fuse" "fuse3" "gawk" "gdbm-libs" "gettext" "glib2" "glibc" "gmp" "gnupg2" "gnutls" "gpgme" "grub2-common" "gzip" "iptables-libs" "jansson" "json-c" "json-glib" "kernel-modules" "keyutils-libs" "kmod" "kpartx" "krb5-libs" "libacl" "libarchive" "libassuan" "libattr" "libblkid" "libbrotli" "libcap" "libcom_err" "libcurl" "libdb" "libeconf" "libevent" "libfdisk" "libffi" "libgcc" "libgcrypt" "libgomp" "libgpg-error" "libidn2" "libkcapi" "libksba" "libmnl" "libmodulemd" "libmount" "libnet" "libnetfilter_conntrack" "libnfnetlink" "libnftnl" "libnghttp2" "libnl3" "libpsl" "libpwquality" "librepo" "librhsm" "libseccomp" "libselinux" "libsemanage" "libsepol" "libsigsegv" "libslirp" "libsmartcols" "libsolv" "libssh" "libtasn1" "libtool-ltdl" "libunistring" "libutempter" "libuuid" "libverto" "libxcrypt" "libxcrypt-compat" "libxml2" "libyaml" "libzstd" "lua-libs" "lz4-libs" "mpfr" "ncurses-libs" "netavark" "nettle" "nftables" "npth" "openldap" "openssl" "os-prober" "ostree" "p11-kit" "pam" "passt" "pcre" "pcre2" "pigz" "podman" "policycoreutils" "polkit-libs" "popt" "procps-ng" "protobuf-c" "python3" "readline" "redhat-release" "redhat-release-eula" "rpm" "rpm-libs" "rpm-ostree" "rpm-plugin-selinux" "selinux-policy" "shadow-utils" "skopeo" "slirp4netns" "sqlite-libs" "systemd" "systemd-libs" "systemd-pam" "systemd-udev" "tpm2-tss" "util-linux" "which" "xz" "xz-libs" "yajl" "zlib")
+              APPS_URL="${COMPOSE_URL_98}/${COMPOSE_ID_98}/compose/AppStream/x86_64/os/Packages/"
+              OLD_APPS_URL="${COMPOSE_URL_98}/${OLD_COMPOSE_ID_98}/compose/AppStream/x86_64/os/Packages/"
+              BASEOS_URL="${COMPOSE_URL_98}/${COMPOSE_ID_98}/compose/BaseOS/x86_64/os/Packages/"
+              OLD_BASEOS_URL="${COMPOSE_URL_98}/${OLD_COMPOSE_ID_98}/compose/BaseOS/x86_64/os/Packages/"
+              special_pkgs=("selinux-policy" "grub2-common" "osbuild" "container-selinux" "crypto-policies" "basesystem" "ca-certificates" "libssh-config" "passt-selinux" "publicsuffix-list-dafsa" "setup" "systemd-rpm-macros" "tzdata")
+              updated_pkgs=""
+              count=0
+              for pkg in "${packages[@]}"; do
+                  if [[ " ${special_pkgs[*]} " == *" ${pkg} "* ]]; then
+                      if curl -s "${APPS_URL}" | grep -ioE ">${pkg}-[0-9].*<"; then
+                          new=$(curl -s "${APPS_URL}" | grep -ioE ">${pkg}-[0-9].*<" | tr -d "><")
+                          old=$(curl -s "${OLD_APPS_URL}" | grep -ioE ">${pkg}-[0-9].*<" | tr -d "><")
+                          if [[ "$new" == "$old" ]]; then
+                              echo "======= Package ${pkg} NOT updated ========="
+                          else
+                              echo "======= Package ${pkg} updated ========="
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
+                          fi
+                      elif curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*<"; then
+                          new=$(curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*<" | tr -d "><")
+                          old=$(curl -s "${OLD_BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*<" | tr -d "><")
+                          if [[ "$new" == "$old" ]]; then
+                              echo "======= Package ${pkg} NOT updated ========="
+                          else
+                              echo "======= Package ${pkg} updated ========="
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
+                          fi
+                      else
+                          echo "NOT FOUND: $pkg" >&2
+                      fi
+                  else
+                      if curl -s "${APPS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<"; then
+                          new=$(curl -s "${APPS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<" | tr -d "><")
+                          old=$(curl -s "${OLD_APPS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<" | tr -d "><")
+                          if [[ "$new" == "$old" ]]; then
+                              echo "======= Package ${pkg} NOT updated ========="
+                          else
+                              echo "======= Package ${pkg} updated ========="
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
+                          fi
+                      elif curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<"; then
+                          new=$(curl -s "${BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<" | tr -d "><")
+                          old=$(curl -s "${OLD_BASEOS_URL}" | grep -ioE ">${pkg}-[0-9].*x86_64.*<" | tr -d "><")
+                          if [[ "$new" == "$old" ]]; then
+                              echo "======= Package ${pkg} NOT updated ========="
+                          else
+                              echo "======= Package ${pkg} updated ========="
+                              updated_pkgs+=$'\n'"    ${new}"
+                              count=$((count + 1))
+                          fi
+                      else
+                          echo "NOT FOUND: $pkg" >&2
+                      fi
+                  fi
+              done
+              echo "updated_pkgs<<EOF" >> $GITHUB_OUTPUT
+              echo "${updated_pkgs}" >> $GITHUB_OUTPUT
+              echo "EOF" >> $GITHUB_OUTPUT
+              echo "count=$count" >> $GITHUB_OUTPUT
+          fi
+          echo "rhel98_compose=$COMPOSE_ID_98" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     outputs:
+      rhel92_compose: ${{ steps.check_compose_id_92.outputs.rhel92_compose }}
+      osbuild_version_92: ${{ steps.check_compose_id_92.outputs.osbuild_version_92 }}
+      osbuild_composer_version_92: ${{ steps.check_compose_id_92.outputs.osbuild_composer_version_92 }}
+      composer_cli_version_92: ${{ steps.check_compose_id_92.outputs.composer_cli_version_92 }}
+      pr_running_92: ${{ steps.check_compose_id_92.outputs.pr_running_92 }}
+      updated_pkgs_92: ${{ steps.check_compose_id_92.outputs.updated_pkgs }}
+      count_92: ${{ steps.check_compose_id_92.outputs.count }}
       rhel94_compose: ${{ steps.check_compose_id_94.outputs.rhel94_compose }}
       osbuild_version_94: ${{ steps.check_compose_id_94.outputs.osbuild_version_94 }}
       osbuild_composer_version_94: ${{ steps.check_compose_id_94.outputs.osbuild_composer_version_94 }}
@@ -375,6 +597,72 @@ jobs:
       pr_running_96: ${{ steps.check_compose_id_96.outputs.pr_running_96 }}
       updated_pkgs_96: ${{ steps.check_compose_id_96.outputs.updated_pkgs }}
       count_96: ${{ steps.check_compose_id_96.outputs.count }}
+      rhel98_compose: ${{ steps.check_compose_id_98.outputs.rhel98_compose }}
+      osbuild_version_98: ${{ steps.check_compose_id_98.outputs.osbuild_version_98 }}
+      osbuild_composer_version_98: ${{ steps.check_compose_id_98.outputs.osbuild_composer_version_98 }}
+      composer_cli_version_98: ${{ steps.check_compose_id_98.outputs.composer_cli_version_98 }}
+      pr_running_98: ${{ steps.check_compose_id_98.outputs.pr_running_98 }}
+      updated_pkgs_98: ${{ steps.check_compose_id_98.outputs.updated_pkgs }}
+      count_98: ${{ steps.check_compose_id_98.outputs.count }}
+
+
+  rhel-9-2:
+    permissions:
+      contents: write
+      pull-requests: write
+    needs: check-compose
+    if: ${{ needs.check-compose.outputs.rhel92_compose != 'false' && needs.check-compose.outputs.pr_running_92 == 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Add new compose id in compose.92
+        run: |
+          compose_id="${{ needs.check-compose.outputs.rhel92_compose }}"
+          echo $compose_id >> compose/compose.92
+          cat compose/compose.92
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.PAT }}
+          commit-message: "chore: ${{ needs.check-compose.outputs.rhel92_compose }} - ${{ steps.date.outputs.date }}"
+          committer: cloudkitebot <henrywangxf1@gmail.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: cpr
+          branch-suffix: random
+          delete-branch: true
+          title: "${{ needs.check-compose.outputs.rhel92_compose }} - ${{ steps.date.outputs.date }}"
+          labels: auto-merge,RHEL-9.2.0
+          body: |
+            RHEL 9.2 compose ${{ needs.check-compose.outputs.rhel92_compose }}
+            - Date: ${{ steps.date.outputs.date }}
+            - Osbuild version:
+                - ${{ needs.check-compose.outputs.osbuild_version_92 }}
+                - ${{ needs.check-compose.outputs.osbuild_composer_version_92 }}
+                - ${{ needs.check-compose.outputs.composer_cli_version_92 }}
+            - Updated packages(${{ needs.check-compose.outputs.count_92 }}):
+                  ${{ needs.check-compose.outputs.updated_pkgs_92 }}
+
+      - name: Enable Pull Request Automerge
+        if: steps.cpr.outputs.pull-request-operation == 'created'
+        uses: peter-evans/enable-pull-request-automerge@a660677d5469627102a1c1e11409dd063606628d # v3.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: rebase
+
+      - name: Add a comment to trigger test workflow
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+        with:
+          token: ${{ secrets.PAT }}
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          body: /test-rhel-9-2
 
   rhel-9-4:
     permissions:
@@ -391,6 +679,7 @@ jobs:
           compose_id="${{ needs.check-compose.outputs.rhel94_compose }}"
           echo $compose_id >> compose/compose.94
           cat compose/compose.94
+
       - name: Get current date
         id: date
         run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
@@ -406,7 +695,7 @@ jobs:
           branch: cpr
           branch-suffix: random
           delete-branch: true
-          title: "${{ needs.check-compose.outputs.rhel94_compose }}"
+          title: "${{ needs.check-compose.outputs.rhel94_compose }} - ${{ steps.date.outputs.date }}"
           labels: auto-merge,RHEL-9.4.0
           body: |
             RHEL 9.4 compose ${{ needs.check-compose.outputs.rhel94_compose }}
@@ -549,3 +838,62 @@ jobs:
           token: ${{ secrets.PAT }}
           issue-number: ${{ steps.cpr.outputs.pull-request-number }}
           body: /test-rhel-9-6
+
+  rhel-9-8:
+    permissions:
+      contents: write
+      pull-requests: write
+    needs: check-compose
+    if: ${{ needs.check-compose.outputs.rhel98_compose != 'false' && needs.check-compose.outputs.pr_running_98 == 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Add new compose id in compose.98
+        run: |
+          compose_id="${{ needs.check-compose.outputs.rhel98_compose }}"
+          echo $compose_id >> compose/compose.98
+          cat compose/compose.98
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.PAT }}
+          commit-message: "chore: ${{ needs.check-compose.outputs.rhel98_compose }} - ${{ steps.date.outputs.date }}"
+          committer: cloudkitebot <henrywangxf1@gmail.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: cpr
+          branch-suffix: random
+          delete-branch: true
+          title: "${{ needs.check-compose.outputs.rhel98_compose }} - ${{ steps.date.outputs.date }}"
+          labels: auto-merge,RHEL-9.8.0
+          body: |
+            RHEL 9.8 compose ${{ needs.check-compose.outputs.rhel98_compose }}
+            - Date: ${{ steps.date.outputs.date }}
+            - Osbuild version:
+                - ${{ needs.check-compose.outputs.osbuild_version_98 }}
+                - ${{ needs.check-compose.outputs.osbuild_composer_version_98 }}
+                - ${{ needs.check-compose.outputs.composer_cli_version_98 }}
+            - Updated packages(${{ needs.check-compose.outputs.count_98 }}):
+                  ${{ needs.check-compose.outputs.updated_pkgs_98 }}
+
+
+      - name: Enable Pull Request Automerge
+        if: steps.cpr.outputs.pull-request-operation == 'created'
+        uses: peter-evans/enable-pull-request-automerge@a660677d5469627102a1c1e11409dd063606628d # v3.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: rebase
+
+      - name: Add a comment to trigger test workflow
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+        with:
+          token: ${{ secrets.PAT }}
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          body: /test-rhel-9-8

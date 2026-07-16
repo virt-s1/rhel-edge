@@ -64,6 +64,14 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_RAW="true"
         SYSROOT_RO="false"
         ;;
+    "rhel-9.2")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        ADD_SSSD="true"
+        USER_IN_RAW="true"
+        SYSROOT_RO="true"
+        ;;
     "rhel-9.4")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/9/${ARCH}/edge"
@@ -82,6 +90,15 @@ case "${ID}-${VERSION_ID}" in
         ANSIBLE_OS_NAME="rhel-edge"
         ;;
     "rhel-9.6")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        ADD_SSSD="true"
+        USER_IN_RAW="true"
+        SYSROOT_RO="true"
+        ANSIBLE_OS_NAME="rhel-edge"
+        ;;
+    "rhel-9.8")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         PARENT_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
