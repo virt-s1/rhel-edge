@@ -41,6 +41,12 @@ sudo mkdir -p /etc/osbuild-composer/repositories
 # The RO setting on RHEL 8.8 and CS8 is not configured by ostree, but osbuild-composer
 # by PR https://github.com/osbuild/osbuild-composer/pull/3178
 case "${ID}-${VERSION_ID}" in
+    "rhel-9.2")
+        IMAGE_TYPE=edge-commit
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/updates/RHEL-9/latest-RHEL-9.2.0/compose/BaseOS/x86_64/os/"
+        ;;
     "rhel-9.4")
         IMAGE_TYPE=edge-commit
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -58,6 +64,12 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
         BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.6.0/compose/BaseOS/x86_64/os/"
+        ;;
+    "rhel-9.8")
+        IMAGE_TYPE=edge-commit
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        BOOT_LOCATION="http://${DOWNLOAD_NODE}/rhel-9/nightly/RHEL-9/latest-RHEL-9.8.0/compose/BaseOS/x86_64/os/"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"

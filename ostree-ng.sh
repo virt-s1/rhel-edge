@@ -83,6 +83,16 @@ case "${ID}-${VERSION_ID}" in
         HTTP_BOOT_FEAT="true"
         DIRS_FILES_SERVICES_CUSTOMIZATION="true"
         ;;
+    "rhel-9.2")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        NEW_MKKSISO="true"
+        CONTAINER_PUSHING_FEAT="true"
+        EMBEDDED_CONTAINER="true"
+        HTTP_BOOT_FEAT="true"
+        SYSROOT_RO="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
+        ;;
     "rhel-9.4")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
@@ -105,6 +115,17 @@ case "${ID}-${VERSION_ID}" in
         ANSIBLE_OS_NAME="rhel-edge"
         ;;
     "rhel-9.6")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        NEW_MKKSISO="true"
+        CONTAINER_PUSHING_FEAT="true"
+        EMBEDDED_CONTAINER="true"
+        HTTP_BOOT_FEAT="true"
+        SYSROOT_RO="true"
+        DIRS_FILES_SERVICES_CUSTOMIZATION="true"
+        ANSIBLE_OS_NAME="rhel-edge"
+        ;;
+    "rhel-9.8")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
         NEW_MKKSISO="true"
