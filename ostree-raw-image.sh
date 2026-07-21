@@ -48,6 +48,7 @@ EDGE_USER_PASSWORD=foobar
 # Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
 # It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
 SYSROOT_RO="false"
+BOOT_FILESYSTEM_CUSTOMIZATION="false"
 
 # Prepare osbuild-composer repository file
 sudo mkdir -p /etc/osbuild-composer/repositories
@@ -97,6 +98,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_RAW="true"
         SYSROOT_RO="true"
         ANSIBLE_OS_NAME="rhel-edge"
+        BOOT_FILESYSTEM_CUSTOMIZATION="true"
         ;;
     "rhel-9.8")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -106,6 +108,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_RAW="true"
         SYSROOT_RO="true"
         ANSIBLE_OS_NAME="rhel-edge"
+        BOOT_FILESYSTEM_CUSTOMIZATION="true"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
@@ -116,6 +119,7 @@ case "${ID}-${VERSION_ID}" in
         USER_IN_RAW="true"
         SYSROOT_RO="true"
         ANSIBLE_OS_NAME="rhel-edge"
+        BOOT_FILESYSTEM_CUSTOMIZATION="true"
         ;;
     "fedora-41")
         CONTAINER_TYPE=fedora-iot-container
@@ -462,9 +466,15 @@ password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHB
 key = "${SSH_KEY_PUB}"
 home = "/home/admin/"
 groups = ["wheel"]
+EOF
+fi
+
+if [[ "$BOOT_FILESYSTEM_CUSTOMIZATION" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.filesystem]]
 mountpoint = "/boot"
 size = 1073741824
+
 EOF
 fi
 
