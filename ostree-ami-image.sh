@@ -44,6 +44,7 @@ SSH_KEY=key/ostree_key
 SSH_KEY_PUB=$(cat "${SSH_KEY}".pub)
 IGNITION_USER=core
 EDGE_USER_PASSWORD=foobar
+BOOT_FILESYSTEM_CUSTOMIZATION="false"
 
 # Prepare osbuild-composer repository file
 sudo mkdir -p /etc/osbuild-composer/repositories
@@ -66,16 +67,19 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/9/${ARCH}/edge"
         SYSROOT_RO="true"
         ANSIBLE_OS_NAME="rhel-edge"
+        BOOT_FILESYSTEM_CUSTOMIZATION="true"
         ;;
     "rhel-9.8")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         SYSROOT_RO="true"
         ANSIBLE_OS_NAME="rhel-edge"
+        BOOT_FILESYSTEM_CUSTOMIZATION="true"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         SYSROOT_RO="true"
         ANSIBLE_OS_NAME="rhel-edge"
+        BOOT_FILESYSTEM_CUSTOMIZATION="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -587,11 +591,16 @@ groups = ["wheel"]
 [customizations.ignition.firstboot]
 url = "${OBJECT_URL}/config.ign"
 
+EOF
+
+if [[ "$BOOT_FILESYSTEM_CUSTOMIZATION" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.filesystem]]
 mountpoint = "/boot"
 size = 1073741824
 
 EOF
+fi
 
 greenprint "📄 aws ami blueprint"
 cat "$BLUEPRINT_FILE"

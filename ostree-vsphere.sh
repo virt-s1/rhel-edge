@@ -19,7 +19,7 @@ ARCH=$(uname -m)
 GOVC_VERSION="v0.30.5"
 sudo curl -L -o - "https://github.com/vmware/govmomi/releases/download/${GOVC_VERSION}/govc_Linux_x86_64.tar.gz" | sudo tar -C /usr/local/bin -xvzf - govc
 
-# Allow http service in firewall to enable ignition
+# Allow http service in firewall for ostree repo
 sudo firewall-cmd --permanent --zone=public --add-service=http
 sudo firewall-cmd --reload
 
@@ -50,11 +50,7 @@ SSH_OPTIONS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o Conn
 SSH_KEY=key/ostree_key
 SSH_KEY_PUB=$(cat "${SSH_KEY}".pub)
 
-# Ignition setup
-IGNITION_SERVER_FOLDER=/var/www/html/ignition
-IGNITION_SERVER_URL=http://${HOST_IP_ADDRESS}/ignition
-IGNITION_USER=core
-IGNITION_USER_PASSWORD=foobar
+EDGE_USER_PASSWORD=foobar
 
 SYSROOT_RO="true"
 
@@ -327,86 +323,7 @@ sudo composer-cli blueprints delete container > /dev/null
 
 ##################################################################
 ##
-## Generate ignition configuration
-##
-##################################################################
-greenprint "📋 Preparing ignition environment"
-sudo mkdir -p "$IGNITION_SERVER_FOLDER"
-IGNITION_CONFIG_PATH="${IGNITION_SERVER_FOLDER}/config.ign"
-sudo tee "$IGNITION_CONFIG_PATH" > /dev/null << EOF
-{
-  "ignition": {
-    "config": {
-      "merge": [
-        {
-          "source": "${IGNITION_SERVER_URL}/sample.ign"
-        }
-      ]
-    },
-    "timeouts": {
-      "httpTotal": 30
-    },
-    "version": "3.3.0"
-  },
-  "passwd": {
-    "users": [
-      {
-        "groups": [
-          "wheel"
-        ],
-        "name": "$IGNITION_USER",
-        "passwordHash": "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl.",
-        "sshAuthorizedKeys": [
-          "$SSH_KEY_PUB"
-        ]
-      }
-    ]
-  }
-}
-EOF
-
-IGNITION_CONFIG_SAMPLE_PATH="${IGNITION_SERVER_FOLDER}/sample.ign"
-sudo tee "$IGNITION_CONFIG_SAMPLE_PATH" > /dev/null << EOF
-{
-  "ignition": {
-    "version": "3.3.0"
-  },
-  "storage": {
-    "files": [
-      {
-        "path": "/usr/local/bin/startup.sh",
-        "contents": {
-          "compression": "",
-          "source": "data:;base64,IyEvYmluL2Jhc2gKZWNobyAiSGVsbG8sIFdvcmxkISIK"
-        },
-        "mode": 493
-      }
-    ]
-  },
-  "systemd": {
-    "units": [
-      {
-        "contents": "[Unit]\nDescription=A hello world unit!\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/local/bin/startup.sh\n[Install]\nWantedBy=multi-user.target\n",
-        "enabled": true,
-        "name": "hello.service"
-      },
-      {
-        "dropins": [
-          {
-            "contents": "[Service]\nEnvironment=LOG_LEVEL=trace\n",
-            "name": "log_trace.conf"
-          }
-        ],
-        "name": "fdo-client-linuxapp.service"
-      }
-    ]
-  }
-}
-EOF
-
-##################################################################
-##
-## Build edge-vsphere with Ignition firstboot
+## Build edge-vsphere
 ##
 ##################################################################
 greenprint "📋 Build edge-vsphere image"
@@ -425,9 +342,6 @@ password = "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHB
 key = "${SSH_KEY_PUB}"
 home = "/home/admin/"
 groups = ["wheel"]
-
-[customizations.ignition.firstboot]
-url = "${IGNITION_SERVER_URL}/config.ign"
 EOF
 
 greenprint "📄 vmdk blueprint"
@@ -509,14 +423,13 @@ ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 ansible_become=yes
 ansible_become_method=sudo
-ansible_become_pass=${IGNITION_USER_PASSWORD}
+ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Run check-ostree.yaml Ansible playbook from host against vSphere guest VM.
-# Conditional checks: ignition, fdo_credential, sysroot_ro.
+# Conditional checks: fdo_credential, sysroot_ro.
 podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z \
     --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory \
-    -e ignition="true" \
     -e os_name="${OS_NAME}" \
     -e ostree_commit="${INSTALL_HASH}" \
     -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" \
@@ -566,18 +479,17 @@ check_result
 
 # [ostree_guest:vars]
 # ansible_python_interpreter=/usr/bin/python3
-# ansible_user=${IGNITION_USER}
+# ansible_user=admin
 # ansible_private_key_file=${SSH_KEY}
 # ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 # ansible_become=yes
 # ansible_become_method=sudo
-# ansible_become_pass=${IGNITION_USER_PASSWORD}
+# ansible_become_pass=${EDGE_USER_PASSWORD}
 # EOF
 
 # # Test IoT/Edge OS
 # podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z \
 #     --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory \
-#     -e ignition="true" \
 #     -e os_name=redhat \
 #     -e ostree_commit="${INSTALL_HASH}" \
 #     -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" \
@@ -674,8 +586,8 @@ sudo composer-cli blueprints delete upgrade > /dev/null
 ##################################################################
 # Run rpm-ostree upgrade on vSphere guest VM and reboot.
 greenprint "🗳 Upgrade ostree image/commit"
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${DC70_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
-sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${DC70_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${DC70_GUEST_ADDRESS}" "echo ${EDGE_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
+sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${DC70_GUEST_ADDRESS}" "echo ${EDGE_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
 
 # Sleep 10 seconds here to make sure vm restarted already
 sleep 10
@@ -702,19 +614,18 @@ ${DC70_GUEST_ADDRESS}
 
 [ostree_guest:vars]
 ansible_python_interpreter=/usr/bin/python3
-ansible_user=${IGNITION_USER}
+ansible_user=admin
 ansible_private_key_file=${SSH_KEY}
 ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 ansible_become=yes
 ansible_become_method=sudo
-ansible_become_pass=${IGNITION_USER_PASSWORD}
+ansible_become_pass=${EDGE_USER_PASSWORD}
 EOF
 
 # Run check-ostree.yaml Ansible playbook from host against vSphere guest VM.
-# Conditional checks: ignition, fdo_credential, sysroot_ro.
+# Conditional checks: fdo_credential, sysroot_ro.
 podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z \
     --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory \
-    -e ignition="true" \
     -e os_name="${OS_NAME}" \
     -e ostree_commit="${UPGRADE_HASH}" \
     -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" \
@@ -729,8 +640,8 @@ check_result
 ##
 ##################################################################
 # greenprint "🗳 Upgrade ostree image/commit"
-# sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${DC67_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
-# sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${IGNITION_USER}@${DC67_GUEST_ADDRESS}" "echo ${IGNITION_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
+# sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${DC67_GUEST_ADDRESS}" "echo ${EDGE_USER_PASSWORD} |sudo -S rpm-ostree upgrade"
+# sudo ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${DC67_GUEST_ADDRESS}" "echo ${EDGE_USER_PASSWORD} |nohup sudo -S systemctl reboot &>/dev/null & exit"
 
 # # Sleep 10 seconds here to make sure vm restarted already
 # sleep 10
@@ -757,18 +668,17 @@ check_result
 
 # [ostree_guest:vars]
 # ansible_python_interpreter=/usr/bin/python3
-# ansible_user=${IGNITION_USER}
+# ansible_user=admin
 # ansible_private_key_file=${SSH_KEY}
 # ansible_ssh_common_args="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 # ansible_become=yes
 # ansible_become_method=sudo
-# ansible_become_pass=${IGNITION_USER_PASSWORD}
+# ansible_become_pass=${EDGE_USER_PASSWORD}
 # EOF
 
 # # Test IoT/Edge OS
 # podman run --annotation run.oci.keep_original_groups=1 -v "$(pwd)":/work:z -v "${TEMPDIR}":/tmp:z \
 #     --rm quay.io/rhel-edge/ansible-runner:latest ansible-playbook -v -i /tmp/inventory \
-#     -e ignition="true" \
 #     -e os_name=redhat \
 #     -e ostree_commit="${UPGRADE_HASH}" \
 #     -e ostree_ref="${REF_PREFIX}:${OSTREE_REF}" \
