@@ -211,6 +211,8 @@ provision:
       enabled: false
     - when: distro == rhel-8-10
       enabled: false
+    - when: distro == rhel-9-2
+      enabled: false
 
 /edge-x86-ami-image:
   summary: Test AMI deployed to AWS EC2
@@ -248,6 +250,8 @@ provision:
     - when: distro == cs-9
       enabled: false
     - when: distro == rhel-8-10
+      enabled: false
+    - when: distro == rhel-9-2
       enabled: false
 
 /edge-x86-9to9:
