@@ -464,7 +464,7 @@ home = "/home/admin/"
 groups = ["wheel"]
 [[customizations.filesystem]]
 mountpoint = "/boot"
-minsize = 1073741824
+size = 1073741824
 EOF
 fi
 
