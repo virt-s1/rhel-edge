@@ -589,7 +589,7 @@ url = "${OBJECT_URL}/config.ign"
 
 [[customizations.filesystem]]
 mountpoint = "/boot"
-minsize = 1073741824
+size = 1073741824
 
 EOF
 

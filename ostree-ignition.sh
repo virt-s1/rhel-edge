@@ -463,7 +463,7 @@ config = "$IGNITION_B64"
 
 [[customizations.filesystem]]
 mountpoint = "/boot"
-minsize = 1073741824
+size = 1073741824
 
 EOF
 
@@ -742,7 +742,7 @@ url = "${IGNITION_SERVER_URL}/config.ign"
 
 [[customizations.filesystem]]
 mountpoint = "/boot"
-minsize = 1073741824
+size = 1073741824
 
 EOF
 
@@ -882,7 +882,7 @@ url = "${IGNITION_SERVER_URL}/config.ign"
 
 [[customizations.filesystem]]
 mountpoint = "/boot"
-minsize = 1073741824
+size = 1073741824
 
 EOF
 
