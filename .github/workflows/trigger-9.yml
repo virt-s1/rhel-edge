@@ -34,7 +34,7 @@ jobs:
 
       - run: sudo dnf install -y git gh
 
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check RHEL 9.2 compose
         id: check_compose_id_92
@@ -614,7 +614,7 @@ jobs:
     if: ${{ needs.check-compose.outputs.rhel92_compose != 'false' && needs.check-compose.outputs.pr_running_92 == 'false' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Add new compose id in compose.92
         run: |
@@ -672,7 +672,7 @@ jobs:
     if: ${{ needs.check-compose.outputs.rhel94_compose != 'false' && needs.check-compose.outputs.pr_running_94 == 'false' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Add new compose id in compose.94
         run: |
@@ -730,7 +730,7 @@ jobs:
     if: ${{ needs.check-compose.outputs.rhel95_compose != 'false' && needs.check-compose.outputs.pr_running_95 == 'false' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Add new compose id in compose.95
         run: |
@@ -788,7 +788,7 @@ jobs:
     if: ${{ needs.check-compose.outputs.rhel96_compose != 'false' && needs.check-compose.outputs.pr_running_96 == 'false' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Add new compose id in compose.96
         run: |
@@ -847,7 +847,7 @@ jobs:
     if: ${{ needs.check-compose.outputs.rhel98_compose != 'false' && needs.check-compose.outputs.pr_running_98 == 'false' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Add new compose id in compose.98
         run: |
