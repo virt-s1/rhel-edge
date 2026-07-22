@@ -202,9 +202,10 @@ EOF
 sudo sed -i 's/default="1"/default="3"/' "${GRUB_CFG}"
 sudo sed -i 's/timeout=60/timeout=10/' "${GRUB_CFG}"
 
-# For CentOS Stream test, grub default menuentry has to be changed to workaround issue
+# For CentOS Stream and RHEL 9.8+, grub default menuentry has to be changed
+# because a FIPS menuentry was added, shifting the position of our custom entry.
 # https://github.com/virt-s1/rhel-edge/issues/9968
-if [[ "${ID}-${VERSION_ID}" == "centos-9" ]]; then
+if [[ "${ID}-${VERSION_ID}" == "centos-9" ]] || [[ "${ID}" == "rhel" && "$(echo "${VERSION_ID}" | tr -d '.')" -ge 98 ]]; then
     sudo sed -i 's/default="3"/default="4"/' "${GRUB_CFG}"
 fi
 
