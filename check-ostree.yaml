@@ -915,16 +915,16 @@
       when: greenboot_version is version('0.16.0', '<')
 
     # case: check greenboot* services
-    - name: greenboot healthcheck service should be enabled
+    - name: greenboot services should be enabled
       block:
-        - name: greenboot healthcheck service should be enabled
-          command: systemctl is-enabled greenboot-healthcheck
+        - name: greenboot services should be enabled
+          command: systemctl is-enabled greenboot-healthcheck greenboot-success.target
           register: result_greenboot_service
 
         - assert:
             that:
-              - result_greenboot_service.stdout == 'enabled'
-            fail_msg: "at least one greenboot service is not enabled"
+              - result_greenboot_service.stdout == 'enabled\nenabled'
+            fail_msg: "greenboot-healthcheck and/or greenboot-success.target is not enabled"
             success_msg: "greenboot services are enabled"
       always:
         - set_fact:
@@ -994,27 +994,6 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when: greenboot_version is version('0.16.0', '<')
 
-    # case: check greenboot-success.target is enabled (preset)
-    - name: greenboot-success.target should be enabled
-      block:
-        - name: check if greenboot-success.target is enabled
-          command: systemctl is-enabled greenboot-success.target
-          register: result_greenboot_success_enabled
-
-        - assert:
-            that:
-              - result_greenboot_success_enabled.stdout == "enabled"
-            fail_msg: "greenboot-success.target is not enabled (missing from preset, see RHELBLD-18188)"
-            success_msg: "greenboot-success.target is enabled"
-      always:
-        - set_fact:
-            total_counter: "{{ total_counter | int + 1 }}"
-      rescue:
-        - name: failed count + 1
-          set_fact:
-            failed_counter: "{{ failed_counter | int + 1 }}"
-      when: greenboot_version is version('0.16.0', '>=')
-
     # case: check boot-complete.target status
     - name: boot-complete.target should be active
       block:
@@ -1035,7 +1014,6 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when:
         - greenboot_version is version('0.16.0', '>=')
-        - result_greenboot_success_enabled.stdout == "enabled"
 
     # case: check grubenv variables
     - name: grubenv variables should contain boot_success=1
@@ -1237,29 +1215,6 @@
         - result_rollback is succeeded
         - greenboot_version is version('0.16.0', '>=')
 
-    # case: check greenboot-success.target is enabled (preset) after rollback
-    - name: greenboot-success.target should be enabled
-      block:
-        - name: check if greenboot-success.target is enabled
-          command: systemctl is-enabled greenboot-success.target
-          register: result_greenboot_success_enabled
-
-        - assert:
-            that:
-              - result_greenboot_success_enabled.stdout == "enabled"
-            fail_msg: "greenboot-success.target is not enabled (missing from preset, see RHELBLD-18188)"
-            success_msg: "greenboot-success.target is enabled"
-      always:
-        - set_fact:
-            total_counter: "{{ total_counter | int + 1 }}"
-      rescue:
-        - name: failed count + 1
-          set_fact:
-            failed_counter: "{{ failed_counter | int + 1 }}"
-      when:
-        - result_rollback is succeeded
-        - greenboot_version is version('0.16.0', '>=')
-
     # case: check boot-complete.target status
     - name: boot-complete.target should be active
       block:
@@ -1280,7 +1235,6 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when:
         - greenboot_version is version('0.16.0', '>=')
-        - result_greenboot_success_enabled.stdout == "enabled"
 
     # case: check grubenv variables again
     - name: grubenv variables should contain boot_success=1
