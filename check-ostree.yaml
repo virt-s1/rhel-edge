@@ -19,12 +19,6 @@
     - debug: var=ansible_facts['distribution']
     - debug: var=ansible_facts['architecture']
 
-    # check BIOS or UEFI
-    - name: check bios or uefi
-      stat:
-        path: /sys/firmware/efi
-      register: result_uefi
-
     # check secure boot status if it's enabled
     - name: check secure boot status
       command: mokutil --sb-state
@@ -921,16 +915,16 @@
       when: greenboot_version is version('0.16.0', '<')
 
     # case: check greenboot* services
-    - name: greenboot healthcheck service should be enabled
+    - name: greenboot services should be enabled
       block:
-        - name: greenboot healthcheck service should be enabled
-          command: systemctl is-enabled greenboot-healthcheck
+        - name: greenboot services should be enabled
+          command: systemctl is-enabled greenboot-healthcheck greenboot-success.target
           register: result_greenboot_service
 
         - assert:
             that:
-              - result_greenboot_service.stdout == 'enabled'
-            fail_msg: "at least one greenboot service is not enabled"
+              - result_greenboot_service.stdout == 'enabled\nenabled'
+            fail_msg: "greenboot-healthcheck and/or greenboot-success.target is not enabled"
             success_msg: "greenboot services are enabled"
       always:
         - set_fact:
@@ -1018,7 +1012,8 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: greenboot_version is version('0.16.0', '>=')
+      when:
+        - greenboot_version is version('0.16.0', '>=')
 
     # case: check grubenv variables
     - name: grubenv variables should contain boot_success=1
@@ -1238,7 +1233,8 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: greenboot_version is version('0.16.0', '>=')
+      when:
+        - greenboot_version is version('0.16.0', '>=')
 
     # case: check grubenv variables again
     - name: grubenv variables should contain boot_success=1
@@ -1538,34 +1534,18 @@
             failed_counter: "{{ failed_counter | int + 1 }}"
       when: ansible_facts['distribution'] == 'RedHat' and ansible_facts['distribution_version'] is version('9.8', '<')
 
-    # case: bootupd should be installed on RHEL >= 9.8
-    - name: bootupd should be installed
-      block:
-        - name: check bootupd package is installed
-          command: rpm -q bootupd
-          register: result_bootupd_rpm
-          changed_when: false
-
-        - assert:
-            that:
-              - result_bootupd_rpm.rc == 0
-            fail_msg: "bootupd not installed on RHEL {{ ansible_facts['distribution_version'] }}"
-            success_msg: "bootupd is installed"
-      always:
-        - set_fact:
-            total_counter: "{{ total_counter | int + 1 }}"
-      rescue:
-        - name: failed count + 1
-          set_fact:
-            failed_counter: "{{ failed_counter | int + 1 }}"
+    # case: if bootupd is installed, it should report no managed components
+    # osbuild-composer edge images use GRUB2 stages, not bootupd;
+    # bootupd is present only as a greenboot dependency (may be removed
+    # in future composes after greenboot-rs dropped the dependency)
+    - name: check if bootupd is installed
+      command: rpm -q bootupd
+      register: result_bootupd_rpm
+      changed_when: false
+      failed_when: false
       when: ansible_facts['distribution'] == 'RedHat' and ansible_facts['distribution_version'] is version('9.8', '>=')
 
-    # case: bootupctl status should show healthy boot component metadata
-    - name: set expected boot component name
-      set_fact:
-        expected_boot_component: "{{ 'Component EFI' if result_uefi.stat.exists else 'Component BIOS' }}"
-
-    - name: bootupctl status should show healthy boot component metadata
+    - name: bootupctl should report no managed components
       block:
         - name: run bootupctl status
           command: bootupctl status
@@ -1575,11 +1555,9 @@
 
         - assert:
             that:
-              - "expected_boot_component in result_bootupctl_status.stdout"
-              - "'Installed:' in result_bootupctl_status.stdout"
-              - "'No update metadata' not in result_bootupctl_status.stdout"
-            fail_msg: "bootupctl status missing {{ expected_boot_component }} or update metadata: {{ result_bootupctl_status.stdout }}"
-            success_msg: "bootupctl status shows healthy {{ expected_boot_component }} with update metadata: {{ result_bootupctl_status.stdout }}"
+              - "'No components installed' in result_bootupctl_status.stdout"
+            fail_msg: "unexpected bootupd state: {{ result_bootupctl_status.stdout }}"
+            success_msg: "bootupd correctly reports no managed components"
       always:
         - set_fact:
             total_counter: "{{ total_counter | int + 1 }}"
@@ -1587,7 +1565,10 @@
         - name: failed count + 1
           set_fact:
             failed_counter: "{{ failed_counter | int + 1 }}"
-      when: ansible_facts['distribution'] == 'RedHat' and ansible_facts['distribution_version'] is version('9.8', '>=')
+      when:
+        - ansible_facts['distribution'] == 'RedHat'
+        - ansible_facts['distribution_version'] is version('9.8', '>=')
+        - result_bootupd_rpm.rc == 0
 
     # case: check no failed systemd units
     - name: check systemd failed units
