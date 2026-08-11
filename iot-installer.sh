@@ -220,6 +220,15 @@ sudo virsh start "iot-${TEST_UUID}"
 
 # Verify install: UEFI guest VM is reachable via SSH after installation.
 if ! wait_for_ssh "${GUEST_IP}"; then
+    log_error "Dumping VM diagnostics..."
+    log_error "--- VM state ---"
+    sudo virsh domstate "iot-${TEST_UUID}" || true
+    log_error "--- VM interface addresses (guest agent) ---"
+    sudo virsh domifaddr "iot-${TEST_UUID}" --source agent 2>/dev/null || true
+    log_error "--- VM interface addresses (DHCP lease) ---"
+    sudo virsh domifaddr "iot-${TEST_UUID}" --source lease 2>/dev/null || true
+    log_error "--- Host ARP table ---"
+    sudo arp -an || true
     exit 1
 fi
 
