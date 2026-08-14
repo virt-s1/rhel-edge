@@ -230,6 +230,7 @@ sudo virt-install  --name="iot-${TEST_UUID}" \
                    --os-type linux \
                    --os-variant ${OS_VARIANT} \
                    --boot uefi \
+                   --tpm none \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \
