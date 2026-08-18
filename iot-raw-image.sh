@@ -89,7 +89,7 @@ case "${IOT_VERSION}" in
         OS_VARIANT="fedora-unknown"
         ;;
     "45")
-        OSTREE_REF="fedora/rawhide/${ARCH}/iot"
+        OSTREE_REF="fedora/devel/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"
         ;;
     *)
