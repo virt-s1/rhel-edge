@@ -67,10 +67,7 @@ The dispatcher `tmt/tests/test.sh` routes `TEST_CASE` values to scripts:
 | `edge-ami-image`             | `ostree-ami-image.sh`             |
 | `edge-simplified-installer`  | `ostree-simplified-installer.sh`  |
 | `edge-vsphere`               | `ostree-vsphere.sh`               |
-| `edge-fdo-aio`               | `ostree-fdo-aio.sh`               |
-| `edge-fdo-db`                | `ostree-fdo-db.sh`                |
 | `edge-ignition`              | `ostree-ignition.sh`              |
-| `edge-pulp`                  | `ostree-pulp.sh`                  |
 | `edge-8to9`                  | `ostree-8-to-9.sh`                |
 | `edge-9to9`                  | `ostree-9-to-9.sh`                |
 | `edge-fdo-container`         | `ostree-fdo-container.sh`         |
