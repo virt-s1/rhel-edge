@@ -265,14 +265,18 @@
       # case: check greenboot* service status
     - name: greenboot healthcheck service should be active
       block:
-        - name: greenboot healthcheck service should be active
+        - name: wait for greenboot healthcheck service to finish
           command: systemctl is-active greenboot-healthcheck.service
           register: result_greenboot_active
+          retries: 24
+          delay: 5
+          until: result_greenboot_active.stdout != "activating"
+          failed_when: false
 
         - assert:
             that:
               - result_greenboot_active.stdout == "active"
-            fail_msg: "greenboot healthcheck service is not active"
+            fail_msg: "greenboot healthcheck service is not active (state: {{ result_greenboot_active.stdout }})"
             success_msg: "greenboot healthcheck service is active"
       always:
         - set_fact:

@@ -94,11 +94,15 @@ provision:
       enabled: false
     - when: distro == rhel-8-10
       enabled: false
+    - when: distro == rhel-9-2
+      enabled: false
     - when: distro == rhel-9-4
       enabled: false
     - when: distro == rhel-9-5
       enabled: false
     - when: distro == rhel-9-6
+      enabled: false
+    - when: distro == rhel-9-8
       enabled: false
 
 /edge-x86-fdo-db:
@@ -122,11 +126,15 @@ provision:
       enabled: false
     - when: distro == rhel-8-10
       enabled: false
+    - when: distro == rhel-9-2
+      enabled: false
     - when: distro == rhel-9-4
       enabled: false
     - when: distro == rhel-9-5
       enabled: false
     - when: distro == rhel-9-6
+      enabled: false
+    - when: distro == rhel-9-8
       enabled: false
 
 /edge-x86-ignition:
@@ -171,11 +179,15 @@ provision:
       enabled: false
     - when: distro == rhel-8-10
       enabled: false
+    - when: distro == rhel-9-2
+      enabled: false
     - when: distro == rhel-9-4
       enabled: false
     - when: distro == rhel-9-5
       enabled: false
     - when: distro == rhel-9-6
+      enabled: false
+    - when: distro == rhel-9-8
       enabled: false
 
 /edge-x86-vsphere:
@@ -198,6 +210,8 @@ provision:
     - when: distro == cs-9
       enabled: false
     - when: distro == rhel-8-10
+      enabled: false
+    - when: distro == rhel-9-2
       enabled: false
 
 /edge-x86-ami-image:
@@ -236,6 +250,8 @@ provision:
     - when: distro == cs-9
       enabled: false
     - when: distro == rhel-8-10
+      enabled: false
+    - when: distro == rhel-9-2
       enabled: false
 
 /edge-x86-9to9:

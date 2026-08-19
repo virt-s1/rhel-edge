@@ -76,7 +76,7 @@ jobs:
 
     steps:
       - name: Clone repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
@@ -85,13 +85,13 @@ jobs:
         uses: sclorg/testing-farm-as-github-action@230555baceb860aa468d216f1822974836b965d1 # v4.3.1
         id: run-test
         with:
-          compose: Fedora-Rawhide
+          compose: Fedora-44
           arch: x86_64
           api_key: ${{ secrets.TF_API_KEY }}
           git_url: ${{ needs.pr-info.outputs.repo_url }}
           git_ref: ${{ needs.pr-info.outputs.ref }}
           update_pull_request_status: true
-          tmt_context: "arch=x86_64;distro=fedora-45"
+          tmt_context: "arch=x86_64;distro=fedora-44"
           pull_request_status_name: "iot-f45-x86"
           tmt_plan_regex: iot-x86
           tf_scope: private
@@ -134,7 +134,7 @@ jobs:
 
   #   steps:
   #     - name: Clone repository
-  #       uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+  #       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
   #       with:
   #         ref: ${{ needs.pr-info.outputs.sha }}
   #         fetch-depth: 0
@@ -143,13 +143,13 @@ jobs:
   #       uses: sclorg/testing-farm-as-github-action@230555baceb860aa468d216f1822974836b965d1 # v4.3.1
   #       id: run-test
   #       with:
-  #         compose: Fedora-Rawhide
+  #         compose: Fedora-44
   #         arch: aarch64
   #         api_key: ${{ secrets.TF_API_KEY }}
   #         git_url: ${{ needs.pr-info.outputs.repo_url }}
   #         git_ref: ${{ needs.pr-info.outputs.ref }}
   #         update_pull_request_status: true
-  #         tmt_context: "arch=aarch64;distro=fedora-45"
+  #         tmt_context: "arch=aarch64;distro=fedora-44"
   #         pull_request_status_name: "iot-f45-aarch64"
   #         tmt_plan_regex: iot-aarch64
   #         tf_scope: private

@@ -98,6 +98,7 @@ ANSIBLE_USER="admin"
 FDO_USER_ONBOARDING="false"
 USER_IN_BLUEPRINT="false"
 BLUEPRINT_USER="admin"
+BOOT_FILESYSTEM_CUSTOMIZATION="false"
 
 # Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
 # It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
@@ -123,6 +124,18 @@ case "${ID}-${VERSION_ID}" in
         BLUEPRINT_USER="simple"
         NO_FDO="true"
         sudo mkdir -p /var/lib/fdo
+        ;;
+    "rhel-9.2")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        IMAGE_NAME="image.raw.xz"
+        SYSROOT_RO="true"
+        ANSIBLE_USER=fdouser
+        FDO_USER_ONBOARDING="true"
+        USER_IN_BLUEPRINT="true"
+        BLUEPRINT_USER="simple"
+        NO_FDO="true"
         ;;
     "rhel-9.4")
         OSTREE_REF="rhel/9/${ARCH}/edge"
@@ -161,6 +174,21 @@ case "${ID}-${VERSION_ID}" in
         BLUEPRINT_USER="simple"
         NO_FDO="true"
         OS_NAME="rhel-edge"
+        BOOT_FILESYSTEM_CUSTOMIZATION="true"
+        ;;
+    "rhel-9.8")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        PARENT_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        IMAGE_NAME="image.raw.xz"
+        SYSROOT_RO="true"
+        ANSIBLE_USER=fdouser
+        FDO_USER_ONBOARDING="true"
+        USER_IN_BLUEPRINT="true"
+        BLUEPRINT_USER="simple"
+        NO_FDO="true"
+        OS_NAME="rhel-edge"
+        BOOT_FILESYSTEM_CUSTOMIZATION="true"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
@@ -175,6 +203,7 @@ case "${ID}-${VERSION_ID}" in
         BLUEPRINT_USER="simple"
         NO_FDO="true"
         OS_NAME="rhel-edge"
+        BOOT_FILESYSTEM_CUSTOMIZATION="true"
         ;;
     "fedora-"*)
         OSTREE_REF="fedora/${VERSION_ID}/${ARCH}/iot"
@@ -518,11 +547,16 @@ key = "${SSH_KEY_PUB}"
 home = "/home/simple/"
 groups = ["wheel"]
 
+EOF
+
+    if [[ "$BOOT_FILESYSTEM_CUSTOMIZATION" == "true" ]]; then
+        tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.filesystem]]
 mountpoint = "/boot"
-minsize = 1073741824
+size = 1073741824
 
 EOF
+    fi
 
     greenprint "📄 No FDO, No ignition blueprint"
     cat "$BLUEPRINT_FILE"

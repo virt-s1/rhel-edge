@@ -43,7 +43,18 @@ FDO_USER=fdouser
 SYSROOT_RO="true"
 
 case "${ID}-${VERSION_ID}" in
+    "rhel-9.2")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        BOOT_ARGS="uefi"
+        ;;
     "rhel-9.6")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        BOOT_ARGS="uefi"
+        OS_NAME="rhel-edge"
+        ;;
+    "rhel-9.8")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
         BOOT_ARGS="uefi"

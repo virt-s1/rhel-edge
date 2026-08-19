@@ -63,8 +63,6 @@ fi
 # Provision the software under test
 ./iot-setup.sh
 
-# Get OS data
-source /etc/os-release
 ARCH=$(uname -m)
 TEST_UUID=$(uuidgen)
 TEMPDIR=$(mktemp -d)
@@ -74,23 +72,23 @@ SSH_KEY="key/ostree_key"
 SSH_KEY_PUB=$(cat "${SSH_KEY}.pub")
 COMPOSE_URL="https://kojipkgs.fedoraproject.org/compose/iot/${COMPOSE}/compose/IoT/${ARCH}/iso"
 COMPOSE_ID=$(echo "${COMPOSE}" | cut -d- -f4)
+IOT_VERSION=$(echo "${COMPOSE}" | cut -d- -f3)
 
-case "${ID}-${VERSION_ID}" in
-    "fedora-44")
+case "${IOT_VERSION}" in
+    "44")
         OSTREE_REF="fedora/stable/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
-        IMAGE_FILENAME="Fedora-IoT-ostree-44-${COMPOSE_ID}.${ARCH}.iso"
         ;;
-    "fedora-45")
+    "45")
         OSTREE_REF="fedora/rawhide/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"
-        IMAGE_FILENAME="Fedora-IoT-ostree-45-${COMPOSE_ID}.${ARCH}.iso"
         ;;
     *)
-        log_error "Unsupported distro: ${ID}-${VERSION_ID}"
+        log_error "Unsupported IoT version: ${IOT_VERSION}"
         exit 1
         ;;
 esac
+IMAGE_FILENAME="Fedora-IoT-ostree-${IOT_VERSION}-${COMPOSE_ID}.${ARCH}.iso"
 
 # Modify kickstart in ISO.
 modksiso() {
@@ -211,6 +209,7 @@ virt-install --name="iot-${TEST_UUID}" \
     --os-variant "${OS_VARIANT}" \
     --cdrom "/var/lib/libvirt/images/${IMAGE_FILENAME}" \
     --boot uefi \
+    --tpm none \
     --nographics \
     --noautoconsole \
     --wait=-1 \
@@ -221,6 +220,15 @@ sudo virsh start "iot-${TEST_UUID}"
 
 # Verify install: UEFI guest VM is reachable via SSH after installation.
 if ! wait_for_ssh "${GUEST_IP}"; then
+    log_error "Dumping VM diagnostics..."
+    log_error "--- VM state ---"
+    sudo virsh domstate "iot-${TEST_UUID}" || true
+    log_error "--- VM interface addresses (guest agent) ---"
+    sudo virsh domifaddr "iot-${TEST_UUID}" --source agent 2>/dev/null || true
+    log_error "--- VM interface addresses (DHCP lease) ---"
+    sudo virsh domifaddr "iot-${TEST_UUID}" --source lease 2>/dev/null || true
+    log_error "--- Host ARP table ---"
+    sudo arp -an || true
     exit 1
 fi
 
