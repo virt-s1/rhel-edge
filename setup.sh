@@ -56,6 +56,10 @@ sudo mkdir -p /etc/osbuild-composer/repositories
 case "${ID}-${VERSION_ID}" in
     "rhel-8.10")
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-10-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-810.json > /dev/null;;
+    "rhel-9.2")
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-10-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-810.json > /dev/null
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-1-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-91.json > /dev/null
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-2-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-92.json > /dev/null;;
     "rhel-9.4")
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-10-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-810.json > /dev/null
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-3-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-93.json > /dev/null
@@ -68,6 +72,10 @@ case "${ID}-${VERSION_ID}" in
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-10-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-810.json > /dev/null
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-5-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-95.json > /dev/null
         sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-6-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-96.json > /dev/null;;
+    "rhel-9.8")
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-8-10-0-sha512.json | sudo tee /etc/osbuild-composer/repositories/rhel-810.json > /dev/null
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-6-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-96.json > /dev/null
+        sed "s/REPLACE_ME_HERE/${DOWNLOAD_NODE}/g" files/rhel-9-8-0.json | sudo tee /etc/osbuild-composer/repositories/rhel-98.json > /dev/null;;
     "centos-9")
         sudo cp files/centos-stream-9.json /etc/osbuild-composer/repositories/centos-9.json;;
     "centos-10")
