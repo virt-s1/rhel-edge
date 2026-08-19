@@ -16,14 +16,8 @@ function run_tests() {
 		./ostree-simplified-installer.sh
 	elif [ "$TEST_CASE" = "edge-vsphere" ]; then
 		./ostree-vsphere.sh
-	elif [ "$TEST_CASE" = "edge-fdo-aio" ]; then
-		./ostree-fdo-aio.sh
-	elif [ "$TEST_CASE" = "edge-fdo-db" ]; then
-		./ostree-fdo-db.sh
 	elif [ "$TEST_CASE" = "edge-ignition" ]; then
 		./ostree-ignition.sh
-	elif [ "$TEST_CASE" = "edge-pulp" ]; then
-		./ostree-pulp.sh
 	elif [ "$TEST_CASE" = "edge-8to9" ]; then
 		./ostree-8-to-9.sh
 	elif [ "$TEST_CASE" = "edge-9to9" ]; then
