@@ -165,21 +165,21 @@ download_image() {
 # Wait for SSH to be available
 wait_for_ssh() {
     local ip_address=$1
-    local max_attempts=30
+    local max_attempts=60
     local attempt=0
-    
+
     log_info "Waiting for SSH on ${ip_address}..."
-    
+
     while [[ ${attempt} -lt ${max_attempts} ]]; do
         if ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${EDGE_USER}@${ip_address}" 'echo -n "READY"' 2>/dev/null | grep -q "READY"; then
             log_success "SSH is ready"
             return 0
         fi
-        
+
         attempt=$((attempt + 1))
         sleep 10
     done
-    
+
     log_error "SSH connection timed out after $((max_attempts * 10)) seconds"
     return 1
 }
@@ -230,6 +230,7 @@ sudo virt-install  --name="iot-${TEST_UUID}" \
                    --os-type linux \
                    --os-variant ${OS_VARIANT} \
                    --boot uefi \
+                   --tpm none \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \
@@ -241,6 +242,15 @@ sudo virsh start "iot-${TEST_UUID}"
 
 # Verify install: UEFI guest VM is reachable via SSH after installation.
 if ! wait_for_ssh "${GUEST_IP}"; then
+    log_error "Dumping VM diagnostics..."
+    log_error "--- VM state ---"
+    sudo virsh domstate "iot-${TEST_UUID}" || true
+    log_error "--- VM interface addresses (guest agent) ---"
+    sudo virsh domifaddr "iot-${TEST_UUID}" --source agent 2>/dev/null || true
+    log_error "--- VM interface addresses (DHCP lease) ---"
+    sudo virsh domifaddr "iot-${TEST_UUID}" --source lease 2>/dev/null || true
+    log_error "--- Host ARP table ---"
+    sudo arp -an || true
     exit 1
 fi
 
