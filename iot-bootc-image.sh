@@ -63,9 +63,6 @@ fi
 # Provision the software under test
 ./iot-setup.sh
 
-# Get OS data
-source /etc/os-release
-
 ARCH=$(uname -m)
 TEST_UUID=$(uuidgen)
 TEMPDIR=$(mktemp -d)
@@ -77,27 +74,27 @@ EDGE_USER=core
 EDGE_USER_PASSWORD=foobar
 COMPOSE_URL="https://kojipkgs.fedoraproject.org/compose/iot/${COMPOSE}/compose/IoT/${ARCH}/images"
 COMPOSE_ID=$(echo "${COMPOSE}" | cut -d- -f4)
+IOT_VERSION=$(echo "${COMPOSE}" | cut -d- -f3)
 
 CONTAINER_IMG_NAME=fedora-iot-bootc
 # QUAY_REPO_URL="quay.io/${QUAY_USERNAME}/${CONTAINER_IMG_NAME}"
-# QUAY_REPO_TAG="${QUAY_REPO_URL}:${VERSION_ID}"
+# QUAY_REPO_TAG="${QUAY_REPO_URL}:${IOT_VERSION}"
 BOOTC_SYSTEM="true"
 
 # Set OS-specific variables
-case "${ID}-${VERSION_ID}" in
-    "fedora-44")
+case "${IOT_VERSION}" in
+    "44")
         OS_VARIANT="fedora-unknown"
-        OCI_ARCHIVE="Fedora-IoT-bootc-${ARCH}-44.${COMPOSE_ID}.ociarchive"
         ;;
-    "fedora-45")
+    "45")
         OS_VARIANT="fedora-rawhide"
-        OCI_ARCHIVE="Fedora-IoT-bootc-${ARCH}-45.${COMPOSE_ID}.ociarchive"
         ;;
     *)
-        log_error "Unsupported distro: ${ID}-${VERSION_ID}"
+        log_error "Unsupported IoT version: ${IOT_VERSION}"
         exit 1
         ;;
 esac
+OCI_ARCHIVE="Fedora-IoT-bootc-${ARCH}-${IOT_VERSION}.${COMPOSE_ID}.ociarchive"
 
 # Download OS image
 download_image() {
@@ -125,21 +122,21 @@ download_image() {
 # Wait for SSH to be available
 wait_for_ssh() {
     local ip_address=$1
-    local max_attempts=30
+    local max_attempts=60
     local attempt=0
-    
+
     log_info "Waiting for SSH on ${ip_address}..."
-    
+
     while [[ ${attempt} -lt ${max_attempts} ]]; do
         if ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${EDGE_USER}@${ip_address}" 'echo -n "READY"' 2>/dev/null | grep -q "READY"; then
             log_success "SSH is ready"
             return 0
         fi
-        
+
         attempt=$((attempt + 1))
         sleep 10
     done
-    
+
     log_error "SSH connection timed out after $((max_attempts * 10)) seconds"
     return 1
 }
@@ -153,7 +150,7 @@ log_info "Temporary directory: ${TEMPDIR}"
 download_image
 
 # Container image settings
-OCI_ARCHIVE_TAG="${VERSION_ID}"
+OCI_ARCHIVE_TAG="${IOT_VERSION}"
 
 log_info "Copying container image into storage with a controlled tag"
 sudo skopeo copy oci-archive:"${OCI_ARCHIVE}" containers-storage:"${CONTAINER_IMG_NAME}:${OCI_ARCHIVE_TAG}"
@@ -215,6 +212,7 @@ sudo virt-install  --name="iot-bootc-image-${TEST_UUID}"\
                    --os-type linux \
                    --os-variant ${OS_VARIANT} \
                    --boot "uefi" \
+                   --tpm none \
                    --nographics \
                    --noautoconsole \
                    --wait=-1 \
@@ -226,6 +224,15 @@ sudo virsh start "iot-bootc-image-${TEST_UUID}"
 
 # Verify install: UEFI guest VM is reachable via SSH after installation.
 if ! wait_for_ssh "${GUEST_IP}"; then
+    log_error "Dumping VM diagnostics..."
+    log_error "--- VM state ---"
+    sudo virsh domstate "iot-bootc-image-${TEST_UUID}" || true
+    log_error "--- VM interface addresses (guest agent) ---"
+    sudo virsh domifaddr "iot-bootc-image-${TEST_UUID}" --source agent 2>/dev/null || true
+    log_error "--- VM interface addresses (DHCP lease) ---"
+    sudo virsh domifaddr "iot-bootc-image-${TEST_UUID}" --source lease 2>/dev/null || true
+    log_error "--- Host ARP table ---"
+    sudo arp -an || true
     exit 1
 fi
 

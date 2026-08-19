@@ -12,7 +12,7 @@ Fedora IoT tests **do not build images** — they download pre-built compose art
 | Stream | Status | Testing Farm compose | OSTree ref |
 |--------|--------|----------------------|------------|
 | Fedora IoT 44 (F44) | Stable | `Fedora-44` | `fedora/stable/${ARCH}/iot` |
-| Fedora IoT 45 (F45) | Rawhide | `Fedora-Rawhide` | `fedora/devel/${ARCH}/iot` |
+| Fedora IoT 45 (F45) | Active | `Fedora-44` | `fedora/rawhide/${ARCH}/iot` |
 
 ## Data flow
 
@@ -113,8 +113,8 @@ fedora-iot-44.yml (triggered by /test-f44-iot)        fedora-iot-45.yml (trigger
     │                                                       │
     └─ Job: iot-44-x86                                      └─ Job: iot-45-x86
          └─ Testing Farm                                         └─ Testing Farm
-              - compose: Fedora-44                                    - compose: Fedora-Rawhide
-              - tmt_context: "arch=x86_64;distro=fedora-44"            - tmt_context: "arch=x86_64;distro=fedora-45"
+              - compose: Fedora-44                                    - compose: Fedora-44
+              - tmt_context: "arch=x86_64;distro=fedora-44"            - tmt_context: "arch=x86_64;distro=fedora-44"
               - tmt_plan_regex: iot-x86                               - tmt_plan_regex: iot-x86
 ```
 
@@ -168,13 +168,12 @@ elif [ "$TEST_CASE" = "iot-installer" ]; then
 
 ### 5. Test execution
 
-Each IoT test script branches on `${ID}-${VERSION_ID}` of the Testing Farm VM to select
-the correct OSTree ref, OS variant, and artifact name:
+Each IoT test script derives the IoT version from `${COMPOSE}` (e.g. `Fedora-IoT-45-20260710.0` → `45`) and uses `IOT_VERSION` to select the correct OSTree ref, OS variant, and artifact name:
 
-| distro | `OSTREE_REF` | `OS_VARIANT` |
-|--------|------------|-----------|
-| `fedora-44` | `fedora/stable/${ARCH}/iot` | `fedora-unknown` |
-| `fedora-45` | `fedora/devel/${ARCH}/iot` | `fedora-rawhide` |
+| `IOT_VERSION` | `OSTREE_REF` | `OS_VARIANT` |
+|---------------|------------|-----------|
+| `44` | `fedora/stable/${ARCH}/iot` | `fedora-unknown` |
+| `45` | `fedora/rawhide/${ARCH}/iot` | `fedora-rawhide` |
 
 ### 6. Results reporting
 
@@ -193,7 +192,7 @@ fedora-iot-{44,45}.yml (after Testing Farm completes)
 |------|---------|--------------|
 | `.github/workflows/trigger-iot.yml` | Detect compose | Checks for new F44/F45 composes, creates PRs, adds trigger comments |
 | `.github/workflows/fedora-iot-44.yml` | Trigger F44 tests | Triggered by `/test-f44-iot`, calls Testing Farm with `Fedora-44` |
-| `.github/workflows/fedora-iot-45.yml` | Trigger F45 tests | Triggered by `/test-f45-iot`, calls Testing Farm with `Fedora-Rawhide` |
+| `.github/workflows/fedora-iot-45.yml` | Trigger F45 tests | Triggered by `/test-f45-iot`, calls Testing Farm with `Fedora-44` |
 | `compose/compose.f44-iot` | F44 compose history | Tracks already-tested F44 compose IDs |
 | `compose/compose.f45-iot` | F45 compose history | Tracks already-tested F45 compose IDs |
 | `files/fedora-44.json` | `osbuild-composer` repos | Fedora 44 stable repository definitions |
