@@ -129,11 +129,8 @@ Edge tests:
 | [`ostree-ng.sh`](ostree-ng.sh) | `edge-installer` (ISO) | OSTree commit deployed via ISO installer |
 | [`ostree-raw-image.sh`](ostree-raw-image.sh) | `edge-raw-image` (raw) | Raw disk image deployed via VM import |
 | [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh) | `edge-simplified-installer` (ISO) | OSTree commit deployed via simplified ISO installer |
-| [`ostree-fdo-aio.sh`](ostree-fdo-aio.sh) | `edge-simplified-installer` (ISO) | FDO onboarding with all-in-one server |
-| [`ostree-fdo-db.sh`](ostree-fdo-db.sh) | `edge-simplified-installer` (ISO) | FDO onboarding with database-backed servers |
 | [`ostree-fdo-container.sh`](ostree-fdo-container.sh) | `edge-simplified-installer` (ISO) | FDO onboarding with containerized servers |
 | [`ostree-ignition.sh`](ostree-ignition.sh) | `edge-simplified-installer` + `edge-raw-image` | Ignition provisioning on simplified installer ISO and raw disk image |
-| [`ostree-pulp.sh`](ostree-pulp.sh) | `edge-commit` (tar) | OSTree commit distributed via Pulp server |
 | [`ostree-vsphere.sh`](ostree-vsphere.sh) | `edge-vsphere` (VMDK) | VMDK image deployed to vSphere |
 | [`ostree-ami-image.sh`](ostree-ami-image.sh) | `edge-ami` (raw) | AMI deployed to AWS EC2 |
 | [`ostree-8-to-9.sh`](ostree-8-to-9.sh) | `edge-container` (OCI) | Upgrade from RHEL 8 / CS8 to RHEL 9 / CS9 |
@@ -176,7 +173,7 @@ Environment variables used by test scripts and CI workflows. Most test scripts r
 
 | Environment variable | Used by | Purpose |
 |-------------|---------|---------|
-| `DOWNLOAD_NODE` | `ostree.sh`, `ostree-pulp.sh`, `ostree-8-to-9.sh`, `ostree-9-to-9.sh`, `setup.sh`, `tools/arm-*.sh` | RHEL nightly compose download URL |
+| `DOWNLOAD_NODE` | `ostree.sh`, `ostree-8-to-9.sh`, `ostree-9-to-9.sh`, `setup.sh`, `tools/arm-*.sh` | RHEL nightly compose download URL |
 | `QUAY_USERNAME` | `ostree-ng.sh`, `tools/arm-installer.sh` | quay.io username for pushing OCI images |
 | `QUAY_PASSWORD` | `ostree-ng.sh`, `tools/arm-installer.sh` | quay.io password for pushing OCI images |
 | `DOCKERHUB_USERNAME` | `tools/arm-raw.sh`, `tools/edge-raw.sh`, CI workflows | Docker Hub username for pushing OCI images |
