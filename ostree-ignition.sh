@@ -55,8 +55,13 @@ OS_NAME="redhat"
 # Mount /sysroot as RO by new ostree-libs-2022.6-3.el9.x86_64
 # It's RHEL 9.2 and above, CS9, Fedora 37 and above ONLY
 SYSROOT_RO="true"
+BOOT_FILESYSTEM_CUSTOMIZATION="false"
 
 case "${ID}-${VERSION_ID}" in
+    "rhel-9.2")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        ;;
     "rhel-9.4")
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
@@ -70,12 +75,20 @@ case "${ID}-${VERSION_ID}" in
         OSTREE_REF="rhel/9/${ARCH}/edge"
         OS_VARIANT="rhel9-unknown"
         OS_NAME="rhel-edge"
+        BOOT_FILESYSTEM_CUSTOMIZATION="true"
+        ;;
+    "rhel-9.8")
+        OSTREE_REF="rhel/9/${ARCH}/edge"
+        OS_VARIANT="rhel9-unknown"
+        OS_NAME="rhel-edge"
+        BOOT_FILESYSTEM_CUSTOMIZATION="true"
         ;;
     "centos-9")
         OSTREE_REF="centos/9/${ARCH}/edge"
         OS_VARIANT="centos-stream9"
         OS_NAME="rhel-edge"
         BOOT_ARGS="uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no"
+        BOOT_FILESYSTEM_CUSTOMIZATION="true"
         ;;
     *)
         echo "unsupported distro: ${ID}-${VERSION_ID}"
@@ -452,11 +465,16 @@ installation_device = "/dev/vdb"
 [customizations.ignition.embedded]
 config = "$IGNITION_B64"
 
+EOF
+
+if [[ "$BOOT_FILESYSTEM_CUSTOMIZATION" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.filesystem]]
 mountpoint = "/boot"
-minsize = 1073741824
+size = 1073741824
 
 EOF
+fi
 
 greenprint "📄 installer blueprint"
 cat "$BLUEPRINT_FILE"
@@ -731,11 +749,16 @@ installation_device = "/dev/vda"
 [customizations.ignition.firstboot]
 url = "${IGNITION_SERVER_URL}/config.ign"
 
+EOF
+
+if [[ "$BOOT_FILESYSTEM_CUSTOMIZATION" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.filesystem]]
 mountpoint = "/boot"
-minsize = 1073741824
+size = 1073741824
 
 EOF
+fi
 
 greenprint "📄 installer blueprint"
 cat "$BLUEPRINT_FILE"
@@ -871,11 +894,16 @@ groups = []
 [customizations.ignition.firstboot]
 url = "${IGNITION_SERVER_URL}/config.ign"
 
+EOF
+
+if [[ "$BOOT_FILESYSTEM_CUSTOMIZATION" == "true" ]]; then
+    tee -a "$BLUEPRINT_FILE" > /dev/null << EOF
 [[customizations.filesystem]]
 mountpoint = "/boot"
-minsize = 1073741824
+size = 1073741824
 
 EOF
+fi
 
 greenprint "📄 raw-image blueprint"
 cat "$BLUEPRINT_FILE"

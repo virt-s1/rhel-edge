@@ -63,9 +63,6 @@ fi
 # Provision the software under test
 ./iot-setup.sh
 
-# Get OS data
-source /etc/os-release
-
 ARCH=$(uname -m)
 TEST_UUID=$(uuidgen)
 TEMPDIR=$(mktemp -d)
@@ -75,24 +72,24 @@ SSH_KEY="key/ostree_key"
 SSH_KEY_PUB=$(cat "${SSH_KEY}.pub")
 COMPOSE_URL="https://kojipkgs.fedoraproject.org/compose/iot/${COMPOSE}/compose/IoT/${ARCH}/iso"
 COMPOSE_ID=$(echo "${COMPOSE}" | cut -d- -f4)
+IOT_VERSION=$(echo "${COMPOSE}" | cut -d- -f3)
 
 # Set OS-specific variables
-case "${ID}-${VERSION_ID}" in
-    "fedora-44")
+case "${IOT_VERSION}" in
+    "44")
         OSTREE_REF="fedora/stable/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
-        IMAGE_FILENAME="Fedora-IoT-provisioner-44-${COMPOSE_ID}.${ARCH}.iso"
         ;;
-    "fedora-45")
+    "45")
         OSTREE_REF="fedora/rawhide/${ARCH}/iot"
         OS_VARIANT="fedora-rawhide"
-        IMAGE_FILENAME="Fedora-IoT-provisioner-45-${COMPOSE_ID}.${ARCH}.iso"
         ;;
     *)
-        log_error "Unsupported distro: ${ID}-${VERSION_ID}"
+        log_error "Unsupported IoT version: ${IOT_VERSION}"
         exit 1
         ;;
 esac
+IMAGE_FILENAME="Fedora-IoT-provisioner-${IOT_VERSION}-${COMPOSE_ID}.${ARCH}.iso"
 
 # Set up FDO server.
 setup_fdo_server() {
@@ -181,7 +178,6 @@ setup_ignition() {
         "groups": [
           "wheel"
         ],
-        "homeDir": "/home/admin",
         "name": "admin",
         "passwordHash": "\$6\$GRmb7S0p8vsYmXzH\$o0E020S.9JQGaHkszoog4ha4AQVs3sk8q0DvLjSMxoxHBKnB2FBXGQ/OkwZQfW/76ktHd0NX5nls2LPxPuUdl.",
         "shell": "/bin/bash",
@@ -229,21 +225,21 @@ download_image() {
 # Wait for SSH to be available
 wait_for_ssh() {
     local ip_address=$1
-    local max_attempts=30
+    local max_attempts=60
     local attempt=0
-    
+
     log_info "Waiting for SSH on ${ip_address}..."
-    
+
     while [[ ${attempt} -lt ${max_attempts} ]]; do
         if ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "admin@${ip_address}" 'echo -n "READY"' 2>/dev/null | grep -q "READY"; then
             log_success "SSH is ready"
             return 0
         fi
-        
+
         attempt=$((attempt + 1))
         sleep 10
     done
-    
+
     log_error "SSH connection timed out after $((max_attempts * 10)) seconds"
     return 1
 }
@@ -272,7 +268,7 @@ sudo virt-install \
     --network "network=integration,mac=34:49:22:B0:83:30" \
     --boot uefi \
     --tpm "backend.type=emulator,backend.version=2.0,model=tpm-tis" \
-    --extra-args="rd.neednet=1 coreos.inst.crypt_root=1 coreos.inst.isoroot=Fedora-${VERSION_ID}-IoT-${ARCH} coreos.inst.install_dev=/dev/vda coreos.inst.image_file=/run/media/iso/image.raw.xz coreos.inst.insecure fdo.manufacturing_server_url=http://192.168.100.1:8080 fdo.diun_pub_key_insecure=true coreos.inst.append=rd.neednet=1 coreos.inst.append=ignition.config.url=http://192.168.100.1/ignition/fiot.ign console=ttyS0" \
+    --extra-args="rd.neednet=1 coreos.inst.crypt_root=1 coreos.inst.isoroot=Fedora-${IOT_VERSION}-IoT-${ARCH} coreos.inst.install_dev=/dev/vda coreos.inst.image_file=/run/media/iso/image.raw.xz coreos.inst.insecure fdo.manufacturing_server_url=http://192.168.100.1:8080 fdo.diun_pub_key_insecure=true coreos.inst.append=rd.neednet=1 coreos.inst.append=ignition.config.url=http://192.168.100.1/ignition/fiot.ign console=ttyS0" \
     --location "/var/lib/libvirt/images/${IMAGE_FILENAME},initrd=images/pxeboot/initrd.img,kernel=images/pxeboot/vmlinuz" \
     --nographics \
     --noautoconsole \
@@ -284,6 +280,15 @@ sudo virsh start "iot-${TEST_UUID}"
 
 # Verify install: UEFI guest VM is reachable via SSH after installation.
 if ! wait_for_ssh "${GUEST_IP}"; then
+    log_error "Dumping VM diagnostics..."
+    log_error "--- VM state ---"
+    sudo virsh domstate "iot-${TEST_UUID}" || true
+    log_error "--- VM interface addresses (guest agent) ---"
+    sudo virsh domifaddr "iot-${TEST_UUID}" --source agent 2>/dev/null || true
+    log_error "--- VM interface addresses (DHCP lease) ---"
+    sudo virsh domifaddr "iot-${TEST_UUID}" --source lease 2>/dev/null || true
+    log_error "--- Host ARP table ---"
+    sudo arp -an || true
     exit 1
 fi
 
