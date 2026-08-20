@@ -87,6 +87,9 @@ case "${IOT_VERSION}" in
         OS_VARIANT="fedora-unknown"
         ;;
     "45")
+        OS_VARIANT="fedora-unknown"
+        ;;
+    "46")
         OS_VARIANT="fedora-rawhide"
         ;;
     *)

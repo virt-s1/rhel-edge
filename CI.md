@@ -34,6 +34,7 @@ Create a pull request and add a comment according to the following table:
 | `/test-cs9` | All CentOS Stream 9 Edge tests |
 | `/test-f44-iot` | Fedora IoT 44 tests |
 | `/test-f45-iot` | Fedora IoT 45 tests |
+| `/test-f46-iot` | Fedora IoT 46 tests |
 
 ## `rhel-edge` repository CI
 

@@ -165,6 +165,7 @@ To run tests on ARM, a bare metal ARM server is required.
 - CentOS Stream 9
 - Fedora IoT 44
 - Fedora IoT 45
+- Fedora IoT 46
 
 ### Test configuration
 
