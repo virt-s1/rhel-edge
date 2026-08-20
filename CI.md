@@ -34,8 +34,6 @@ Create a pull request and add a comment according to the following table:
 | `/test-cs9` | All CentOS Stream 9 Edge tests |
 | `/test-f44-iot` | Fedora IoT 44 tests |
 | `/test-f45-iot` | Fedora IoT 45 tests |
-| `/test-fdo-container-community` | FDO container community test |
-| `/test-fdo-container-official` | FDO container official test |
 
 ## `rhel-edge` repository CI
 
@@ -49,10 +47,6 @@ Lint checks (defined in `.github/workflows/lint.yml`):
 | Spelling | `codespell --check-filenames --ignore-words-list bu` |
 | Shell scripts | `find . -name '*.sh' -print0 \| xargs -0 shellcheck -e SC1091 -e SC2002 -e SC2317 -e SC2329` |
 | YAML | `yamllint .` |
-
-## FDO container CI
-
-FDO container community test runs on Sundays, official test runs on Thursdays (defined in `trigger-fdo-container.yml`). The `latest` tag containers will be pulled.
 
 ## Other CI workflows
 

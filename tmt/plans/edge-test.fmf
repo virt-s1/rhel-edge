@@ -191,15 +191,3 @@ provision:
   adjust+:
     - when: distro == fedora
       enabled: false
-
-/edge-fdo-container:
-  summary: Test FDO onboarding with containerized servers
-  description: |
-    Image type: edge-simplified-installer (bootable ISO with embedded OSTree commit)
-    Deployment method: ISO boot
-    Use case: Automated zero-touch onboarding with FDO using containerized servers.
-
-    Test intent: Verify FDO onboarding with containerized servers and three FDO authentication methods
-    (insecure key, key hash, root certs) via ISO boot on UEFI VM, and post-deployment system health.
-  environment+:
-    TEST_CASE: edge-fdo-container

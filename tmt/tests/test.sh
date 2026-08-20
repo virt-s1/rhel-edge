@@ -22,8 +22,6 @@ function run_tests() {
 		./ostree-8-to-9.sh
 	elif [ "$TEST_CASE" = "edge-9to9" ]; then
 		./ostree-9-to-9.sh
-	elif [ "$TEST_CASE" = "edge-fdo-container" ]; then
-		./ostree-fdo-container.sh
 	elif [ "$TEST_CASE" = "iot-installer" ]; then
 		./iot-installer.sh
 	elif [ "$TEST_CASE" = "iot-simplified-installer" ]; then
