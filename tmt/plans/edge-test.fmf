@@ -106,16 +106,7 @@ provision:
   environment+:
     TEST_CASE: edge-vsphere
   adjust+:
-    - when: arch != x86_64
-      enabled: false
-    - when: distro == fedora
-      enabled: false
-    - when: distro == cs-9
-      enabled: false
-    - when: distro == rhel-8-10
-      enabled: false
-    - when: distro == rhel-9-2
-      enabled: false
+    - enabled: false
 
 /edge-x86-ami-image:
   summary: Test AMI deployed to AWS EC2
