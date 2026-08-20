@@ -40,8 +40,8 @@ tmt/
 .github/workflows/        GitHub Actions workflows:
   lint.yml                PR linting (commitlint, codespell, shellcheck, yamllint). Runs on every PR.
   trigger-*.yml           Compose detection — each runs daily, creates PRs for new composes.
-  rhel-*.yml, centos-*.yml, fedora-{rawhide,NN}.yml, fedora-iot-*.yml,
-  fdo-container.yml       Test execution — triggered by /test-* PR comments, calls Testing Farm.
+  rhel-*.yml, centos-*.yml, fedora-{rawhide,NN}.yml, fedora-iot-*.yml
+                          Test execution — triggered by /test-* PR comments, calls Testing Farm.
   cleanup-*.yaml          Periodic cleanup of AWS and vSphere resources.
   clear-compose-file.yml  Periodic cleanup of compose tracking files.
 files/                    osbuild-composer repository JSON configs, one per distro version.
@@ -70,7 +70,6 @@ The dispatcher `tmt/tests/test.sh` routes `TEST_CASE` values to scripts:
 | `edge-ignition`              | `ostree-ignition.sh`              |
 | `edge-8to9`                  | `ostree-8-to-9.sh`                |
 | `edge-9to9`                  | `ostree-9-to-9.sh`                |
-| `edge-fdo-container`         | `ostree-fdo-container.sh`         |
 | `iot-installer`              | `iot-installer.sh`                |
 | `iot-simplified-installer`   | `iot-simplified-installer.sh`     |
 | `iot-raw-image`              | `iot-raw-image.sh`                |

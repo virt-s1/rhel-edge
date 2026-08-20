@@ -129,7 +129,6 @@ Edge tests:
 | [`ostree-ng.sh`](ostree-ng.sh) | `edge-installer` (ISO) | OSTree commit deployed via ISO installer |
 | [`ostree-raw-image.sh`](ostree-raw-image.sh) | `edge-raw-image` (raw) | Raw disk image deployed via VM import |
 | [`ostree-simplified-installer.sh`](ostree-simplified-installer.sh) | `edge-simplified-installer` (ISO) | OSTree commit deployed via simplified ISO installer |
-| [`ostree-fdo-container.sh`](ostree-fdo-container.sh) | `edge-simplified-installer` (ISO) | FDO onboarding with containerized servers |
 | [`ostree-ignition.sh`](ostree-ignition.sh) | `edge-simplified-installer` + `edge-raw-image` | Ignition provisioning on simplified installer ISO and raw disk image |
 | [`ostree-vsphere.sh`](ostree-vsphere.sh) | `edge-vsphere` (VMDK) | VMDK image deployed to vSphere |
 | [`ostree-ami-image.sh`](ostree-ami-image.sh) | `edge-ami` (raw) | AMI deployed to AWS EC2 |
