@@ -249,12 +249,24 @@ if ! wait_for_ssh "${GUEST_IP}"; then
     log_error "Dumping VM diagnostics..."
     log_error "--- VM state ---"
     sudo virsh domstate "iot-${TEST_UUID}" || true
+    log_error "--- VM XML interface config ---"
+    sudo virsh dumpxml "iot-${TEST_UUID}" | grep -A10 '<interface' || true
     log_error "--- VM interface addresses (guest agent) ---"
     sudo virsh domifaddr "iot-${TEST_UUID}" --source agent 2>/dev/null || true
     log_error "--- VM interface addresses (DHCP lease) ---"
     sudo virsh domifaddr "iot-${TEST_UUID}" --source lease 2>/dev/null || true
+    log_error "--- Network DHCP leases (integration network) ---"
+    sudo virsh net-dhcp-leases integration || true
     log_error "--- Host ARP table ---"
-    sudo arp -an || true
+    ip neigh show || true
+    log_error "--- Network connectivity test ---"
+    if ping -c 3 -W 2 "${GUEST_IP}" >/dev/null 2>&1; then
+        log_error "Ping to ${GUEST_IP}: SUCCESS (network reachable, possible SSH/auth issue)"
+    else
+        log_error "Ping to ${GUEST_IP}: FAILED (network unreachable)"
+    fi
+    log_error "--- Recent libvirt errors (last 30 min) ---"
+    sudo journalctl -u libvirtd --since '30 min ago' --no-pager -p err..warning | tail -50 || true
     exit 1
 fi
 
