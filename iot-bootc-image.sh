@@ -158,6 +158,22 @@ OCI_ARCHIVE_TAG="${IOT_VERSION}"
 log_info "Copying container image into storage with a controlled tag"
 sudo skopeo copy oci-archive:"${OCI_ARCHIVE}" containers-storage:"${CONTAINER_IMG_NAME}:${OCI_ARCHIVE_TAG}"
 
+# Build a broken variant of the same image, used later to simulate a boot
+# failure on systems where greenboot needs a real staged bootc deployment
+# (greenboot >= 0.16.4) to detect the rollback target. See check-ostree-iot.yaml.
+# Use the same greenboot-failing-unit RPM as the rpm-ostree layering path,
+# just installed via a container build instead of rpm-ostree layering.
+BROKEN_IMG_TAG="broken"
+GREENBOOT_FAILING_UNIT_URL="https://kite-webhook-prod.s3.amazonaws.com/greenboot-failing-unit-1.0-1.el8.noarch.rpm"
+log_info "Building broken bootc image variant for greenboot rollback test..."
+tee Containerfile.broken > /dev/null << EOF
+FROM ${CONTAINER_IMG_NAME}:${OCI_ARCHIVE_TAG}
+RUN curl -Lo /tmp/greenboot-failing-unit.rpm "${GREENBOOT_FAILING_UNIT_URL}" \
+    && rpm -Uvh --nosignature /tmp/greenboot-failing-unit.rpm \
+    && rm -f /tmp/greenboot-failing-unit.rpm
+EOF
+sudo podman build -t "${CONTAINER_IMG_NAME}:${BROKEN_IMG_TAG}" -f Containerfile.broken .
+
 log_info "Preparing bib configuration file..."
 tee config.json > /dev/null << EOF
 {
@@ -251,6 +267,28 @@ if ! wait_for_ssh "${GUEST_IP}"; then
     exit 1
 fi
 
+# Transfer the broken bootc image variant into the guest's local container
+# storage (no registry needed) so the Ansible playbook can 'bootc switch' to
+# it directly, without requiring network access to pull it.
+# Use a SUDO_ASKPASS helper to authenticate out-of-band and leave stdin free for the image payload.
+log_info "Transferring broken bootc image to guest for greenboot rollback test..."
+ASKPASS_PATH="/tmp/.iot-bootc-askpass.sh"
+if ! ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${EDGE_USER}@${GUEST_IP}" \
+    "printf '#!/bin/sh\necho %s\n' '${EDGE_USER_PASSWORD}' > ${ASKPASS_PATH} && chmod 700 ${ASKPASS_PATH}"; then
+    log_error "Failed to prepare sudo askpass helper on guest"
+    exit 1
+fi
+
+if ! sudo podman save "${CONTAINER_IMG_NAME}:${BROKEN_IMG_TAG}" \
+    | ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${EDGE_USER}@${GUEST_IP}" \
+    "SUDO_ASKPASS=${ASKPASS_PATH} sudo -A podman load"; then
+    log_error "Failed to transfer broken bootc image to guest"
+    ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${EDGE_USER}@${GUEST_IP}" "rm -f ${ASKPASS_PATH}" || true
+    exit 1
+fi
+
+ssh "${SSH_OPTIONS[@]}" -i "${SSH_KEY}" "${EDGE_USER}@${GUEST_IP}" "rm -f ${ASKPASS_PATH}" || true
+
 # Create Ansible inventory
 log_info "Creating Ansible inventory..."
 tee "${TEMPDIR}/inventory" > /dev/null << EOF
@@ -270,7 +308,10 @@ EOF
 # Run check-ostree-iot.yaml Ansible playbook from host against UEFI guest VM.
 # Conditional checks: bootc_system.
 log_info "Running Ansible playbook..."
-if ! sudo ansible-playbook -v -i "${TEMPDIR}/inventory" -e bootc_system="${BOOTC_SYSTEM}" check-ostree-iot.yaml; then
+if ! sudo ansible-playbook -v -i "${TEMPDIR}/inventory" \
+    -e bootc_system="${BOOTC_SYSTEM}" \
+    -e broken_bootc_image="localhost/${CONTAINER_IMG_NAME}:${BROKEN_IMG_TAG}" \
+    check-ostree-iot.yaml; then
     log_error "Ansible playbook check failed"
     exit 1
 fi

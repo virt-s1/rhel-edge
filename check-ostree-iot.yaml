@@ -6,6 +6,9 @@
     total_counter: "0"
     failed_counter: "0"
     bootc_system: "false"
+    # image reference used to simulate a boot failure on bootc systems
+    # it is passed in by iot-bootc-image.sh
+    broken_bootc_image: ""
 
   tasks:
     # current target host's IP address
@@ -296,6 +299,24 @@
           poll: 0
           ignore_errors: yes
           ignore_unreachable: yes
+          when:
+            - bootc_system == "false"
+
+        - name: stage broken bootc image
+          command: bootc switch --transport containers-storage {{ broken_bootc_image }}
+          become: yes
+          when:
+            - bootc_system == "true"
+
+        - name: reboot to apply broken bootc image
+          command: reboot
+          become: yes
+          async: 1
+          poll: 0
+          ignore_errors: yes
+          ignore_unreachable: yes
+          when:
+            - bootc_system == "true"
 
         - name: wait for SSH to go down and confirm reboot has started
           wait_for:
