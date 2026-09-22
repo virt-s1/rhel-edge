@@ -1,0 +1,81 @@
+summary: FDO fdo-client tests against a RHEL 9.x nightly compose
+description: |
+    Runs the fido-device-onboard-rs client tests against the fdo-client package
+    taken from the RHEL 9.x nightly compose under test.
+
+    Test scripts are discovered from fido-device-onboard-rs at a pinned commit.
+    The fdo-client package is installed straight from the provisioned nightly
+    repos.
+    postgresql-server, sqlite and the SELinux rules replicate the upstream
+    onboarding plan's prepare, which assumes the package is already installed.
+
+discover:
+  how: fmf
+  url: https://github.com/fdo-rs/fido-device-onboard-rs
+  # Pinned so a compose result reflects one known set of test scripts.
+  # Bump deliberately after reviewing the upstream changes.
+  ref: 99e4b691a4f9ebeb53a049c817ce4e6d9e73b46a
+  path: /test/fmf
+  test: "/tests/onboarding"
+
+provision:
+  hardware:
+    virtualization:
+      is-supported: true
+    cpu:
+      processors: ">= 2"
+    memory: ">= 4 GB"
+    disk:
+      - size: ">= 30 GB"
+
+prepare:
+  - how: shell
+    name: Install fdo packages from the nightly compose
+    script: |
+      set -euxo pipefail
+      dnf config-manager --set-disabled \
+        testing-farm-tag-repository \
+        testing-farm-tag-repository-mainline \
+        testing-farm-tag-repository-z-stream \
+        || true
+      dnf install -y --disablerepo='testing-farm-tag-repository*' \
+        fdo-admin-cli \
+        fdo-client \
+        fdo-init \
+        fdo-manufacturing-server \
+        fdo-owner-cli \
+        fdo-owner-onboarding-server \
+        fdo-rendezvous-server
+      dnf install -y postgresql-server sqlite
+      rpm -q fdo-admin-cli fdo-client fdo-manufacturing-server fdo-owner-cli fdo-owner-onboarding-server fdo-rendezvous-server
+
+  - how: shell
+    name: Add SELinux permissions the onboarding tests need
+    script: |
+      set -euxo pipefail
+      tee /tmp/fdo-missing.cil >/dev/null <<'EOF'
+      (allow fdo_t etc_t (file (write)))
+      (allow fdo_t fdo_conf_t (file (append create rename setattr unlink write)))
+      (allow fdo_t fdo_var_lib_t (dir (add_name remove_name write)))
+      (allow fdo_t fdo_var_lib_t (file (create setattr unlink write)))
+      (allow fdo_t krb5_keytab_t (dir (search)))
+      (allow fdo_t postgresql_port_t (tcp_socket (name_connect)))
+      (allow fdo_t sssd_t (unix_stream_socket (connectto)))
+      (allow fdo_t sssd_var_run_t (sock_file (write)))
+      EOF
+      semodule -i /tmp/fdo-missing.cil
+
+execute:
+  how: tmt
+
+/x86:
+  summary: fido-device-onboard tests on x86_64
+  adjust+:
+    - when: arch != x86_64
+      enabled: false
+
+/arm:
+  summary: fido-device-onboard tests on aarch64
+  adjust+:
+    - when: arch != aarch64
+      enabled: false
