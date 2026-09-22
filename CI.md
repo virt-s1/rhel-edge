@@ -21,6 +21,18 @@ Fedora Rawhide compose trigger is currently disabled (commented out in `trigger-
 
 Fedora IoT compose triggers run daily for each supported Fedora IoT version (defined in `trigger-iot.yml`) and can also be run manually, for example, with `/test-f44-iot`. They check the `COMPOSE_ID` of the latest compose. If the `COMPOSE_ID` can't be found in the corresponding compose file (e.g. `compose/compose.f44-iot`), a new pull request will be created and a corresponding `/test-f*-iot` comment will be added. That will trigger all Fedora IoT tests on the corresponding Fedora IoT VM deployed via Testing Farm.
 
+## FDO compose CI
+
+The FDO compose trigger (`trigger-fdo.yml`) runs once a day and checks both RHEL 10.2 and RHEL 9.8.0 nightly composes. For each new compose (not found in the tracking files `compose/compose.fdo-102` and `compose/compose.fdo-98`), a pull request titled `FDO: <COMPOSE_ID>` is created, auto merge is enabled, and a `/test-fdo` comment is added.
+
+Tests are routed by RHEL version:
+- **RHEL 10.x** → runs the **Go** FDO client tests (`go-fdo-ci` package-mode tests, `tag:client & tag:e2e`) against `go-fdo-client` from the nightly compose
+- **RHEL 9.x** → runs the **Rust** FDO client onboarding tests (`fido-device-onboard-rs` tests) against the `fdo-*` packages from the nightly compose
+
+Both implementations install the FDO servers from the same nightly compose as runtime dependencies. The `FDO:` title prefix and `fdo-test` label keep these PRs distinct from Edge compose PRs.
+
+Manual dispatch is available via the Actions tab (`fdo-dispatch.yml`): provide a compose name (e.g. `RHEL-10.2-Nightly` or `RHEL-9.8.0-Nightly`) and optional architecture (default: both x86_64 and aarch64) to run tests on demand without a PR.
+
 ## How to run compose test manually
 
 Create a pull request and add a comment according to the following table:
@@ -35,6 +47,7 @@ Create a pull request and add a comment according to the following table:
 | `/test-f44-iot` | Fedora IoT 44 tests |
 | `/test-f45-iot` | Fedora IoT 45 tests |
 | `/test-f46-iot` | Fedora IoT 46 tests |
+| `/test-fdo` | FDO client tests routed by compose (Go on RHEL 10.x, Rust on RHEL 9.x) |
 
 ## `rhel-edge` repository CI
 
