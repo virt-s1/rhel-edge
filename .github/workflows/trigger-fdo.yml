@@ -1,0 +1,205 @@
+---
+name: FDO compose trigger
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 5 * * *'
+
+permissions: {}
+
+env:
+  COMPOSE_URL_10: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-10/nightly/updates/RHEL-10"
+  COMPOSE_URL_9: "http://${{ secrets.DOWNLOAD_NODE }}/rhel-9/nightly/updates/RHEL-9"
+
+jobs:
+  check-compose:
+    permissions:
+      contents: read
+    if: github.repository == 'virt-s1/rhel-edge'
+    runs-on: container-runner
+    steps:
+      - name: Verify PAT is configured
+        run: |
+          if [ -z "$PAT_TOKEN" ]; then
+            echo "::error::secrets.PAT is not configured."
+            exit 1
+          fi
+        env:
+          PAT_TOKEN: ${{ secrets.PAT }}
+
+      - run: sudo dnf install -y git gh
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Check RHEL 10.2 compose
+        id: check_102
+        run: |
+          curl -sf ${COMPOSE_URL_10}/latest-RHEL-10.2/STATUS --output STATUS_102
+          STATUS_102=$(cat STATUS_102)
+          if [[ "$STATUS_102" == "FINISHED" ]]; then
+              curl -sf ${COMPOSE_URL_10}/latest-RHEL-10.2/COMPOSE_ID --output COMPOSE_ID_102
+              COMPOSE_ID_102=$(cat COMPOSE_ID_102)
+              TESTED_COMPOSE_102=( $( cat compose/compose.fdo-102 ) )
+              if [[ " ${TESTED_COMPOSE_102[*]} " =~ "$COMPOSE_ID_102" ]]; then
+                  COMPOSE_ID_102="false"
+              fi
+          else
+              COMPOSE_ID_102="false"
+          fi
+
+          if [[ "$COMPOSE_ID_102" != "false" ]]; then
+              gh pr list -R virt-s1/rhel-edge --state open --limit 60 --json title --jq '.[].title' > PR_LIST_102
+              PR_LIST_102=$(cat PR_LIST_102)
+              if [[ $PR_LIST_102 == *"FDO: $COMPOSE_ID_102"* ]]; then
+                  echo "pr_running_102=true" >> $GITHUB_OUTPUT
+              else
+                  echo "pr_running_102=false" >> $GITHUB_OUTPUT
+              fi
+          fi
+
+          echo "rhel102_compose=$COMPOSE_ID_102" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check RHEL 9.8.0 compose
+        id: check_98
+        run: |
+          curl -sf ${COMPOSE_URL_9}/latest-RHEL-9.8.0/STATUS --output STATUS_98
+          STATUS_98=$(cat STATUS_98)
+          if [[ "$STATUS_98" == "FINISHED" ]]; then
+              curl -sf ${COMPOSE_URL_9}/latest-RHEL-9.8.0/COMPOSE_ID --output COMPOSE_ID_98
+              COMPOSE_ID_98=$(cat COMPOSE_ID_98)
+              TESTED_COMPOSE_98=( $( cat compose/compose.fdo-98 ) )
+              if [[ " ${TESTED_COMPOSE_98[*]} " =~ "$COMPOSE_ID_98" ]]; then
+                  COMPOSE_ID_98="false"
+              fi
+          else
+              COMPOSE_ID_98="false"
+          fi
+
+          if [[ "$COMPOSE_ID_98" != "false" ]]; then
+              gh pr list -R virt-s1/rhel-edge --state open --limit 60 --json title --jq '.[].title' > PR_LIST_98
+              PR_LIST_98=$(cat PR_LIST_98)
+              if [[ $PR_LIST_98 == *"FDO: $COMPOSE_ID_98"* ]]; then
+                  echo "pr_running_98=true" >> $GITHUB_OUTPUT
+              else
+                  echo "pr_running_98=false" >> $GITHUB_OUTPUT
+              fi
+          fi
+
+          echo "rhel98_compose=$COMPOSE_ID_98" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    outputs:
+      rhel102_compose: ${{ steps.check_102.outputs.rhel102_compose }}
+      pr_running_102: ${{ steps.check_102.outputs.pr_running_102 }}
+      rhel98_compose: ${{ steps.check_98.outputs.rhel98_compose }}
+      pr_running_98: ${{ steps.check_98.outputs.pr_running_98 }}
+
+  rhel-10-2:
+    permissions:
+      contents: write
+      pull-requests: write
+    needs: check-compose
+    if: ${{ needs.check-compose.outputs.rhel102_compose != 'false' && needs.check-compose.outputs.pr_running_102 == 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Add new compose id in compose.fdo-102
+        env:
+          COMPOSE_ID: ${{ needs.check-compose.outputs.rhel102_compose }}
+        run: |
+          echo "$COMPOSE_ID" >> compose/compose.fdo-102
+          cat compose/compose.fdo-102
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
+        with:
+          token: ${{ secrets.PAT }}
+          commit-message: "chore: ${{ needs.check-compose.outputs.rhel102_compose }} - ${{ steps.date.outputs.date }}"
+          committer: cloudkitebot <knecasov@redhat.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: cpr
+          branch-suffix: random
+          delete-branch: true
+          title: "FDO: ${{ needs.check-compose.outputs.rhel102_compose }}"
+          labels: auto-merge,fdo-test,RHEL-10.2
+          body: |
+            FDO RHEL 10.2 compose ${{ needs.check-compose.outputs.rhel102_compose }}
+            - Date: ${{ steps.date.outputs.date }}
+
+      - name: Enable Pull Request Automerge
+        if: steps.cpr.outputs.pull-request-operation == 'created'
+        uses: peter-evans/enable-pull-request-automerge@a660677d5469627102a1c1e11409dd063606628d  # v3.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: rebase
+
+      - name: Add a comment to trigger test workflow
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9  # v5.0.0
+        with:
+          token: ${{ secrets.PAT }}
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          body: /test-fdo
+
+  rhel-9-8:
+    permissions:
+      contents: write
+      pull-requests: write
+    needs: check-compose
+    if: ${{ needs.check-compose.outputs.rhel98_compose != 'false' && needs.check-compose.outputs.pr_running_98 == 'false' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Add new compose id in compose.fdo-98
+        env:
+          COMPOSE_ID: ${{ needs.check-compose.outputs.rhel98_compose }}
+        run: |
+          echo "$COMPOSE_ID" >> compose/compose.fdo-98
+          cat compose/compose.fdo-98
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
+        with:
+          token: ${{ secrets.PAT }}
+          commit-message: "chore: ${{ needs.check-compose.outputs.rhel98_compose }} - ${{ steps.date.outputs.date }}"
+          committer: cloudkitebot <knecasov@redhat.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          branch: cpr
+          branch-suffix: random
+          delete-branch: true
+          title: "FDO: ${{ needs.check-compose.outputs.rhel98_compose }}"
+          labels: auto-merge,fdo-test,RHEL-9.8.0
+          body: |
+            FDO RHEL 9.8.0 compose ${{ needs.check-compose.outputs.rhel98_compose }}
+            - Date: ${{ steps.date.outputs.date }}
+
+      - name: Enable Pull Request Automerge
+        if: steps.cpr.outputs.pull-request-operation == 'created'
+        uses: peter-evans/enable-pull-request-automerge@a660677d5469627102a1c1e11409dd063606628d  # v3.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
+          merge-method: rebase
+
+      - name: Add a comment to trigger test workflow
+        uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9  # v5.0.0
+        with:
+          token: ${{ secrets.PAT }}
+          issue-number: ${{ steps.cpr.outputs.pull-request-number }}
+          body: /test-fdo

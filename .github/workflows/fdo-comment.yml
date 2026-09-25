@@ -1,0 +1,94 @@
+---
+name: Run FDO Test on PR comment
+
+on:
+  issue_comment:
+    types:
+      - created
+
+permissions: {}
+
+jobs:
+  pr-info:
+    permissions:
+      pull-requests: read
+    if: ${{ github.event.issue.pull_request &&
+            (endsWith(github.event.comment.body, '/test-fdo')) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query author repository permissions
+        uses: octokit/request-action@b91aabaa861c777dcdb14e2387e30eddf04619ae  # v3.0.0
+        id: user_permission
+        with:
+          route: GET /repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}/permission
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check if user does have correct permissions
+        if: contains('admin write', fromJson(steps.user_permission.outputs.data).permission)
+        id: check_user_perm
+        run: |
+          echo "User '${{ github.event.sender.login }}' has permission '${{ fromJson(steps.user_permission.outputs.data).permission }}' allowed values: 'admin', 'write'"
+          echo "allowed_user=true" >> $GITHUB_OUTPUT
+      - name: Get information for pull request
+        uses: octokit/request-action@b91aabaa861c777dcdb14e2387e30eddf04619ae  # v3.0.0
+        id: pr-api
+        with:
+          route: GET /repos/${{ github.repository }}/pulls/${{ github.event.issue.number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Derive compose from PR title
+        id: compose_info
+        env:
+          PR_TITLE: ${{ fromJson(steps.pr-api.outputs.data).title }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$PR_TITLE" =~ ^FDO:\ (RHEL-([0-9]+\.[0-9]+(\.[0-9]+)?)-[A-Za-z0-9._-]+)$ ]]; then
+            echo "::error::PR title must be 'FDO: <RHEL compose id>'"
+            exit 1
+          fi
+          # Use the validated capture groups, not the raw title.
+          compose_id="${BASH_REMATCH[1]}"
+          ver="${BASH_REMATCH[2]}"
+          echo "compose_id=$compose_id" >> "$GITHUB_OUTPUT"
+          echo "compose=RHEL-${ver}-Nightly" >> "$GITHUB_OUTPUT"
+    outputs:
+      allowed_user: ${{ steps.check_user_perm.outputs.allowed_user }}
+      sha: ${{ fromJson(steps.pr-api.outputs.data).head.sha }}
+      repo_url: ${{ fromJson(steps.pr-api.outputs.data).head.repo.html_url }}
+      compose_id: ${{ steps.compose_info.outputs.compose_id }}
+      compose: ${{ steps.compose_info.outputs.compose }}
+
+  setup:
+    permissions: {}
+    needs: pr-info
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
+    runs-on: ubuntu-latest
+    outputs:
+      archs: ${{ steps.arch_matrix.outputs.archs }}
+    steps:
+      - name: Build architecture matrix
+        id: arch_matrix
+        run: |
+          echo 'archs=["x86_64","aarch64"]' >> "$GITHUB_OUTPUT"
+
+  test:
+    permissions:
+      contents: read
+      statuses: write
+    needs: [pr-info, setup]
+    if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJson(needs.setup.outputs.archs) }}
+    uses: ./.github/workflows/fdo-test.yml
+    with:
+      compose: ${{ needs.pr-info.outputs.compose }}
+      arch: ${{ matrix.arch }}
+      git_url: ${{ needs.pr-info.outputs.repo_url }}
+      git_ref: ${{ needs.pr-info.outputs.sha }}
+      compose_id: ${{ needs.pr-info.outputs.compose_id }}
+      update_pr_status: true
+    secrets:
+      TF_API_KEY: ${{ secrets.TF_API_KEY }}
+      SLACK_WEBHOOK_URL_RHEL_EDGE_CI: ${{ secrets.SLACK_WEBHOOK_URL_RHEL_EDGE_CI }}

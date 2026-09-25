@@ -1,0 +1,111 @@
+---
+name: FDO test (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      compose:
+        required: true
+        type: string
+      arch:
+        required: true
+        type: string
+      git_url:
+        required: false
+        type: string
+        default: ""
+      git_ref:
+        required: false
+        type: string
+        default: ""
+      compose_id:
+        required: false
+        type: string
+        default: ""
+      update_pr_status:
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      TF_API_KEY:
+        required: true
+      SLACK_WEBHOOK_URL_RHEL_EDGE_CI:
+        required: true
+
+permissions: {}
+
+jobs:
+  fdo-test:
+    permissions:
+      contents: read
+      statuses: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Route compose to implementation, distro and plan
+        id: route
+        env:
+          COMPOSE: ${{ inputs.compose }}
+          ARCH: ${{ inputs.arch }}
+        run: |
+          set -euo pipefail
+          case "$COMPOSE" in
+            RHEL-10.*) impl="go" ;;
+            RHEL-9.*)  impl="rust" ;;
+            *) echo "::error::Unsupported compose: $COMPOSE"; exit 1 ;;
+          esac
+          case "$ARCH" in
+            x86_64)  archsuffix="x86" ;;
+            aarch64) archsuffix="arm" ;;
+            *) echo "::error::Unsupported arch: $ARCH"; exit 1 ;;
+          esac
+          ver="${COMPOSE#RHEL-}"
+          ver="${ver%%-*}"
+          major="${ver%%.*}"
+          minor="${ver#*.}"
+          minor="${minor%%.*}"
+          arch="$ARCH"
+          echo "plan_regex=fdo-$impl/$archsuffix" >> "$GITHUB_OUTPUT"
+          echo "tmt_context=arch=$arch;distro=rhel-$major-$minor" >> "$GITHUB_OUTPUT"
+          echo "status_name=fdo-rhel-$major.$minor-$archsuffix" >> "$GITHUB_OUTPUT"
+          echo "label=$major.$minor | $arch" >> "$GITHUB_OUTPUT"
+
+      - name: Run the tests
+        uses: sclorg/testing-farm-as-github-action@230555baceb860aa468d216f1822974836b965d1  # v4.3.1
+        with:
+          compose: ${{ inputs.compose }}
+          arch: ${{ inputs.arch }}
+          api_key: ${{ secrets.TF_API_KEY }}
+          git_url: ${{ inputs.git_url || format('{0}/{1}', github.server_url, github.repository) }}
+          git_ref: ${{ inputs.git_ref || github.ref }}
+          update_pull_request_status: ${{ inputs.update_pr_status }}
+          tmt_context: ${{ steps.route.outputs.tmt_context }}
+          pull_request_status_name: ${{ steps.route.outputs.status_name }}
+          tmt_plan_regex: ${{ steps.route.outputs.plan_regex }}
+          variables: "ARCH=${{ inputs.arch }}"
+
+      - name: Send test results to Slack via webhook
+        if: ${{ always() }}
+        env:
+          JOB_STATUS: ${{ job.status }}
+          COMPOSE_ID: ${{ inputs.compose_id }}
+          COMPOSE: ${{ inputs.compose }}
+          LABEL: ${{ steps.route.outputs.label }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL_RHEL_EDGE_CI }}
+        run: |
+          set -euo pipefail
+          if [ "$JOB_STATUS" = "success" ]; then
+            emoji=":white_check_mark:"
+          else
+            emoji=":x:"
+          fi
+          cid="$COMPOSE_ID"
+          [ -n "$cid" ] || cid="$COMPOSE"
+          # jq builds the payload so no value can break out of the JSON string.
+          payload=$(jq -n \
+            --arg text "$emoji *FDO | $LABEL | Compose-id: $cid |* <$RUN_URL|Test Log>" \
+            '{text: "Testing Farm Results for FDO",
+              blocks: [{type: "section",
+                        text: {type: "mrkdwn", text: $text}}]}')
+          curl -X POST -H 'Content-type: application/json' \
+            --data "$payload" "$SLACK_WEBHOOK_URL"
