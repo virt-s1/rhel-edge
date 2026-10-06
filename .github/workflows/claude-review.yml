@@ -1,0 +1,73 @@
+---
+# Automated AI PR review via the Claude Code GitHub Action (Project Judoon,
+# THEEDGE-4881). Auth is Google Vertex AI with Workload Identity Federation
+# (no direct Anthropic API key, no secrets). See claude-review-setup.md for
+# what this workflow needs, and the internal team-operations repo for the
+# real values and one-time GCP/IAM setup steps.
+name: Claude review
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+# Only the review job needs write access; everything else stays read-only.
+permissions: {}
+
+# Cancel a superseded review when new commits are pushed to the same PR, so we
+# do not pay for reviews of stale diffs.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: "🤖 Claude review"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write  # required for Vertex AI OIDC / Workload Identity Federation
+    env:
+      ANTHROPIC_VERTEX_PROJECT_ID: ${{ vars.ANTHROPIC_VERTEX_PROJECT_ID }}
+      CLOUD_ML_REGION: ${{ vars.CLOUD_ML_REGION }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Authenticate to Google Cloud
+        # Direct WIF access: the GitHub repo's principalSet is granted
+        # Vertex AI access on the GCP project, so no secret and no service
+        # account are needed. For service-account impersonation instead, add
+        # a `service_account:` input. See claude-review-setup.md for what
+        # these variables are and where the real values live.
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.ANTHROPIC_VERTEX_PROJECT_ID }}
+
+      - uses: anthropics/claude-code-action@8ce9314fa9a404564fa7e954cd84f25bcba2b829 # v1.0.236
+        with:
+          use_vertex: "true"
+          claude_args: |
+            --model ${{ vars.CLAUDE_REVIEW_MODEL }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request. This is an integration-test repository for
+            RHEL for Edge and Fedora IoT, made up mostly of self-contained Bash
+            test scripts, GitHub Actions workflows, and FMF/tmt test metadata
+            (see AGENTS.md, which you should follow).
+
+            Focus on:
+            - Bash correctness: quoting, error handling, unset variables, and
+              portability across the distros these scripts target.
+            - GitHub Actions workflow correctness and supply-chain hygiene
+              (unpinned actions, over-broad permissions, injectable inputs).
+            - Real bugs, security issues, and anything secret accidentally
+              committed.
+
+            Do not nitpick style already covered by the repo linters (shellcheck,
+            yamllint, codespell, commitlint). Post a concise summary plus specific
+            inline comments, and skip generic praise.
