@@ -25,6 +25,7 @@ jobs:
   review:
     name: "🤖 Claude review"
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       pull-requests: write
@@ -36,6 +37,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Authenticate to Google Cloud
+        id: gcp-auth
         # Direct WIF access: the GitHub repo's principalSet is granted
         # Vertex AI access on the GCP project, so no secret and no service
         # account are needed. For service-account impersonation instead, add
@@ -46,11 +48,33 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.ANTHROPIC_VERTEX_PROJECT_ID }}
 
+      - name: Move Vertex AI credentials out of the checkout
+        # google-github-actions/auth writes the WIF credentials file into
+        # $GITHUB_WORKSPACE by design (its own README says so). The review
+        # step below grants Read/Glob over that same checkout tree, so a PR
+        # with prompt-injected title/body/diff text could otherwise get the
+        # agent to read and leak this live GCP credential in a public
+        # comment. Move it to $RUNNER_TEMP, outside the agent's reach,
+        # before the review step runs.
+        run: |
+          creds_path="${{ steps.gcp-auth.outputs.credentials_file_path }}"
+          new_path="${RUNNER_TEMP}/$(basename "$creds_path")"
+          mv "$creds_path" "$new_path"
+          {
+            echo "GOOGLE_APPLICATION_CREDENTIALS=$new_path"
+            echo "GOOGLE_GHA_CREDS_PATH=$new_path"
+            echo "CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=$new_path"
+          } >> "$GITHUB_ENV"
+
       - uses: anthropics/claude-code-action@8ce9314fa9a404564fa7e954cd84f25bcba2b829 # v1.0.236
         with:
+          # No Claude GitHub App installed for this pilot; use the workflow's
+          # own GITHUB_TOKEN instead (granted pull-requests: write, above).
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           use_vertex: "true"
           claude_args: |
             --model ${{ vars.CLAUDE_REVIEW_MODEL }}
+            --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -69,5 +93,18 @@ jobs:
               committed.
 
             Do not nitpick style already covered by the repo linters (shellcheck,
-            yamllint, codespell, commitlint). Post a concise summary plus specific
-            inline comments, and skip generic praise.
+            yamllint, codespell, commitlint). Skip generic praise.
+
+            Use `gh pr comment --edit-last --create-if-none` for a concise
+            top-level summary, so repeated pushes update the same comment
+            instead of piling up new ones. Use
+            `mcp__github_inline_comment__create_inline_comment` (with
+            `confirmed: true`) for specific inline comments. Only post GitHub
+            comments; don't submit review text as plain chat messages.
+
+            Start the top-level summary comment with this exact header (the
+            GitHub-rendered author will say github-actions[bot] since this
+            pilot doesn't use a GitHub App; the header is how to tell it
+            apart from other automated comments on the PR):
+
+            > 🤖 **Claude Review** (via [Claude Code Action](https://github.com/anthropics/claude-code-action))
