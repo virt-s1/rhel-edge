@@ -25,10 +25,12 @@ jobs:
   review:
     name: "🤖 Claude review"
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       pull-requests: write
       id-token: write  # required for Vertex AI OIDC / Workload Identity Federation
+      actions: read  # lets the agent view CI job logs/results on this PR
     env:
       ANTHROPIC_VERTEX_PROJECT_ID: ${{ vars.ANTHROPIC_VERTEX_PROJECT_ID }}
       CLOUD_ML_REGION: ${{ vars.CLOUD_ML_REGION }}
@@ -36,6 +38,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Authenticate to Google Cloud
+        id: gcp-auth
         # Direct WIF access: the GitHub repo's principalSet is granted
         # Vertex AI access on the GCP project, so no secret and no service
         # account are needed. For service-account impersonation instead, add
@@ -46,11 +49,61 @@ jobs:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           project_id: ${{ vars.ANTHROPIC_VERTEX_PROJECT_ID }}
 
+      - name: Move Vertex AI credentials out of the checkout
+        # google-github-actions/auth writes the WIF credentials file into
+        # $GITHUB_WORKSPACE by design (its own README says so). The review
+        # step below grants Read/Grep/Glob over that same checkout tree, so a
+        # PR with prompt-injected title/body/diff text could otherwise get
+        # the agent to read and leak this live GCP credential in a public
+        # comment. Read/Grep/Glob are scoped to ./** (the checkout) in
+        # --allowedTools, so moving this file to $RUNNER_TEMP -- outside that
+        # scope -- is a real boundary, not just discovery-avoidance. The
+        # `settings` deny rule below is a second, independent layer in case
+        # that scoping is ever loosened.
+        env:
+          CREDS_PATH: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+        run: |
+          new_path="${RUNNER_TEMP}/$(basename "$CREDS_PATH")"
+          mv "$CREDS_PATH" "$new_path"
+          {
+            echo "GOOGLE_APPLICATION_CREDENTIALS=$new_path"
+            echo "GOOGLE_GHA_CREDS_PATH=$new_path"
+            echo "CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=$new_path"
+          } >> "$GITHUB_ENV"
+
+      - name: Record review metadata
+        id: review-date
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          {
+            echo "date=$(date -u +'%Y-%m-%d %H:%M UTC')"
+            echo "short_sha=${HEAD_SHA:0:7}"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: anthropics/claude-code-action@8ce9314fa9a404564fa7e954cd84f25bcba2b829 # v1.0.236
         with:
+          # No Claude GitHub App installed for this pilot; use the workflow's
+          # own GITHUB_TOKEN instead (granted pull-requests: write, above).
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           use_vertex: "true"
+          # Lets Claude look at this PR's own CI job logs/results (e.g. a
+          # failed Testing Farm run) rather than just the diff. Requires the
+          # matching actions: read job permission, above.
+          additional_permissions: |
+            actions: read
+          # Second, independent layer alongside scoping Read/Grep/Glob to
+          # ./** in --allowedTools below: deny rules outrank allow rules
+          # regardless of specificity, so this still blocks the credentials
+          # file even if that scoping is ever loosened. (Grep/Glob path
+          # enforcement is checked at the directory level, not per matched
+          # file, so don't rely on this rule alone -- the ./** scoping is
+          # what actually keeps these tools out of $RUNNER_TEMP.)
+          settings: |
+            {"permissions": {"deny": ["Read(//**/gha-creds-*.json)"]}}
           claude_args: |
             --model ${{ vars.CLAUDE_REVIEW_MODEL }}
+            --allowedTools "Read(./**),Grep(./**),Glob(./**),mcp__github_inline_comment__create_inline_comment,mcp__github_ci__get_ci_status,mcp__github_ci__get_workflow_run_details,mcp__github_ci__download_job_log,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments*),Bash(gh api -X PATCH repos/${{ github.repository }}/issues/comments/*)"
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -68,6 +121,46 @@ jobs:
             - Real bugs, security issues, and anything secret accidentally
               committed.
 
+            If any CI checks on this PR have failed, look at the job logs and
+            explain what went wrong and why, rather than just noting the
+            failure.
+
             Do not nitpick style already covered by the repo linters (shellcheck,
-            yamllint, codespell, commitlint). Post a concise summary plus specific
-            inline comments, and skip generic praise.
+            yamllint, codespell, commitlint). Skip generic praise.
+
+            For the top-level summary, don't rely on "edit the last comment"
+            -- the pointer comment below means the bot's own last comment is
+            usually that pointer, not the summary. Instead: list this PR's
+            comments with
+            `gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments`,
+            find the one whose body starts with the header below, and update
+            it in place with
+            `gh api -X PATCH repos/${{ github.repository }}/issues/comments/<id> -F body=@-`
+            (pipe the new body in on stdin via a heredoc). If no such comment
+            exists yet, create one with `gh pr comment` instead.
+
+            Use `mcp__github_inline_comment__create_inline_comment` (with
+            `confirmed: true`) for specific inline comments. Only post GitHub
+            comments; don't submit review text as plain chat messages.
+
+            After that, always post a second, separate, new one-line comment
+            pointing back at the summary, e.g. "🔄 New changes reviewed, see
+            the updated summary above." `gh pr comment` prints the URL of the
+            comment it just posted/edited on success; link to that URL. This
+            gives a freshly-timestamped signal distinct from the summary's
+            own edit, since GitHub's "edited" tooltip on a comment shows its
+            original creation time, not the time of the latest edit.
+
+            Start the top-level summary comment with this exact header (the
+            GitHub-rendered author will say github-actions[bot] since this
+            pilot doesn't use a GitHub App; the header is how to tell it
+            apart from other automated comments on the PR):
+
+            > 🤖 **Claude Review** (via [Claude Code Action](https://github.com/anthropics/claude-code-action))
+
+            End the comment with a line reading
+            `_Last reviewed: commit ${{ steps.review-date.outputs.short_sha }}
+            on ${{ steps.review-date.outputs.date }}_` so readers can tell
+            it's current without relying on GitHub's "edited" timestamp,
+            which shows the comment's original creation time rather than its
+            last edit.
