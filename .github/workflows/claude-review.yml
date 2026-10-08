@@ -36,6 +36,13 @@ jobs:
       CLOUD_ML_REGION: ${{ vars.CLOUD_ML_REGION }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # This job never needs authenticated git push/pull after checkout.
+          # Doesn't fully close the .git/config exposure below on its own --
+          # the claude-code-action re-embeds its own token-bearing credential
+          # into .git/config regardless, in every mode -- but no reason to
+          # also let checkout write one first.
+          persist-credentials: false
 
       - name: Authenticate to Google Cloud
         id: gcp-auth
@@ -92,18 +99,27 @@ jobs:
           # matching actions: read job permission, above.
           additional_permissions: |
             actions: read
-          # Second, independent layer alongside scoping Read/Grep/Glob to
-          # ./** in --allowedTools below: deny rules outrank allow rules
-          # regardless of specificity, so this still blocks the credentials
-          # file even if that scoping is ever loosened. (Grep/Glob path
-          # enforcement is checked at the directory level, not per matched
-          # file, so don't rely on this rule alone -- the ./** scoping is
-          # what actually keeps these tools out of $RUNNER_TEMP.)
+          # Two things denied, each under all three tool names (Read/Grep/
+          # Glob) rather than just Read: a Read-keyed deny rule isn't
+          # reliably enough to also stop Grep/Glob on the same path (the
+          # enforcement check is reportedly on the directory a Grep/Glob
+          # call is invoked with, not on paths it might incidentally
+          # traverse into), so don't assume coverage carries over between
+          # tools.
+          # - gha-creds-*.json: second, independent layer alongside scoping
+          #   Read/Grep/Glob to ./** below -- deny rules outrank allow rules
+          #   regardless of specificity, so this still blocks the GCP
+          #   credential even if that scoping is ever loosened.
+          # - .git/**: the claude-code-action re-embeds the live
+          #   GITHUB_TOKEN into .git/config's remote URL after checkout, in
+          #   every mode, regardless of persist-credentials above. That file
+          #   sits inside ./**, so this is the actual boundary, not a
+          #   backup.
           settings: |
-            {"permissions": {"deny": ["Read(//**/gha-creds-*.json)"]}}
+            {"permissions": {"deny": ["Read(//**/gha-creds-*.json)", "Read(./.git/**)", "Grep(./.git/**)", "Glob(./.git/**)"]}}
           claude_args: |
             --model ${{ vars.CLAUDE_REVIEW_MODEL }}
-            --allowedTools "Read(./**),Grep(./**),Glob(./**),mcp__github_inline_comment__create_inline_comment,mcp__github_ci__get_ci_status,mcp__github_ci__get_workflow_run_details,mcp__github_ci__download_job_log,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments*),Bash(gh api -X PATCH repos/${{ github.repository }}/issues/comments/*)"
+            --allowedTools "Read(./**),Grep(./**),Glob(./**),mcp__github_inline_comment__create_inline_comment,mcp__github_ci__get_ci_status,mcp__github_ci__get_workflow_run_details,mcp__github_ci__download_job_log,Bash(gh pr comment ${{ github.event.pull_request.number }}:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments*),Bash(gh api -X PATCH repos/${{ github.repository }}/issues/comments/*)"
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
@@ -137,7 +153,8 @@ jobs:
             it in place with
             `gh api -X PATCH repos/${{ github.repository }}/issues/comments/<id> -F body=@-`
             (pipe the new body in on stdin via a heredoc). If no such comment
-            exists yet, create one with `gh pr comment` instead.
+            exists yet, create one with
+            `gh pr comment ${{ github.event.pull_request.number }}` instead.
 
             Use `mcp__github_inline_comment__create_inline_comment` (with
             `confirmed: true`) for specific inline comments. Only post GitHub
@@ -145,9 +162,11 @@ jobs:
 
             After that, always post a second, separate, new one-line comment
             pointing back at the summary, e.g. "🔄 New changes reviewed, see
-            the updated summary above." `gh pr comment` prints the URL of the
-            comment it just posted/edited on success; link to that URL. This
-            gives a freshly-timestamped signal distinct from the summary's
+            the updated summary above." Use
+            `gh pr comment ${{ github.event.pull_request.number }}` again for
+            this; it prints the URL of the comment it just posted on success,
+            link to that URL. This gives a freshly-timestamped signal
+            distinct from the summary's
             own edit, since GitHub's "edited" tooltip on a comment shows its
             original creation time, not the time of the latest edit.
 
