@@ -38,7 +38,7 @@ jobs:
         uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: "Clear compose file - ${{ steps.date.outputs.date }}"
+          commit-message: "chore: clear compose file - ${{ steps.date.outputs.date }}"
           committer: cloudkitebot <henrywangxf1@gmail.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           branch: cpr
