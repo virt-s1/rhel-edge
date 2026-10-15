@@ -7,7 +7,18 @@
 name: Claude review
 
 on:
-  pull_request:
+  # pull_request_target, not pull_request: GitHub withholds repo Variables
+  # and Secrets from pull_request runs triggered by a fork, so
+  # GCP_WORKLOAD_IDENTITY_PROVIDER arrives empty and auth fails outright --
+  # which is nearly every real contributor PR here. pull_request_target runs
+  # in the base repo's context instead, so secrets/vars are available.
+  # claude-code-action v1.0.236 normalizes pull_request_target to
+  # pull_request internally, so its own actor write-permission check and
+  # base-branch restore of its SENSITIVE_PATHS (.claude, .mcp.json,
+  # .claude.json, .gitmodules, .ripgreprc, CLAUDE.md, CLAUDE.local.md,
+  # .husky) still apply. The checkout and AGENTS.md-restore steps below add
+  # what that restore doesn't cover.
+  pull_request_target:
     types:
       - opened
       - synchronize
@@ -24,6 +35,13 @@ concurrency:
 jobs:
   review:
     name: "🤖 Claude review"
+    # Defence-in-depth gate: pull_request_target runs in the base repo's
+    # context with secrets available, so skip the whole job (and the Vertex
+    # WIF auth below, meaning no credential is ever minted) for PRs from
+    # anyone not already associated with this repo. claude-code-action's own
+    # write-permission check is the authoritative gate, but it runs after
+    # checkout/auth; this narrows the attack surface earlier.
+    if: contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -37,12 +55,50 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          # pull_request_target defaults to checking out the base branch, not
+          # the PR head -- we still want to review the PR's actual changes.
+          ref: ${{ github.event.pull_request.head.sha }}
           # This job never needs authenticated git push/pull after checkout.
           # Doesn't fully close the .git/config exposure below on its own --
           # the claude-code-action re-embeds its own token-bearing credential
           # into .git/config regardless, in every mode -- but no reason to
           # also let checkout write one first.
           persist-credentials: false
+
+      - name: Restore AGENTS.md from the base branch
+        # The review prompt tells the agent to follow AGENTS.md, but it isn't
+        # in claude-code-action's own SENSITIVE_PATHS restore list (.claude,
+        # .mcp.json, .claude.json, .gitmodules, .ripgreprc, CLAUDE.md,
+        # CLAUDE.local.md, .husky). Under pull_request_target a fork PR can
+        # rewrite AGENTS.md to redirect the agent's instructions, so restore it
+        # from the trusted base branch before the review runs. Restore from the
+        # base branch tip (origin/<base ref>), matching what the action's own
+        # restore does, so AGENTS.md comes from the same trusted base commit as
+        # the paths above. The base ref is owned by this (trusted) repo, not
+        # the fork, and is passed via env rather than inline ${{ }} so it can't
+        # inject into the shell. The checkout above is shallow/single-ref, so
+        # the base branch isn't local yet -- fetch it first.
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          git fetch --depth=1 origin "$BASE_REF"
+          # Remove the PR's AGENTS.md first -- it may be a symlink, and a
+          # `> AGENTS.md` redirect would write through the link, leaving the
+          # attacker-controlled target in place. Deleting the inode then
+          # restoring with `git checkout` writes a fresh regular file; unstage
+          # it so the revert isn't folded into a commit the agent later makes.
+          # Mirrors claude-code-action's own restore (restore-config.ts).
+          rm -f AGENTS.md
+          git checkout "origin/${BASE_REF}" -- AGENTS.md || true
+          git reset -q -- AGENTS.md || true
+          # Strip any nested instruction files a fork PR plants in a subdir:
+          # Claude Code auto-reads AGENTS.md / CLAUDE.md / CLAUDE.local.md down
+          # the tree, and neither the restore above nor the action covers
+          # nested copies. The action's other SENSITIVE_PATHS (.mcp.json,
+          # .claude/, .claude.json, .ripgreprc, .gitmodules, .husky) are read
+          # only from the repo root -- which the action restores -- so they're
+          # not swept here.
+          find . -mindepth 2 \( -iname 'AGENTS.md' -o -iname 'CLAUDE.md' -o -iname 'CLAUDE.local.md' \) -delete
 
       - name: Authenticate to Google Cloud
         id: gcp-auth
