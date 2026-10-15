@@ -478,7 +478,7 @@ jobs:
           fi
 
           if [[ "$COMPOSE_ID_98" != "false" ]]; then
-              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' > PR_LIST_98
+              gh pr list -R virt-s1/rhel-edge --state open --json title --jq '.[].title' | grep -v '^FDO: ' > PR_LIST_98
               PR_LIST_98=$(cat PR_LIST_98)
               if [[ $PR_LIST_98 == *"$COMPOSE_ID_98"* ]]; then
                   echo "pr_running_98=true" >> $GITHUB_OUTPUT
