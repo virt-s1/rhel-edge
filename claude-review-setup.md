@@ -33,16 +33,57 @@ wrong project) if any are unset.
 
 ## How it runs
 
-- Triggers on `pull_request` `opened` and `synchronize`.
+- Triggers on `pull_request_target` `opened` and `synchronize` (skipping
+  PRs that only touch `compose/`, which are CI-managed and have nothing to
+  review).
 - Posts a summary comment plus inline review comments using the workflow's
   `GITHUB_TOKEN` (`pull-requests: write`); no GitHub App is required for the
   pilot.
-- `concurrency` cancels an in-progress review when new commits land on the same
-  PR, to avoid paying for reviews of stale diffs.
-- **Only works on same-repo branches, not forks.** GitHub Actions does not
-  inject an OIDC token for `pull_request` events triggered from a fork, so
-  this check will always fail on external-contributor PRs — that's expected,
-  not a bug.
+- `concurrency` cancels an in-progress review only when new commits land on
+  the same PR, to avoid paying for reviews of stale diffs. A PR comment
+  (valid `/claude-review` or not) never cancels an in-progress review; it
+  queues behind it instead.
+- **Works on fork PRs.** `pull_request_target` (not `pull_request`) runs in
+  the base repo's context, so secrets/variables are available even when the
+  PR is from a fork. As a trust gate, the job only runs if the PR author's
+  GitHub association with this repo is `OWNER`, `MEMBER`, or `COLLABORATOR`
+  — PRs from first-time or outside contributors are skipped automatically.
+  Use the manual trigger below to review one of those anyway.
+
+### Manual trigger
+
+A repo collaborator (`OWNER`/`MEMBER`/`COLLABORATOR`) can force a review on
+any open PR by commenting:
+
+```
+/claude-review
+```
+
+This is mainly for PRs the automatic trust gate skips — e.g. a first-time
+contributor's otherwise-legitimate PR. The trust check for this path looks
+at the *commenter's* association rather than the PR author's, since the
+comment thread is open to anyone. The comment must start with
+`/claude-review`, and the workflow then reviews the PR's current head
+commit (not necessarily what it was when the comment was posted, if new
+commits land in between).
+
+Note this is deliberately a manual override: it does not skip `compose/`
+tracking-file PRs like the automatic `paths-ignore` check does, so a
+`/claude-review` comment on one of those still runs (and bills) a review.
+
+**Not yet confirmed:** claude-code-action's inline PR comments resolve diff
+positions from the triggering event's context, which differs between
+`pull_request_target` and `issue_comment`. The automatic path is proven (it's
+been running), but the first real `/claude-review` run after this lands
+should be checked to confirm inline comments still anchor to the right
+lines, not just the summary comment.
+
+Like any other GitHub Actions workflow change, edits to this workflow file
+only take effect once merged to the default branch — both
+`pull_request_target` and `issue_comment` always run the workflow definition
+from the base/default branch, not from the PR that's modifying it. A PR that
+changes `claude-review.yml` itself can't be used to test its own new
+behavior; test from a follow-up PR (or comment) after merging.
 
 ## Testing the pilot
 
