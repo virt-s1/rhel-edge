@@ -1,17 +1,21 @@
-summary: FDO go-fdo-client tests against a RHEL 10.x nightly compose
+summary: FDO go-fdo-client and go-fdo-server tests against a RHEL 10.x nightly compose
 description: |
-    Runs the go-fdo-ci package-mode client tests against the go-fdo-client
-    package taken from the RHEL 10.x nightly compose under test. go-fdo-server*
-    is installed from the same nightly compose as a runtime dependency.
+    Runs the go-fdo-ci package-mode onboarding tests against the go-fdo-client
+    and go-fdo-server packages (manufacturer, rendezvous, owner) taken from the
+    RHEL 10.x nightly compose under test. Both components are installed from
+    the provisioned nightly repos: the prepare step installs them with the
+    Testing Farm tag repositories disabled, and INSTALLATION_SOURCE=distro
+    keeps the upstream helpers reinstalling from those same repos after each
+    test's cleanup.
 
     Test scripts are discovered from go-fdo-ci at a pinned commit so they are
-    not duplicated here; package-mode tests install straight from the
-    provisioned nightly repos. The bootc client test (tag:bootc) is
-    deliberately EXCLUDED for now: it needs the additive upstream change
-    (install go-fdo-client from the nightly compose instead of Copr). Once that lands,
-    widen the filter to "tag:client" to pick bootc up too. Note that the bootc test
-    also needs DOWNLOAD_NODE in the test environment, which this CI deliberately
-    does not pass while plans run from a pull request's own ref.
+    not duplicated here. Both the package-mode tests (tag:rpm) and the bootc
+    test (tag:bootc) are selected. Until the additive upstream change lands,
+    the bootc test installs go-fdo-client from Copr rather than from the
+    nightly compose. The bootc test also needs DOWNLOAD_NODE in the test
+    environment, which this CI deliberately does not pass while plans run
+    from a pull request's own ref. Bootc tests are currently not enabled, but
+    will be when the filter is changed to "tag:rpm | tag:bootc".
 
 discover:
   how: fmf
@@ -20,7 +24,7 @@ discover:
   # Bump deliberately after reviewing the upstream changes.
   # Last updated: 2026-10-15 (upstream commit from 2026-10-14)
   ref: d1a72e150ac84b3bc3d16db9b8547d89606db4c7
-  filter: "tag:client & tag:rpm"
+  filter: "tag:rpm"
 
 environment:
   INSTALLATION_SOURCE: distro
@@ -84,13 +88,13 @@ execute:
   how: tmt
 
 /x86:
-  summary: go-fdo-client tests on x86_64
+  summary: go-fdo-client and go-fdo-server tests on x86_64
   adjust+:
     - when: arch != x86_64
       enabled: false
 
 /arm:
-  summary: go-fdo-client tests on aarch64
+  summary: go-fdo-client and go-fdo-server tests on aarch64
   adjust+:
     - when: arch != aarch64
       enabled: false
