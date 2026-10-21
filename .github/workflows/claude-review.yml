@@ -28,26 +28,112 @@ on:
     # a PR touching compose/ plus anything else still gets reviewed.
     paths-ignore:
       - 'compose/**'
+  # Manual override for the author_association gate below (e.g. a
+  # first-time contributor's otherwise-legitimate PR): a repo
+  # collaborator can force a review by commenting "/claude-review" on
+  # the PR. issue_comment fires for comments on both issues and PRs and
+  # runs with full repo-secret access regardless of who commented --
+  # unlike workflow_dispatch, GitHub does not gate who can post a comment --
+  # so the authorize job below re-checks that the comment is actually on a
+  # PR and that the commenter (not the PR author) is at least a
+  # COLLABORATOR before trusting the trigger.
+  issue_comment:
+    types:
+      - created
 
 # Only the review job needs write access; everything else stays read-only.
 permissions: {}
 
 # Cancel a superseded review when new commits are pushed to the same PR, so we
-# do not pay for reviews of stale diffs.
+# do not pay for reviews of stale diffs. Concurrency grouping/cancellation is
+# evaluated when a run is created, before the authorize job's trust check
+# even starts -- so cancel-in-progress must not be unconditionally true, or
+# *any* comment on a PR (not just a valid /claude-review from a collaborator)
+# would join this group and cancel a real review already running, only to
+# then resolve to proceed=false and skip. Only a new pull_request_target run
+# (a genuinely superseding commit) cancels the in-progress run; an
+# issue_comment run -- valid command or not -- just queues behind it.
 concurrency:
-  group: claude-review-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: claude-review-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request_target' }}
 
 jobs:
+  authorize:
+    name: Authorize review trigger
+    # Defence-in-depth gate, computed in its own job (no secrets, no
+    # elevated permissions) so a malformed/untrusted trigger is a quiet
+    # "review job skipped" rather than a failing status check. Both
+    # triggers run in the base repo's context with secrets available, so
+    # the review job below (and the Vertex WIF auth it does, meaning no
+    # credential is ever minted) only runs once this job says so.
+    # - pull_request_target: checks the PR author's association.
+    # - issue_comment: checks the *commenter's* association instead (the PR
+    #   author may be nobody in particular), and additionally requires the
+    #   comment to be on a PR (not a plain issue -- issue_comment fires for
+    #   both) and to contain the "/claude-review" command at the start of a
+    #   line, word-bounded (so "/claude-reviewer, please look" doesn't
+    #   count) -- GitHub Actions expressions have no regex/substring
+    #   functions to express that, so it's done in bash here instead.
+    #
+    # Both branches trust GitHub's author_association string rather than
+    # querying actual push access (which would need `administration: read`,
+    # broader than any other permission this workflow holds anywhere). Fine
+    # today: every current collaborator on this repo has write or admin
+    # access. If someone is ever added as a read-only collaborator, they'd
+    # pass this gate -- claude-code-action's own write-permission check
+    # downstream would still reject them, just after the Vertex credential
+    # is already minted (and immediately moved out of the checkout, per the
+    # step below).
+    #
+    # The `if:` below is a cheap optimization only, not a security boundary
+    # (the bash check below is the real gate either way): it keeps this job
+    # from spinning up a runner for every comment on every issue repo-wide.
+    # It can't be precise (GitHub Actions expressions can't word-boundary
+    # match), so a near-miss like "/claude-reviewer ..." still reaches the
+    # runner and is caught there -- that's fine, it's not meant to stop that
+    # case, just the bulk of unrelated comments. Uses contains(), not
+    # startsWith(): the bash grep below matches "/claude-review" at the
+    # start of any line, not just the start of the whole comment, so the
+    # pre-filter must allow that too or it'd never let those through.
+    if: >-
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       contains(github.event.comment.body, '/claude-review'))
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+    steps:
+      - name: Check trust and command
+        id: check
+        env:
+          PR_ASSOCIATION: ${{ github.event.pull_request.author_association }}
+          IS_PR_COMMENT: ${{ github.event.issue.pull_request && 'true' || 'false' }}
+          COMMENT_ASSOCIATION: ${{ github.event.comment.author_association }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          proceed=false
+          case "$GITHUB_EVENT_NAME" in
+            pull_request_target)
+              case "$PR_ASSOCIATION" in
+                OWNER|MEMBER|COLLABORATOR) proceed=true ;;
+              esac
+              ;;
+            issue_comment)
+              if [ "$IS_PR_COMMENT" = "true" ] && grep -qE '^/claude-review([[:space:]]|$)' <<<"$COMMENT_BODY"; then
+                case "$COMMENT_ASSOCIATION" in
+                  OWNER|MEMBER|COLLABORATOR) proceed=true ;;
+                esac
+              fi
+              ;;
+          esac
+          echo "proceed=$proceed" >> "$GITHUB_OUTPUT"
+
   review:
     name: "🤖 Claude review"
-    # Defence-in-depth gate: pull_request_target runs in the base repo's
-    # context with secrets available, so skip the whole job (and the Vertex
-    # WIF auth below, meaning no credential is ever minted) for PRs from
-    # anyone not already associated with this repo. claude-code-action's own
-    # write-permission check is the authoritative gate, but it runs after
-    # checkout/auth; this narrows the attack surface earlier.
-    if: contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)
+    needs: authorize
+    if: needs.authorize.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -59,11 +145,45 @@ jobs:
       ANTHROPIC_VERTEX_PROJECT_ID: ${{ vars.ANTHROPIC_VERTEX_PROJECT_ID }}
       CLOUD_ML_REGION: ${{ vars.CLOUD_ML_REGION }}
     steps:
+      - name: Resolve PR context
+        # Normalizes PR number/base branch/checkout ref across both trigger
+        # types, since only pull_request_target populates
+        # github.event.pull_request. issue_comment only gives us the PR
+        # (issue) number, so look the rest up; everything event-supplied is
+        # passed through env, never interpolated into the shell, per the
+        # same rule the rest of this file follows.
+        id: resolve-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          EVENT_PR_NUMBER: ${{ github.event.pull_request.number }}
+          EVENT_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          EVENT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "issue_comment" ]; then
+            number="$ISSUE_NUMBER"
+            base_ref=$(gh pr view "$number" --repo "$GITHUB_REPOSITORY" --json baseRefName --jq .baseRefName)
+            # refs/pull/<n>/head always exists for any PR, same-repo or
+            # fork, open or closed -- unlike a bare head SHA, it doesn't
+            # depend on actions/checkout's pull_request_target-specific
+            # fork-fetch handling, which issue_comment doesn't trigger.
+            checkout_ref="refs/pull/$number/head"
+          else
+            number="$EVENT_PR_NUMBER"
+            base_ref="$EVENT_BASE_REF"
+            checkout_ref="$EVENT_HEAD_SHA"
+          fi
+          {
+            echo "number=$number"
+            echo "base_ref=$base_ref"
+            echo "checkout_ref=$checkout_ref"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # pull_request_target defaults to checking out the base branch, not
           # the PR head -- we still want to review the PR's actual changes.
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ steps.resolve-pr.outputs.checkout_ref }}
           # Required: under pull_request_target, checkout v7 refuses to check
           # out fork PR head code unless this is set, because that code then
           # runs in a context with the base repo's secrets ("pwn request").
@@ -72,7 +192,9 @@ jobs:
           # auto-read or auto-execute (.claude, .mcp.json, hooks, etc., plus
           # AGENTS.md below) is restored from the trusted base before the CLI
           # starts. Only collaborators can trigger the job at all (the if:
-          # guard above and the action's own write-permission check).
+          # guard above and the action's own write-permission check); a
+          # manual "/claude-review" comment run is gated the same way, just
+          # checking the commenter's association instead of the PR author's.
           allow-unsafe-pr-checkout: true
           # This job never needs authenticated git push/pull after checkout.
           # Doesn't fully close the .git/config exposure below on its own --
@@ -95,7 +217,7 @@ jobs:
         # inject into the shell. The checkout above is shallow/single-ref, so
         # the base branch isn't local yet -- fetch it first.
         env:
-          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          BASE_REF: ${{ steps.resolve-pr.outputs.base_ref }}
         run: |
           git fetch --depth=1 origin "$BASE_REF"
           # Remove the PR's AGENTS.md first -- it may be a symlink (a
@@ -156,12 +278,13 @@ jobs:
 
       - name: Record review metadata
         id: review-date
-        env:
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        # short_sha comes from the actual checkout, not event data, so it's
+        # correct for both trigger types (issue_comment resolves its
+        # checkout ref to refs/pull/<n>/head, not a known SHA, above).
         run: |
           {
             echo "date=$(date -u +'%Y-%m-%d %H:%M UTC')"
-            echo "short_sha=${HEAD_SHA:0:7}"
+            echo "short_sha=$(git rev-parse --short=7 HEAD)"
           } >> "$GITHUB_OUTPUT"
 
       - uses: anthropics/claude-code-action@925afb53776cf1a2b738c6bdbed37b4d4000ef13 # v1.0.262
@@ -193,12 +316,22 @@ jobs:
           #   backup.
           settings: |
             {"permissions": {"deny": ["Read(//**/gha-creds-*.json)", "Read(./.git/**)", "Grep(./.git/**)", "Glob(./.git/**)"]}}
+          # The gh allowlist patterns below are pinned to exact flag forms so
+          # a prompt-injected PR can't append file-reading flags to a
+          # permitted prefix: `gh pr comment <n> -b *` (rather than `<n>:*`)
+          # keeps `--body-file` out, the comment-listing entries are exact
+          # forms with no trailing wildcard (which would allow appending
+          # `-X POST -F body=@<file>` to post an arbitrary file's contents),
+          # and the PATCH entry is pinned to the stdin form `-F body=@-` the
+          # prompt below uses. Residual, accepted: `-b "$(cat <file>)"`
+          # command substitution still textually matches a trailing
+          # wildcard, same class as the comment-ID wildcard on PATCH.
           claude_args: |
             --model ${{ vars.CLAUDE_REVIEW_MODEL }}
-            --allowedTools "Read(./**),Grep(./**),Glob(./**),mcp__github_inline_comment__create_inline_comment,mcp__github_ci__get_ci_status,mcp__github_ci__get_workflow_run_details,mcp__github_ci__download_job_log,Bash(gh pr comment ${{ github.event.pull_request.number }}:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments*),Bash(gh api -X PATCH repos/${{ github.repository }}/issues/comments/*)"
+            --allowedTools "Read(./**),Grep(./**),Glob(./**),mcp__github_inline_comment__create_inline_comment,mcp__github_ci__get_ci_status,mcp__github_ci__get_workflow_run_details,mcp__github_ci__download_job_log,Bash(gh pr comment ${{ steps.resolve-pr.outputs.number }} -b *),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api repos/${{ github.repository }}/issues/${{ steps.resolve-pr.outputs.number }}/comments),Bash(gh api repos/${{ github.repository }}/issues/${{ steps.resolve-pr.outputs.number }}/comments?per_page=100),Bash(gh api -X PATCH repos/${{ github.repository }}/issues/comments/* -F body=@-)"
           prompt: |
             REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number }}
+            PR NUMBER: ${{ steps.resolve-pr.outputs.number }}
 
             Review this pull request. This is an integration-test repository for
             RHEL for Edge and Fedora IoT, made up mostly of self-contained Bash
@@ -224,13 +357,16 @@ jobs:
             -- the pointer comment below means the bot's own last comment is
             usually that pointer, not the summary. Instead: list this PR's
             comments with
-            `gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments`,
+            `gh api repos/${{ github.repository }}/issues/${{ steps.resolve-pr.outputs.number }}/comments?per_page=100`,
             find the one whose body starts with the header below, and update
             it in place with
             `gh api -X PATCH repos/${{ github.repository }}/issues/comments/<id> -F body=@-`
             (pipe the new body in on stdin via a heredoc). If no such comment
             exists yet, create one with
-            `gh pr comment ${{ github.event.pull_request.number }}` instead.
+            `gh pr comment ${{ steps.resolve-pr.outputs.number }} -b "<body>"`
+            instead. Stick to these exact command forms (e.g. `-b`, not
+            `--body` or `--body-file`): only these are allowlisted, and a
+            variation is silently denied rather than errored.
 
             Use `mcp__github_inline_comment__create_inline_comment` (with
             `confirmed: true`) for specific inline comments. Only post GitHub
@@ -239,12 +375,12 @@ jobs:
             After that, always post a second, separate, new one-line comment
             pointing back at the summary, e.g. "🔄 New changes reviewed, see
             the updated summary above." Use
-            `gh pr comment ${{ github.event.pull_request.number }}` again for
-            this; it prints the URL of the comment it just posted on success,
-            link to that URL. This gives a freshly-timestamped signal
-            distinct from the summary's
-            own edit, since GitHub's "edited" tooltip on a comment shows its
-            original creation time, not the time of the latest edit.
+            `gh pr comment ${{ steps.resolve-pr.outputs.number }} -b "<text>"`
+            again for this; it prints the URL of the comment it just posted
+            on success, link to that URL. This gives a freshly-timestamped
+            signal distinct from the summary's own edit, since GitHub's
+            "edited" tooltip on a comment shows its original creation time,
+            not the time of the latest edit.
 
             Start the top-level summary comment with this exact header (the
             GitHub-rendered author will say github-actions[bot] since this
