@@ -42,45 +42,60 @@ prepare:
     script: |
       set -euxo pipefail
       cat > /usr/local/bin/fdo-test-wrapper.sh <<'EOF'
-#!/bin/bash
-set -euxo pipefail
+      #!/bin/bash
+      set -euxo pipefail
 
-PORT_BASE=8080
-while [ $PORT_BASE -lt 65000 ]; do
-  all_free=true
-  for offset in 0 1 2 3; do
-    if ss -tlnH sport = :$((PORT_BASE + offset)) | grep -q .; then
-      all_free=false
-      break
-    fi
-  done
-  if [ "$all_free" = true ]; then
-    break
-  fi
-  ((PORT_BASE++))
-done
+      PORT_BASE=8080
+      PORTS_NEEDED=4
+      # Limit search to IANA registered range to avoid ephemeral port conflicts
+      MAX_PORT=$((49152 - PORTS_NEEDED))
 
-echo "Using ports: $PORT_BASE - $((PORT_BASE + 3))"
+      found_block=false
+      while [ $PORT_BASE -le $MAX_PORT ]; do
+        block_is_free=true
+        for offset in 0 1 2 3; do
+          current_port=$((PORT_BASE + offset))
+          if ss -tlnH sport = :$current_port | grep -q .; then
+            block_is_free=false
+            PORT_BASE=$((current_port + 1))
+            break
+          fi
+        done
+        if [ "$block_is_free" = true ]; then
+          found_block=true
+          break
+        fi
+      done
 
-P0=$PORT_BASE
-P1=$((PORT_BASE+1))
-P2=$((PORT_BASE+2))
-P3=$((PORT_BASE+3))
+      if [ "$found_block" = false ]; then
+        echo "Error: Unable to find $PORTS_NEEDED consecutive free ports below $MAX_PORT" >&2
+        exit 1
+      fi
 
-curl -fsSL https://raw.githubusercontent.com/fdo-rs/fido-device-onboard-rs/99e4b691a4f9ebeb53a049c817ce4e6d9e73b46a/test/fmf/tests/onboarding/run-onboarding.sh \
-  | sed -e "s/8080/__PORT0__/g" \
-        -e "s/8081/__PORT1__/g" \
-        -e "s/8082/__PORT2__/g" \
-        -e "s/8083/__PORT3__/g" \
-        -e "s/808{0\.\.3}/__PORT0__ __PORT1__ __PORT2__ __PORT3__/g" \
-        -e "s/__PORT0__/$P0/g" \
-        -e "s/__PORT1__/$P1/g" \
-        -e "s/__PORT2__/$P2/g" \
-        -e "s/__PORT3__/$P3/g" > /tmp/run-onboarding.sh
+      echo "Using ports: $PORT_BASE - $((PORT_BASE + PORTS_NEEDED - 1))"
 
-chmod +x /tmp/run-onboarding.sh
-exec /tmp/run-onboarding.sh
-EOF
+      P0=$PORT_BASE
+      P1=$((PORT_BASE+1))
+      P2=$((PORT_BASE+2))
+      P3=$((PORT_BASE+3))
+
+      # Pinned to upstream commit 99e4b691 (2026-08-09)
+      # Bump deliberately after reviewing upstream changes
+      # Port replacement uses negative lookahead/lookbehind to avoid matching within larger numbers
+      curl -fsSL https://raw.githubusercontent.com/fdo-rs/fido-device-onboard-rs/99e4b691a4f9ebeb53a049c817ce4e6d9e73b46a/test/fmf/tests/onboarding/run-onboarding.sh \
+        | sed -E -e "s/(^|[^0-9])8080([^0-9]|$)/\1__PORT0__\2/g" \
+                 -e "s/(^|[^0-9])8081([^0-9]|$)/\1__PORT1__\2/g" \
+                 -e "s/(^|[^0-9])8082([^0-9]|$)/\1__PORT2__\2/g" \
+                 -e "s/(^|[^0-9])8083([^0-9]|$)/\1__PORT3__\2/g" \
+                 -e "s/808\{0\.\.3\}/__PORT0__ __PORT1__ __PORT2__ __PORT3__/g" \
+                 -e "s/__PORT0__/$P0/g" \
+                 -e "s/__PORT1__/$P1/g" \
+                 -e "s/__PORT2__/$P2/g" \
+                 -e "s/__PORT3__/$P3/g" > /tmp/run-onboarding.sh
+
+      chmod +x /tmp/run-onboarding.sh
+      exec /tmp/run-onboarding.sh
+      EOF
       chmod +x /usr/local/bin/fdo-test-wrapper.sh
 
   - how: shell
@@ -107,19 +122,17 @@ EOF
     name: Add SELinux permissions for FDO onboarding tests
     script: |
       set -euxo pipefail
-      dnf install -y policycoreutils-python-utils
       cat > /tmp/fdo-selinux.cil <<'EOF'
-(allow fdo_t etc_t (file (write)))
-(allow fdo_t fdo_conf_t (file (append create rename setattr unlink write)))
-(allow fdo_t fdo_var_lib_t (dir (add_name remove_name write)))
-(allow fdo_t fdo_var_lib_t (file (create setattr unlink write)))
-(allow fdo_t krb5_keytab_t (dir (search)))
-(allow fdo_t postgresql_port_t (tcp_socket (name_connect)))
-(allow fdo_t sssd_t (unix_stream_socket (connectto)))
-(allow fdo_t sssd_var_run_t (sock_file (write)))
-(allow fdo_t unreserved_port_t (tcp_socket (name_bind name_connect)))
-(allow fdo_t luci_port_t (tcp_socket (name_bind name_connect)))
-EOF
+      (allow fdo_t etc_t (file (write)))
+      (allow fdo_t fdo_conf_t (file (append create rename setattr unlink write)))
+      (allow fdo_t fdo_var_lib_t (dir (add_name remove_name write)))
+      (allow fdo_t fdo_var_lib_t (file (create setattr unlink write)))
+      (allow fdo_t krb5_keytab_t (dir (search)))
+      (allow fdo_t postgresql_port_t (tcp_socket (name_connect)))
+      (allow fdo_t sssd_t (unix_stream_socket (connectto)))
+      (allow fdo_t sssd_var_run_t (sock_file (write)))
+      (allow fdo_t port_type (tcp_socket (name_bind name_connect)))
+      EOF
       semodule -i /tmp/fdo-selinux.cil
 
 execute:
