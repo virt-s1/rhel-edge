@@ -1,11 +1,10 @@
-summary: FDO fdo-client tests against a RHEL 9.x nightly compose
+summary: FDO fdo-client and fdo-server tests against a RHEL 9.x nightly compose
 description: |
-    Runs the fido-device-onboard-rs client tests against the fdo-client package
-    taken from the RHEL 9.x nightly compose under test.
+    Runs the fido-device-onboard-rs tests against the fdo-client and 
+    fdo-server packages taken from the RHEL 9.x nightly compose under test.
 
     Test scripts are discovered from fido-device-onboard-rs at a pinned commit.
-    The fdo-client package is installed straight from the provisioned nightly
-    repos.
+    All fdo packages are installed straight from the provisioned nightly repos.
     postgresql-server, sqlite and the SELinux rules replicate the upstream
     onboarding plan's prepare, which assumes the package is already installed.
 
