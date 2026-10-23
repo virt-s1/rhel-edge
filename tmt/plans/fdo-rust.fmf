@@ -3,20 +3,28 @@ description: |
     Runs the fido-device-onboard-rs client tests against the fdo-client package
     taken from the RHEL 9.x nightly compose under test.
 
-    Test scripts are discovered from fido-device-onboard-rs at a pinned commit.
+    Tests 3 ownership voucher storage backends: Directory, PostgreSQL, and SQLite.
+
+    Test scripts are downloaded from fido-device-onboard-rs at a pinned commit
+    and patched to use dynamically allocated ports (starting at 8080) to avoid
+    port conflicts.
+
     The fdo-client package is installed straight from the provisioned nightly
-    repos.
-    postgresql-server, sqlite and the SELinux rules replicate the upstream
+    repos. postgresql-server, sqlite and the SELinux rules replicate the upstream
     onboarding plan's prepare, which assumes the package is already installed.
 
 discover:
-  how: fmf
-  url: https://github.com/fdo-rs/fido-device-onboard-rs
-  # Pinned so a compose result reflects one known set of test scripts.
-  # Bump deliberately after reviewing the upstream changes.
-  # Last updated: 2026-09-30 (upstream commit from 2026-08-09)
-  ref: 99e4b691a4f9ebeb53a049c817ce4e6d9e73b46a
-  test: "/test/fmf/tests/onboarding"
+  how: shell
+  tests:
+    - name: fdo-onboarding-directory
+      test: OV_STORE_DRIVER=Directory /usr/local/bin/fdo-test-wrapper.sh
+      duration: 30m
+    - name: fdo-onboarding-postgres
+      test: OV_STORE_DRIVER=Postgres /usr/local/bin/fdo-test-wrapper.sh
+      duration: 30m
+    - name: fdo-onboarding-sqlite
+      test: OV_STORE_DRIVER=Sqlite /usr/local/bin/fdo-test-wrapper.sh
+      duration: 30m
 
 provision:
   hardware:
@@ -29,6 +37,52 @@ provision:
       - size: ">= 30 GB"
 
 prepare:
+  - how: shell
+    name: Create FDO test wrapper with dynamic port allocation
+    script: |
+      set -euxo pipefail
+      cat > /usr/local/bin/fdo-test-wrapper.sh <<'EOF'
+#!/bin/bash
+set -euxo pipefail
+
+PORT_BASE=8080
+while [ $PORT_BASE -lt 65000 ]; do
+  all_free=true
+  for offset in 0 1 2 3; do
+    if ss -tlnH sport = :$((PORT_BASE + offset)) | grep -q .; then
+      all_free=false
+      break
+    fi
+  done
+  if [ "$all_free" = true ]; then
+    break
+  fi
+  ((PORT_BASE++))
+done
+
+echo "Using ports: $PORT_BASE - $((PORT_BASE + 3))"
+
+P0=$PORT_BASE
+P1=$((PORT_BASE+1))
+P2=$((PORT_BASE+2))
+P3=$((PORT_BASE+3))
+
+curl -fsSL https://raw.githubusercontent.com/fdo-rs/fido-device-onboard-rs/99e4b691a4f9ebeb53a049c817ce4e6d9e73b46a/test/fmf/tests/onboarding/run-onboarding.sh \
+  | sed -e "s/8080/__PORT0__/g" \
+        -e "s/8081/__PORT1__/g" \
+        -e "s/8082/__PORT2__/g" \
+        -e "s/8083/__PORT3__/g" \
+        -e "s/808{0\.\.3}/__PORT0__ __PORT1__ __PORT2__ __PORT3__/g" \
+        -e "s/__PORT0__/$P0/g" \
+        -e "s/__PORT1__/$P1/g" \
+        -e "s/__PORT2__/$P2/g" \
+        -e "s/__PORT3__/$P3/g" > /tmp/run-onboarding.sh
+
+chmod +x /tmp/run-onboarding.sh
+exec /tmp/run-onboarding.sh
+EOF
+      chmod +x /usr/local/bin/fdo-test-wrapper.sh
+
   - how: shell
     name: Install fdo packages from the nightly compose
     script: |
@@ -50,20 +104,23 @@ prepare:
       rpm -q fdo-admin-cli fdo-client fdo-manufacturing-server fdo-owner-cli fdo-owner-onboarding-server fdo-rendezvous-server
 
   - how: shell
-    name: Add SELinux permissions the onboarding tests need
+    name: Add SELinux permissions for FDO onboarding tests
     script: |
       set -euxo pipefail
-      tee /tmp/fdo-missing.cil >/dev/null <<'EOF'
-      (allow fdo_t etc_t (file (write)))
-      (allow fdo_t fdo_conf_t (file (append create rename setattr unlink write)))
-      (allow fdo_t fdo_var_lib_t (dir (add_name remove_name write)))
-      (allow fdo_t fdo_var_lib_t (file (create setattr unlink write)))
-      (allow fdo_t krb5_keytab_t (dir (search)))
-      (allow fdo_t postgresql_port_t (tcp_socket (name_connect)))
-      (allow fdo_t sssd_t (unix_stream_socket (connectto)))
-      (allow fdo_t sssd_var_run_t (sock_file (write)))
-      EOF
-      semodule -i /tmp/fdo-missing.cil
+      dnf install -y policycoreutils-python-utils
+      cat > /tmp/fdo-selinux.cil <<'EOF'
+(allow fdo_t etc_t (file (write)))
+(allow fdo_t fdo_conf_t (file (append create rename setattr unlink write)))
+(allow fdo_t fdo_var_lib_t (dir (add_name remove_name write)))
+(allow fdo_t fdo_var_lib_t (file (create setattr unlink write)))
+(allow fdo_t krb5_keytab_t (dir (search)))
+(allow fdo_t postgresql_port_t (tcp_socket (name_connect)))
+(allow fdo_t sssd_t (unix_stream_socket (connectto)))
+(allow fdo_t sssd_var_run_t (sock_file (write)))
+(allow fdo_t unreserved_port_t (tcp_socket (name_bind name_connect)))
+(allow fdo_t luci_port_t (tcp_socket (name_bind name_connect)))
+EOF
+      semodule -i /tmp/fdo-selinux.cil
 
 execute:
   how: tmt
