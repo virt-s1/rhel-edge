@@ -108,7 +108,7 @@ jobs:
           [ -n "$cid" ] || cid="$COMPOSE"
           # jq builds the payload so no value can break out of the JSON string.
           payload=$(jq -n \
-            --arg text "$emoji *FDO | $LABEL | Compose-id: $cid |* <$RUN_URL|Test Log>" \
+            --arg text "$emoji *FDO | RHEL-$LABEL | Compose-id: $cid |* <$RUN_URL|Test Log>" \
             '{text: "Testing Farm Results for FDO",
               blocks: [{type: "section",
                         text: {type: "mrkdwn", text: $text}}]}')
