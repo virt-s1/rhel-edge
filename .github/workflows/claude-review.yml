@@ -1,0 +1,261 @@
+---
+# Automated AI PR review via the Claude Code GitHub Action (Project Judoon,
+# THEEDGE-4881). Auth is Google Vertex AI with Workload Identity Federation
+# (no direct Anthropic API key, no secrets). See claude-review-setup.md for
+# what this workflow needs, and the internal team-operations repo for the
+# real values and one-time GCP/IAM setup steps.
+name: Claude review
+
+on:
+  # pull_request_target, not pull_request: GitHub withholds repo Variables
+  # and Secrets from pull_request runs triggered by a fork, so
+  # GCP_WORKLOAD_IDENTITY_PROVIDER arrives empty and auth fails outright --
+  # which is nearly every real contributor PR here. pull_request_target runs
+  # in the base repo's context instead, so secrets/vars are available.
+  # claude-code-action v1.0.236 normalizes pull_request_target to
+  # pull_request internally, so its own actor write-permission check and
+  # base-branch restore of its SENSITIVE_PATHS (.claude, .mcp.json,
+  # .claude.json, .gitmodules, .ripgreprc, CLAUDE.md, CLAUDE.local.md,
+  # .husky) still apply. The checkout and AGENTS.md-restore steps below add
+  # what that restore doesn't cover.
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+    # Skip the daily compose-bump PRs: they only touch compose/ tracking
+    # files (CI-managed, nothing to review), so reviewing them is wasted
+    # cost. paths-ignore skips a PR only when every changed file matches, so
+    # a PR touching compose/ plus anything else still gets reviewed.
+    paths-ignore:
+      - 'compose/**'
+
+# Only the review job needs write access; everything else stays read-only.
+permissions: {}
+
+# Cancel a superseded review when new commits are pushed to the same PR, so we
+# do not pay for reviews of stale diffs.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: "🤖 Claude review"
+    # Defence-in-depth gate: pull_request_target runs in the base repo's
+    # context with secrets available, so skip the whole job (and the Vertex
+    # WIF auth below, meaning no credential is ever minted) for PRs from
+    # anyone not already associated with this repo. claude-code-action's own
+    # write-permission check is the authoritative gate, but it runs after
+    # checkout/auth; this narrows the attack surface earlier.
+    if: contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.pull_request.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+      id-token: write  # required for Vertex AI OIDC / Workload Identity Federation
+      actions: read  # lets the agent view CI job logs/results on this PR
+    env:
+      ANTHROPIC_VERTEX_PROJECT_ID: ${{ vars.ANTHROPIC_VERTEX_PROJECT_ID }}
+      CLOUD_ML_REGION: ${{ vars.CLOUD_ML_REGION }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # pull_request_target defaults to checking out the base branch, not
+          # the PR head -- we still want to review the PR's actual changes.
+          ref: ${{ github.event.pull_request.head.sha }}
+          # Required: under pull_request_target, checkout v7 refuses to check
+          # out fork PR head code unless this is set, because that code then
+          # runs in a context with the base repo's secrets ("pwn request").
+          # We opt in deliberately: this workflow reviews the fork's code, it
+          # does not build or execute it, and every path the Claude CLI would
+          # auto-read or auto-execute (.claude, .mcp.json, hooks, etc., plus
+          # AGENTS.md below) is restored from the trusted base before the CLI
+          # starts. Only collaborators can trigger the job at all (the if:
+          # guard above and the action's own write-permission check).
+          allow-unsafe-pr-checkout: true
+          # This job never needs authenticated git push/pull after checkout.
+          # Doesn't fully close the .git/config exposure below on its own --
+          # the claude-code-action re-embeds its own token-bearing credential
+          # into .git/config regardless, in every mode -- but no reason to
+          # also let checkout write one first.
+          persist-credentials: false
+
+      - name: Restore AGENTS.md from the base branch
+        # The review prompt tells the agent to follow AGENTS.md, but it isn't
+        # in claude-code-action's own SENSITIVE_PATHS restore list (.claude,
+        # .mcp.json, .claude.json, .gitmodules, .ripgreprc, CLAUDE.md,
+        # CLAUDE.local.md, .husky). Under pull_request_target a fork PR can
+        # rewrite AGENTS.md to redirect the agent's instructions, so restore it
+        # from the trusted base branch before the review runs. Restore from the
+        # base branch tip (origin/<base ref>), matching what the action's own
+        # restore does, so AGENTS.md comes from the same trusted base commit as
+        # the paths above. The base ref is owned by this (trusted) repo, not
+        # the fork, and is passed via env rather than inline ${{ }} so it can't
+        # inject into the shell. The checkout above is shallow/single-ref, so
+        # the base branch isn't local yet -- fetch it first.
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          git fetch --depth=1 origin "$BASE_REF"
+          # Remove the PR's AGENTS.md first -- it may be a symlink (a
+          # `> AGENTS.md` redirect would write through the link, leaving the
+          # attacker-controlled target) or even a directory (AGENTS.md/x), so
+          # rm -rf. Then restore with `git checkout`, which writes a fresh
+          # regular file, and unstage so the revert isn't folded into a commit
+          # the agent later makes. No `|| true`: AGENTS.md drives the review
+          # prompt, so if it can't be restored from base we want to fail loud
+          # rather than review with it missing. Mirrors restore-config.ts.
+          rm -rf AGENTS.md
+          git checkout "origin/${BASE_REF}" -- AGENTS.md
+          git reset -q -- AGENTS.md
+          # Strip any nested instruction config a fork PR plants in a subdir:
+          # Claude Code auto-reads AGENTS.md / CLAUDE.md / CLAUDE.local.md and
+          # loads a subdirectory .claude (rules/, skills/) on demand, and
+          # neither the restore above nor the action covers nested copies.
+          # -prune + `rm -rf` (not -delete) so a dir planted at one of these
+          # names (e.g. AGENTS.md/x) is removed too. The action's other
+          # SENSITIVE_PATHS (.mcp.json, .claude.json, .ripgreprc, .gitmodules,
+          # .husky) are read only from the repo root, which the action
+          # restores, so they're not swept here.
+          find . -mindepth 2 \( -iname 'AGENTS.md' -o -iname 'CLAUDE.md' -o -iname 'CLAUDE.local.md' -o -iname '.claude' \) -prune -exec rm -rf {} +
+
+      - name: Authenticate to Google Cloud
+        id: gcp-auth
+        # Direct WIF access: the GitHub repo's principalSet is granted
+        # Vertex AI access on the GCP project, so no secret and no service
+        # account are needed. For service-account impersonation instead, add
+        # a `service_account:` input. See claude-review-setup.md for what
+        # these variables are and where the real values live.
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          project_id: ${{ vars.ANTHROPIC_VERTEX_PROJECT_ID }}
+
+      - name: Move Vertex AI credentials out of the checkout
+        # google-github-actions/auth writes the WIF credentials file into
+        # $GITHUB_WORKSPACE by design (its own README says so). The review
+        # step below grants Read/Grep/Glob over that same checkout tree, so a
+        # PR with prompt-injected title/body/diff text could otherwise get
+        # the agent to read and leak this live GCP credential in a public
+        # comment. Read/Grep/Glob are scoped to ./** (the checkout) in
+        # --allowedTools, so moving this file to $RUNNER_TEMP -- outside that
+        # scope -- is a real boundary, not just discovery-avoidance. The
+        # `settings` deny rule below is a second, independent layer in case
+        # that scoping is ever loosened.
+        env:
+          CREDS_PATH: ${{ steps.gcp-auth.outputs.credentials_file_path }}
+        run: |
+          new_path="${RUNNER_TEMP}/$(basename "$CREDS_PATH")"
+          mv "$CREDS_PATH" "$new_path"
+          {
+            echo "GOOGLE_APPLICATION_CREDENTIALS=$new_path"
+            echo "GOOGLE_GHA_CREDS_PATH=$new_path"
+            echo "CLOUDSDK_AUTH_CREDENTIAL_FILE_OVERRIDE=$new_path"
+          } >> "$GITHUB_ENV"
+
+      - name: Record review metadata
+        id: review-date
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          {
+            echo "date=$(date -u +'%Y-%m-%d %H:%M UTC')"
+            echo "short_sha=${HEAD_SHA:0:7}"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: anthropics/claude-code-action@8ce9314fa9a404564fa7e954cd84f25bcba2b829 # v1.0.236
+        with:
+          # No Claude GitHub App installed for this pilot; use the workflow's
+          # own GITHUB_TOKEN instead (granted pull-requests: write, above).
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          use_vertex: "true"
+          # Lets Claude look at this PR's own CI job logs/results (e.g. a
+          # failed Testing Farm run) rather than just the diff. Requires the
+          # matching actions: read job permission, above.
+          additional_permissions: |
+            actions: read
+          # Two things denied, each under all three tool names (Read/Grep/
+          # Glob) rather than just Read: a Read-keyed deny rule isn't
+          # reliably enough to also stop Grep/Glob on the same path (the
+          # enforcement check is reportedly on the directory a Grep/Glob
+          # call is invoked with, not on paths it might incidentally
+          # traverse into), so don't assume coverage carries over between
+          # tools.
+          # - gha-creds-*.json: second, independent layer alongside scoping
+          #   Read/Grep/Glob to ./** below -- deny rules outrank allow rules
+          #   regardless of specificity, so this still blocks the GCP
+          #   credential even if that scoping is ever loosened.
+          # - .git/**: the claude-code-action re-embeds the live
+          #   GITHUB_TOKEN into .git/config's remote URL after checkout, in
+          #   every mode, regardless of persist-credentials above. That file
+          #   sits inside ./**, so this is the actual boundary, not a
+          #   backup.
+          settings: |
+            {"permissions": {"deny": ["Read(//**/gha-creds-*.json)", "Read(./.git/**)", "Grep(./.git/**)", "Glob(./.git/**)"]}}
+          claude_args: |
+            --model ${{ vars.CLAUDE_REVIEW_MODEL }}
+            --allowedTools "Read(./**),Grep(./**),Glob(./**),mcp__github_inline_comment__create_inline_comment,mcp__github_ci__get_ci_status,mcp__github_ci__get_workflow_run_details,mcp__github_ci__download_job_log,Bash(gh pr comment ${{ github.event.pull_request.number }}:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments*),Bash(gh api -X PATCH repos/${{ github.repository }}/issues/comments/*)"
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request. This is an integration-test repository for
+            RHEL for Edge and Fedora IoT, made up mostly of self-contained Bash
+            test scripts, GitHub Actions workflows, and FMF/tmt test metadata
+            (see AGENTS.md, which you should follow).
+
+            Focus on:
+            - Bash correctness: quoting, error handling, unset variables, and
+              portability across the distros these scripts target.
+            - GitHub Actions workflow correctness and supply-chain hygiene
+              (unpinned actions, over-broad permissions, injectable inputs).
+            - Real bugs, security issues, and anything secret accidentally
+              committed.
+
+            If any CI checks on this PR have failed, look at the job logs and
+            explain what went wrong and why, rather than just noting the
+            failure.
+
+            Do not nitpick style already covered by the repo linters (shellcheck,
+            yamllint, codespell, commitlint). Skip generic praise.
+
+            For the top-level summary, don't rely on "edit the last comment"
+            -- the pointer comment below means the bot's own last comment is
+            usually that pointer, not the summary. Instead: list this PR's
+            comments with
+            `gh api repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments`,
+            find the one whose body starts with the header below, and update
+            it in place with
+            `gh api -X PATCH repos/${{ github.repository }}/issues/comments/<id> -F body=@-`
+            (pipe the new body in on stdin via a heredoc). If no such comment
+            exists yet, create one with
+            `gh pr comment ${{ github.event.pull_request.number }}` instead.
+
+            Use `mcp__github_inline_comment__create_inline_comment` (with
+            `confirmed: true`) for specific inline comments. Only post GitHub
+            comments; don't submit review text as plain chat messages.
+
+            After that, always post a second, separate, new one-line comment
+            pointing back at the summary, e.g. "🔄 New changes reviewed, see
+            the updated summary above." Use
+            `gh pr comment ${{ github.event.pull_request.number }}` again for
+            this; it prints the URL of the comment it just posted on success,
+            link to that URL. This gives a freshly-timestamped signal
+            distinct from the summary's
+            own edit, since GitHub's "edited" tooltip on a comment shows its
+            original creation time, not the time of the latest edit.
+
+            Start the top-level summary comment with this exact header (the
+            GitHub-rendered author will say github-actions[bot] since this
+            pilot doesn't use a GitHub App; the header is how to tell it
+            apart from other automated comments on the PR):
+
+            > 🤖 **Claude Review** (via [Claude Code Action](https://github.com/anthropics/claude-code-action))
+
+            End the comment with a line reading
+            `_Last reviewed: commit ${{ steps.review-date.outputs.short_sha }}
+            on ${{ steps.review-date.outputs.date }}_` so readers can tell
+            it's current without relying on GitHub's "edited" timestamp,
+            which shows the comment's original creation time rather than its
+            last edit.
