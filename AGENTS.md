@@ -39,7 +39,7 @@ tmt/
   tests/*.fmf             Test metadata (duration, test script reference).
 .github/workflows/        GitHub Actions workflows:
   lint.yml                PR linting (commitlint, codespell, shellcheck, yamllint). Runs on every PR.
-  trigger-*.yml           Compose detection — each runs daily, creates PRs for new composes.
+  trigger-*.yml           Compose detection — daily except FDO (weekly), creates PRs for new composes.
   rhel-*.yml, centos-*.yml, fedora-{rawhide,NN}.yml, fedora-iot-*.yml
                           Test execution — triggered by /test-* PR comments, calls Testing Farm.
   cleanup-*.yaml          Periodic cleanup of AWS and vSphere resources.
@@ -79,7 +79,7 @@ Keep this table in sync with `tmt/tests/test.sh`.
 
 ## CI workflow
 
-1. Compose detection (daily `trigger-*.yml`) → auto-created PR with compose ID as title.
+1. Compose detection (`trigger-*.yml`: daily, FDO weekly) → auto-created PR with compose ID as title.
 2. `/test-*` comment → GitHub Actions calls Testing Farm.
 3. Testing Farm provisions VM, runs TMT plan.
 4. TMT sets `TEST_CASE` and executes test script.
