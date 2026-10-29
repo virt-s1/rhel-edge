@@ -49,6 +49,38 @@ Create a pull request and add a comment according to the following table:
 | `/test-f46-iot` | Fedora IoT 46 tests |
 | `/test-fdo` | FDO client and server tests routed by compose (Go on RHEL 10.x, Rust on RHEL 9.x) |
 
+## AWS credentials and test timeouts
+
+The RHEL 9.2, 9.4, 9.6, 9.8, CentOS Stream 9, and AWS AMI cleanup workflows use GitHub OIDC to obtain temporary AWS credentials with `aws-actions/configure-aws-credentials` v6.3.0, pinned to a full commit SHA.
+
+Before running these workflows:
+
+- Set the `CI_ROLE_ARN` repository secret to the IAM role ARN.
+- Configure the role to trust GitHub's OIDC provider (`token.actions.githubusercontent.com`) with conditions allowing the intended repository and workflow context.
+- Set the role's `MaxSessionDuration` to 43,200 seconds (12 hours). AWS rejects a requested session duration above this limit.
+
+Testing Farm jobs request 12-hour credentials to allow time for queued tests and cleanup. They pass the temporary access key, secret key, and session token to Testing Farm. These credentials expire automatically and are not refreshed by the waiting GitHub action.
+
+| Setting | Minutes | Purpose |
+|---------|---------|---------|
+| Job `timeout-minutes` | 360 | Overall GitHub job limit, including setup and reporting |
+| Testing Farm step `timeout-minutes` | 340 | Limit for submitting the request and waiting for results |
+| Testing Farm `pipeline_settings.timeout` | 330 | Remote pipeline timeout enforced by Testing Farm |
+
+The 20-minute difference between the job and step limits is shared by setup and reporting. The job deadline takes precedence if setup consumes that budget. Queueing and result delivery can consume the margin between the pipeline and step limits. Stopping the GitHub step does not guarantee cancellation of the remote pipeline.
+
+Use the native step timeout instead of the `timeout` input of the pinned Testing Farm action (`230555baceb860aa468d216f1822974836b965d1`): its polling loop waits four times the configured number of minutes when a request remains active.
+
+The AWS AMI cleanup workflow requests 7,200-second (2-hour) credentials for its 60-minute cleanup step.
+
+Keep the static AWS secrets while `rhel-9-5.yml`, `fedora-43.yml`, and `fedora-rawhide.yml` still reference them.
+
+The AWS AMI cleanup workflow supports manual dispatch in `virt-s1/rhel-edge`. In the Actions tab, open the cleanup workflow, choose **Run workflow**, and select a branch or tag containing the workflow changes. Dispatches through the CLI or API can specify a branch or tag name. The selected branch or tag must exist in that repository; the cleanup job is skipped in forks.
+
+The Testing Farm workflows use `/test-*` comments and do not support manual dispatch. These comments execute the workflow definition from the default branch, so they cannot validate workflow YAML changes in an unmerged PR. Pre-merge validation requires a separately arranged test workflow that executes the proposed definition. After merge, use the appropriate `/test-*` comment to validate the updated workflow.
+
+Confirm successful OIDC role assumption and AWS operations in the cleanup and Testing Farm runs.
+
 ## `rhel-edge` repository CI
 
 Any pull request will trigger **Lint** job automatically. Edge tests will not be run by default. To run Edge test, add comment with content according to the table above.

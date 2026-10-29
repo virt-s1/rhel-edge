@@ -47,12 +47,14 @@ jobs:
       compose_id: ${{ fromJson(steps.pr-api.outputs.data).title }}
 
   edge-cs-9-x86:
+    timeout-minutes: 360
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       statuses: write
+      id-token: write
 
     steps:
       - name: Clone repository
@@ -61,7 +63,17 @@ jobs:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
+      - name: Configure AWS credentials
+        id: aws-credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd  # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.CI_ROLE_ARN }}
+          aws-region: us-east-1
+          role-duration-seconds: 43200  # Allow time for queued tests and cleanup.
+          output-credentials: true
+
       - name: Run the tests
+        timeout-minutes: 340
         uses: sclorg/testing-farm-as-github-action@230555baceb860aa468d216f1822974836b965d1 # v4.3.1
         with:
           compose: CentOS-Stream-9
@@ -74,9 +86,9 @@ jobs:
           tmt_context: "arch=x86_64;distro=cs-9"
           tmt_plan_regex: edge-x86
           tf_scope: private
-          secrets: "DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }};OCP4_TOKEN=${{ secrets.OCP4_TOKEN }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }};DOCKERHUB_PASSWORD=${{ secrets.DOCKERHUB_PASSWORD }};AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }};AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }};GOVC_URL=${{ secrets.GOVC_URL }};GOVC_USERNAME=${{ secrets.GOVC_USERNAME }};GOVC_PASSWORD=${{ secrets.GOVC_PASSWORD }}"
+          secrets: "DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }};OCP4_TOKEN=${{ secrets.OCP4_TOKEN }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }};DOCKERHUB_PASSWORD=${{ secrets.DOCKERHUB_PASSWORD }};AWS_ACCESS_KEY_ID=${{ steps.aws-credentials.outputs.aws-access-key-id }};AWS_SECRET_ACCESS_KEY=${{ steps.aws-credentials.outputs.aws-secret-access-key }};AWS_SESSION_TOKEN=${{ steps.aws-credentials.outputs.aws-session-token }};GOVC_URL=${{ secrets.GOVC_URL }};GOVC_USERNAME=${{ secrets.GOVC_USERNAME }};GOVC_PASSWORD=${{ secrets.GOVC_PASSWORD }}"
           variables: "ARCH=x86_64;AWS_DEFAULT_REGION=us-east-1;GOVC_INSECURE=1"
-          timeout: 180
+          pipeline_settings: '{"timeout": 330}'
 
       - name: Send test results to Slack via webhook
         if: ${{ always() && startsWith(needs.pr-info.outputs.compose_id, 'CentOS-Stream-9-') }}
@@ -101,12 +113,14 @@ jobs:
           }' ${{ secrets.SLACK_WEBHOOK_URL_RHEL_EDGE_CI }}
 
   edge-cs-9-arm:
+    timeout-minutes: 360
     needs: pr-info
     if: ${{ needs.pr-info.outputs.allowed_user == 'true' && github.event.issue.pull_request }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       statuses: write
+      id-token: write
 
     steps:
       - name: Clone repository
@@ -115,7 +129,17 @@ jobs:
           ref: ${{ needs.pr-info.outputs.sha }}
           fetch-depth: 0
 
+      - name: Configure AWS credentials
+        id: aws-credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd  # v6.3.0
+        with:
+          role-to-assume: ${{ secrets.CI_ROLE_ARN }}
+          aws-region: us-east-1
+          role-duration-seconds: 43200  # Allow time for queued tests and cleanup.
+          output-credentials: true
+
       - name: Run the tests
+        timeout-minutes: 340
         uses: sclorg/testing-farm-as-github-action@230555baceb860aa468d216f1822974836b965d1 # v4.3.1
         with:
           compose: CentOS-Stream-9
@@ -128,9 +152,9 @@ jobs:
           tmt_context: "arch=aarch64;distro=cs-9"
           tmt_plan_regex: edge-arm
           tf_scope: private
-          secrets: "DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }};OCP4_TOKEN=${{ secrets.OCP4_TOKEN }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }};DOCKERHUB_PASSWORD=${{ secrets.DOCKERHUB_PASSWORD }};AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }};AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }};GOVC_URL=${{ secrets.GOVC_URL }};GOVC_USERNAME=${{ secrets.GOVC_USERNAME }};GOVC_PASSWORD=${{ secrets.GOVC_PASSWORD }}"
+          secrets: "DOWNLOAD_NODE=${{ secrets.DOWNLOAD_NODE }};OCP4_TOKEN=${{ secrets.OCP4_TOKEN }};QUAY_USERNAME=${{ secrets.QUAY_USERNAME }};QUAY_PASSWORD=${{ secrets.QUAY_PASSWORD }};DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }};DOCKERHUB_PASSWORD=${{ secrets.DOCKERHUB_PASSWORD }};AWS_ACCESS_KEY_ID=${{ steps.aws-credentials.outputs.aws-access-key-id }};AWS_SECRET_ACCESS_KEY=${{ steps.aws-credentials.outputs.aws-secret-access-key }};AWS_SESSION_TOKEN=${{ steps.aws-credentials.outputs.aws-session-token }};GOVC_URL=${{ secrets.GOVC_URL }};GOVC_USERNAME=${{ secrets.GOVC_USERNAME }};GOVC_PASSWORD=${{ secrets.GOVC_PASSWORD }}"
           variables: "ARCH=aarch64;AWS_DEFAULT_REGION=us-east-1;GOVC_INSECURE=1"
-          timeout: 180
+          pipeline_settings: '{"timeout": 330}'
 
       - name: Send test results to Slack via webhook
         if: ${{ always() && startsWith(needs.pr-info.outputs.compose_id, 'CentOS-Stream-9-') }}
