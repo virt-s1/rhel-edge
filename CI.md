@@ -23,7 +23,7 @@ Fedora IoT compose triggers run daily for each supported Fedora IoT version (def
 
 ## FDO compose CI
 
-The FDO compose trigger (`trigger-fdo.yml`) runs once a day and checks both RHEL 10.2 and RHEL 9.8.0 nightly composes. For each new compose (not found in the tracking files `compose/compose.fdo-102` and `compose/compose.fdo-98`), a pull request titled `FDO: <COMPOSE_ID>` is created, auto merge is enabled, and a `/test-fdo` comment is added.
+The FDO compose trigger (`trigger-fdo.yml`) runs weekly on Monday at 05:00 UTC and checks both RHEL 10.2 and RHEL 9.8.0 nightly composes. For each new compose (not found in the tracking files `compose/compose.fdo-102` and `compose/compose.fdo-98`), a pull request titled `FDO: <COMPOSE_ID>` is created, auto merge is enabled, and a `/test-fdo` comment is added.
 
 Tests are routed by RHEL version:
 - **RHEL 10.x** → runs the **Go** FDO client and server tests (`go-fdo-ci` package-mode, `tag:rpm`) against `go-fdo-client` and `go-fdo-server` (manufacturer, rendezvous, owner) from the nightly compose
