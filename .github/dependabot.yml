@@ -7,6 +7,12 @@ updates:
       interval: weekly
     commit-message:
       prefix: "chore"
+    # Delay Dependabot version-update PRs so newly released action versions
+    # have time to show regressions before we pick them up. Cooldown never
+    # applies to security updates, which still open immediately.
+    cooldown:
+      default-days: 3
+      semver-major-days: 30
     groups:
       codeql:
         patterns:
