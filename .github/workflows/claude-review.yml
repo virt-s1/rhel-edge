@@ -287,7 +287,7 @@ jobs:
             echo "short_sha=$(git rev-parse --short=7 HEAD)"
           } >> "$GITHUB_OUTPUT"
 
-      - uses: anthropics/claude-code-action@925afb53776cf1a2b738c6bdbed37b4d4000ef13 # v1.0.262
+      - uses: anthropics/claude-code-action@4fa93a88de49bbef68b10eb15aabedf28ca0e1ed # v1.0.271
         with:
           # No Claude GitHub App installed for this pilot; use the workflow's
           # own GITHUB_TOKEN instead (granted pull-requests: write, above).
