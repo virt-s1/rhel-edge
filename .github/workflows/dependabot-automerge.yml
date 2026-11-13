@@ -1,0 +1,29 @@
+---
+name: Dependabot auto-merge
+
+on:
+  # pull_request_target because workflows triggered by Dependabot on pull_request
+  # get a read-only GITHUB_TOKEN. Nothing from the PR is checked out here.
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+
+permissions: {}
+
+jobs:
+  dependabot-automerge:
+    permissions:
+      contents: write
+      pull-requests: write
+    # Do not run this job on any fork repos
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'virt-s1/rhel-edge'
+    runs-on: ubuntu-latest
+    steps:
+      # A review approval is still required before automerge proceeds
+      - name: Enable pull request automerge
+        uses: peter-evans/enable-pull-request-automerge@a660677d5469627102a1c1e11409dd063606628d # v3.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          pull-request-number: ${{ github.event.pull_request.number }}
+          merge-method: rebase
