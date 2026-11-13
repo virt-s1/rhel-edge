@@ -7,6 +7,12 @@ updates:
       interval: weekly
     commit-message:
       prefix: "chore"
+    # Dependabot's defaults are dependencies plus the ecosystem label; setting
+    # labels replaces them, so all three have to be listed.
+    labels:
+      - dependencies
+      - github_actions
+      - auto-merge
     groups:
       codeql:
         patterns:
