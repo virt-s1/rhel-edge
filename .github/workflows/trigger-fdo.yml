@@ -140,7 +140,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
+        uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1  # v8.1.3
         with:
           token: ${{ secrets.PAT }}
           commit-message: "chore: ${{ needs.check-102.outputs.rhel102_compose }} - ${{ steps.date.outputs.date }}"
@@ -193,7 +193,7 @@ jobs:
 
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1  # v8.1.1
+        uses: peter-evans/create-pull-request@3ffccacd46053766916f087ce41d627c0b8cf2d1  # v8.1.3
         with:
           token: ${{ secrets.PAT }}
           commit-message: "chore: ${{ needs.check-98.outputs.rhel98_compose }} - ${{ steps.date.outputs.date }}"
