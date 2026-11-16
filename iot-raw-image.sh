@@ -84,10 +84,6 @@ ADD_STORAGE="+10G"
 
 # Set OS-specific variables
 case "${IOT_VERSION}" in
-    "44")
-        OSTREE_REF="fedora/stable/${ARCH}/iot"
-        OS_VARIANT="fedora-unknown"
-        ;;
     "45")
         OSTREE_REF="fedora/stable/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
