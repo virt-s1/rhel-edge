@@ -19,7 +19,7 @@ Fedora Rawhide compose trigger is currently disabled (commented out in `trigger-
 
 ## Fedora IoT compose CI
 
-Fedora IoT compose triggers run daily for each supported Fedora IoT version (defined in `trigger-iot.yml`) and can also be run manually, for example, with `/test-f44-iot`. They check the `COMPOSE_ID` of the latest compose. If the `COMPOSE_ID` can't be found in the corresponding compose file (e.g. `compose/compose.f44-iot`), a new pull request will be created and a corresponding `/test-f*-iot` comment will be added. That will trigger all Fedora IoT tests on the corresponding Fedora IoT VM deployed via Testing Farm.
+Fedora IoT compose detection runs daily for Fedora IoT 45 and 46 and can also be started manually from the Actions tab (`workflow_dispatch` in `trigger-iot.yml`). For each finished compose, it checks whether `COMPOSE_ID` is already recorded in the corresponding tracking file (e.g. `compose/compose.f45-iot`). If the compose is new and has no open compose PR, it creates a pull request and adds the corresponding `/test-f*-iot` comment. Tests can also be triggered manually on a PR with `/test-f45-iot` or `/test-f46-iot`. Testing Farm provisions a Fedora 44 host VM; the tests download the selected Fedora IoT compose artifacts and deploy them into nested guest VMs.
 
 ## FDO compose CI
 
@@ -44,7 +44,6 @@ Create a pull request and add a comment according to the following table:
 | `/test-rhel-9-5` | All RHEL 9.5 Edge tests |
 | `/test-rhel-9-6` | All RHEL 9.6 Edge tests |
 | `/test-cs9` | All CentOS Stream 9 Edge tests |
-| `/test-f44-iot` | Fedora IoT 44 tests |
 | `/test-f45-iot` | Fedora IoT 45 tests |
 | `/test-f46-iot` | Fedora IoT 46 tests |
 | `/test-fdo` | FDO client and server tests routed by compose (Go on RHEL 10.x, Rust on RHEL 9.x) |

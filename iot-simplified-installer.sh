@@ -76,10 +76,6 @@ IOT_VERSION=$(echo "${COMPOSE}" | cut -d- -f3)
 
 # Set OS-specific variables
 case "${IOT_VERSION}" in
-    "44")
-        OSTREE_REF="fedora/stable/${ARCH}/iot"
-        OS_VARIANT="fedora-unknown"
-        ;;
     "45")
         OSTREE_REF="fedora/stable/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
