@@ -83,9 +83,6 @@ BOOTC_SYSTEM="true"
 
 # Set OS-specific variables
 case "${IOT_VERSION}" in
-    "44")
-        OS_VARIANT="fedora-unknown"
-        ;;
     "45")
         OS_VARIANT="fedora-unknown"
         ;;

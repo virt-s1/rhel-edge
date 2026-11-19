@@ -13,6 +13,12 @@ updates:
     cooldown:
       default-days: 3
       semver-major-days: 30
+    # Dependabot's defaults are dependencies plus the ecosystem label; setting
+    # labels replaces them, so all three have to be listed.
+    labels:
+      - dependencies
+      - github_actions
+      - auto-merge
     groups:
       codeql:
         patterns:

@@ -11,9 +11,12 @@ Fedora IoT tests **do not build images** — they download pre-built compose art
 
 | Stream | Status | Testing Farm compose | OSTree ref |
 |--------|--------|----------------------|------------|
-| Fedora IoT 44 (F44) | Stable | `Fedora-44` | `fedora/stable/${ARCH}/iot` |
-| Fedora IoT 45 (F45) | Devel | `Fedora-44` | `fedora/devel/${ARCH}/iot` |
+| Fedora IoT 45 (F45) | Stable | `Fedora-44` | `fedora/stable/${ARCH}/iot` |
 | Fedora IoT 46 (F46) | Rawhide | `Fedora-44` | `fedora/rawhide/${ARCH}/iot` |
+
+Fedora IoT 44 artifact testing is retired because the required IoT artifacts are no longer available in Koji (see [issue #12837](https://github.com/virt-s1/rhel-edge/issues/12837)).
+
+`Fedora-44` remains the Testing Farm host OS for both active streams. The `COMPOSE` environment variable selects the IoT version tested inside the guest VM.
 
 ## Data flow
 
@@ -25,18 +28,16 @@ Daily 13:00 UTC
 │ 1. DETECT NEW COMPOSE                                               │
 │    File: .github/workflows/trigger-iot.yml                          │
 │    - Fetch latest compose from kojipkgs.fedoraproject.org           │
-│    - Check F44: compare with compose/compose.f44-iot                │
 │    - Check F45: compare with compose/compose.f45-iot                │
 │    - Check F46: compare with compose/compose.f46-iot                │
 │    - If new compose found, create PR and add trigger comment        │
-│      F44 → /test-f44-iot   F45 → /test-f45-iot   F46 → /test-f46-iot│
+│      F45 → /test-f45-iot   F46 → /test-f46-iot                      │
 └─────────────────────────────────────────────────────────────────────┘
                      │
                      │ PR created with compose ID as title
                      ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │ 2. TRIGGER TESTS                                                    │
-│    F44: .github/workflows/fedora-iot-44.yml  (/test-f44-iot)        │
 │    F45: .github/workflows/fedora-iot-45.yml  (/test-f45-iot)        │
 │    F46: .github/workflows/fedora-iot-46.yml  (/test-f46-iot)        │
 │    - Call Testing Farm                                              │
@@ -80,7 +81,6 @@ Daily 13:00 UTC
                      ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │ 6. REPORT RESULTS                                                   │
-│    F44: fedora-iot-44.yml → PR check: iot-f44-x86 ✅/❌             │
 │    F45: fedora-iot-45.yml → PR check: iot-f45-x86 ✅/❌             │
 │    F46: fedora-iot-46.yml → PR check: iot-f46-x86 ✅/❌             │
 │    - Sends test results to Slack                                    │
@@ -94,13 +94,11 @@ Daily 13:00 UTC
 ```
 trigger-iot.yml
     │
-    ├─ Reads: compose/compose.f44-iot           [list of tested F44 composes]
     ├─ Reads: compose/compose.f45-iot           [list of tested F45 composes]
     ├─ Reads: compose/compose.f46-iot           [list of tested F46 composes]
     ├─ Fetches: kojipkgs.fedoraproject.org      [compose server]
     │
     └─ Creates PR per stream
-         F44 - Title: Fedora-IoT-44-YYYYMMDD.N  Comment: /test-f44-iot
          F45 - Title: Fedora-IoT-45-YYYYMMDD.N  Comment: /test-f45-iot
          F46 - Title: Fedora-IoT-46-YYYYMMDD.N  Comment: /test-f46-iot
 ```
@@ -108,7 +106,7 @@ trigger-iot.yml
 ### 2. PR comment → Testing Farm
 
 ```
-fedora-iot-{44,45,46}.yml (triggered by /test-f{44,45,46}-iot)
+fedora-iot-{45,46}.yml (triggered by /test-f{45,46}-iot)
     │
     ├─ Job: pr-info
     │    ├─ Checks: User permissions via GitHub API
@@ -117,7 +115,7 @@ fedora-iot-{44,45,46}.yml (triggered by /test-f{44,45,46}-iot)
     │         - ref (branch name)
     │         - compose_id (from PR title or Koji fallback)
     │
-    └─ Job: iot-{44,45,46}-x86
+    └─ Job: iot-{45,46}-x86
          └─ Testing Farm
               - compose: Fedora-44
               - tmt_context: "arch=x86_64;distro=fedora-44"
@@ -178,16 +176,15 @@ Each IoT test script derives the IoT version from `${COMPOSE}` (e.g. `Fedora-IoT
 
 | `IOT_VERSION` | `OSTREE_REF` | `OS_VARIANT` |
 |---------------|------------|-----------|
-| `44` | `fedora/stable/${ARCH}/iot` | `fedora-unknown` |
-| `45` | `fedora/devel/${ARCH}/iot` | `fedora-unknown` |
+| `45` | `fedora/stable/${ARCH}/iot` | `fedora-unknown` |
 | `46` | `fedora/rawhide/${ARCH}/iot` | `fedora-rawhide` |
 
 ### 6. Results reporting
 
 ```
-fedora-iot-{44,45,46}.yml (after Testing Farm completes)
+fedora-iot-{45,46}.yml (after Testing Farm completes)
     │
-    ├─ Updates PR status: ✅/❌ iot-f{44,45,46}-x86
+    ├─ Updates PR status: ✅/❌ iot-f{45,46}-x86
     │
     └─ Sends Slack notification to alerts-fedora-iot-compose-inspector (private):
          - Format: emoji distribution | architecture | compose ID | test log link
@@ -197,11 +194,9 @@ fedora-iot-{44,45,46}.yml (after Testing Farm completes)
 
 | File | Purpose | What it does |
 |------|---------|--------------|
-| `.github/workflows/trigger-iot.yml` | Detect compose | Checks for new F44/F45/F46 composes, creates PRs, adds trigger comments |
-| `.github/workflows/fedora-iot-44.yml` | Trigger F44 tests | Triggered by `/test-f44-iot`, calls Testing Farm with `Fedora-44` |
+| `.github/workflows/trigger-iot.yml` | Detect compose | Checks for new F45/F46 composes, creates PRs, adds trigger comments |
 | `.github/workflows/fedora-iot-45.yml` | Trigger F45 tests | Triggered by `/test-f45-iot`, calls Testing Farm with `Fedora-44` |
 | `.github/workflows/fedora-iot-46.yml` | Trigger F46 tests | Triggered by `/test-f46-iot`, calls Testing Farm with `Fedora-44` |
-| `compose/compose.f44-iot` | F44 compose history | Tracks already-tested F44 compose IDs |
 | `compose/compose.f45-iot` | F45 compose history | Tracks already-tested F45 compose IDs |
 | `compose/compose.f46-iot` | F46 compose history | Tracks already-tested F46 compose IDs |
 | `tmt/plans/iot-test.fmf` | Test selection | Defines which tests run |

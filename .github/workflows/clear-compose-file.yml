@@ -45,7 +45,7 @@ jobs:
           branch-suffix: random
           delete-branch: true
           title: "Clear compose file - ${{ steps.date.outputs.date }}"
-          labels: needs-review,auto-merge
+          labels: auto-merge
           body: |
             Clear compose file
             - Date: ${{ steps.date.outputs.date }}

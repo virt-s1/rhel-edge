@@ -75,10 +75,6 @@ COMPOSE_ID=$(echo "${COMPOSE}" | cut -d- -f4)
 IOT_VERSION=$(echo "${COMPOSE}" | cut -d- -f3)
 
 case "${IOT_VERSION}" in
-    "44")
-        OSTREE_REF="fedora/stable/${ARCH}/iot"
-        OS_VARIANT="fedora-unknown"
-        ;;
     "45")
         OSTREE_REF="fedora/stable/${ARCH}/iot"
         OS_VARIANT="fedora-unknown"
